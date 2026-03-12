@@ -1,0 +1,23 @@
+{
+  "skill_name": "vetcoders-ownership",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Take ownership of this repo and turn the current local AI tester into a real dashboard with runtime, voice, and agent surfaces. Do not stop at code — leave it feeling productized.",
+      "expected_output": "The agent chooses an end-to-end shape, implements across multiple surfaces, verifies the real path, and reports the highest-leverage next step.",
+      "files": []
+    },
+    {
+      "id": 2,
+      "prompt": "You drive. Fix the runtime bug, simplify the architecture, update docs, and make the local stack feel production-ready without asking me to micromanage every step.",
+      "expected_output": "The agent makes decisive architecture and implementation choices, verifies runtime truth, and improves the surrounding product surfaces.",
+      "files": []
+    },
+    {
+      "id": 3,
+      "prompt": "Od a do z, z wow efektem: package this rough internal tool so a teammate can discover it, run it, trust it, and want to keep using it.",
+      "expected_output": "The agent treats the task as a full product slice, not a narrow patch, and closes packaging, UX, docs, and runtime gaps.",
+      "files": []
+    }
+  ]
+}

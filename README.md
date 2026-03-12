@@ -43,6 +43,7 @@ our skills depend on.
 - `vetcoders-decorate` — visual polish and micro-interactions
 - `vetcoders-implement` — in-session implementation (safe alternative to spawn)
 - `vetcoders-partner` — executive debug + agent swarms
+- `vetcoders-ownership` — full-spectrum end-to-end delivery mode
 - `vetcoders-screenscribe` — screenshot analysis
 - `vetcoders-spawn` — external agent fleet via portable scripts
 - `vetcoders-subagents` — parallel delegation pattern
