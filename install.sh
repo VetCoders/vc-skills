@@ -56,4 +56,4 @@ else
   git clone "$repo_url" "$checkout"
 fi
 
-exec bash "$checkout/vetcoders-spawn/scripts/install.sh" --source "$checkout" "${installer_args[@]}"
+exec zsh -ic "$checkout/vetcoders-spawn/scripts/install.sh" --source "$checkout" "${installer_args[@]}"
