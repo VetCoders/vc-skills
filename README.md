@@ -4,9 +4,8 @@ Canonical source of truth for the reusable VetCoders skill stack.
 
 This repo exists so our skills stop drifting across:
 
-- `~/.codex/skills`
-- `~/.claude/skills`
-- `~/.gemini/skills`
+- canonical shared store: `~/.agents/skills`
+- per-agent symlink views: `~/.codex/skills`, `~/.claude/skills`, `~/.gemini/skills`
 
 The goal is simple: one place to edit, review, version, and ship the skills,
 installers, and shell glue that power the VetCoders workflow.
@@ -19,7 +18,7 @@ This repo is meant to be:
 
 - the canonical home for VetCoders skills
 - the reviewable source for shared agent instructions
-- the sync source for local installs in Codex, Claude, and Gemini
+- the sync source for the shared install store plus Codex, Claude, and Gemini symlink views
 - the place where we enforce basic standards: no secrets, no local junk, no silent drift
 
 ## What Lives Here
@@ -29,8 +28,6 @@ This repo is meant to be:
 - `ai-contexters` — session history extraction (wraps `aicx` CLI)
 - `loctree` — structural code mapping (wraps `loctree-mcp`)
 - `bravesearch` — web search via Brave API
-- `pdf` — PDF processing
-
 These are not all "VetCoders-branded", but they are part of the practical stack
 our skills depend on.
 
@@ -43,12 +40,11 @@ our skills depend on.
 - `vetcoders-dou` — Definition of Undone (product surface audit)
 - `vetcoders-hydrate` — packaging and go-to-market gap fill
 - `vetcoders-decorate` — visual polish and micro-interactions
-- `vetcoders-implement` — in-session implementation (safe alternative to spawn)
+- `vetcoders-delegate` — in-session implementation (safe alternative when external agents are unnecessary)
 - `vetcoders-partner` — executive debug + agent swarms
 - `vetcoders-ownership` — full-spectrum end-to-end delivery mode
 - `vetcoders-screenscribe` — screenshot analysis
-- `vetcoders-spawn` — external agent fleet via portable scripts
-- `vetcoders-subagents` — parallel delegation pattern
+- `vetcoders-agents` — external agent fleet via portable scripts
 - `vetcoders-ship` — shipping orchestrator
 - `vetcoders-prune` — dead code and runtime cone extraction
 - `vetcoders-prview` — PR review pipeline (wraps `prview` binary)
@@ -57,7 +53,7 @@ Together, these define the current VetCoders operating model:
 
 ```text
 init -> workflow -> followup -> marbles -> dou -> hydrate
-                    \-> implement / partner / spawn / subagents
+                    \-> delegate / partner / agents
 ```
 
 ## Dependency Classification
@@ -107,8 +103,8 @@ You only need the agent CLIs for the runtimes you actually use.
 
 ### 1. Canonical beats copied
 
-If a skill is edited in `~/.codex/skills` but not brought back here, the system
-starts lying to us.
+If a skill is edited in a per-agent symlink view like `~/.codex/skills` but not
+brought back here, the system starts lying to us.
 
 This repo should become the first place we update skills, and local home-folder
 copies should become install targets, not hidden sources of truth.
@@ -144,15 +140,14 @@ ai-contexters/
 bravesearch/
 loctree/
 vetcoders-*/
-vetcoders-spawn/scripts/
+vetcoders-agents/
 docs/
-pdf/
 vetcoders-suite-showcase.html
 ```
 
 Notes:
 
-- `docs/`, `pdf/`, and the showcase HTML were inherited from the seed copy.
+- `docs/` and the showcase HTML were inherited from the seed copy.
 - They may stay if they serve real packaging or documentation value.
 - If they are just historical carry-over, they should eventually be pruned.
 
@@ -163,16 +158,16 @@ remote sync helpers.
 
 ### Local install
 
-Install all canonical skills into Codex, Claude, and Gemini:
+Install all canonical skills into `~/.agents/skills` and create symlink views for Codex, Claude, and Gemini:
 
 ```bash
-bash vetcoders-spawn/scripts/install.sh
+bash vetcoders-agents/scripts/install.sh
 ```
 
 Install skills plus the repo-owned zsh helper layer:
 
 ```bash
-bash vetcoders-spawn/scripts/install.sh --with-shell
+bash vetcoders-agents/scripts/install.sh --with-shell
 ```
 
 The helper layer is the distilled, product-worthy part of the founders' zsh
@@ -188,25 +183,25 @@ It does **not** try to copy private shell aesthetics, banners, or unrelated alia
 Install only selected runtimes:
 
 ```bash
-bash vetcoders-spawn/scripts/install.sh --tool codex --tool claude
+bash vetcoders-agents/scripts/install.sh --tool codex --tool claude
 ```
 
 Dry-run the install:
 
 ```bash
-bash vetcoders-spawn/scripts/install.sh --dry-run
+bash vetcoders-agents/scripts/install.sh --dry-run
 ```
 
 Canonical 1:1 mirror when you explicitly want deletions inside installed skill dirs:
 
 ```bash
-bash vetcoders-spawn/scripts/install.sh --mirror
+bash vetcoders-agents/scripts/install.sh --mirror
 ```
 
 Install only the zsh helper layer:
 
 ```bash
-bash vetcoders-spawn/scripts/install-shell.sh
+bash vetcoders-agents/scripts/install-shell.sh
 ```
 
 ### Remote sync
@@ -214,25 +209,25 @@ bash vetcoders-spawn/scripts/install-shell.sh
 Sync the canonical skills to another machine without copying private dotfiles:
 
 ```bash
-bash vetcoders-spawn/scripts/skills_sync.sh mgbook16
+bash vetcoders-agents/scripts/skills_sync.sh mgbook16
 ```
 
 Dry-run remote sync:
 
 ```bash
-bash vetcoders-spawn/scripts/skills_sync.sh mgbook16 --dry-run
+bash vetcoders-agents/scripts/skills_sync.sh mgbook16 --dry-run
 ```
 
 Canonical 1:1 remote mirror when you explicitly want deletions on the target machine:
 
 ```bash
-bash vetcoders-spawn/scripts/skills_sync.sh mgbook16 --mirror
+bash vetcoders-agents/scripts/skills_sync.sh mgbook16 --mirror
 ```
 
 Sync skills plus the optional shell helper layer to another machine:
 
 ```bash
-bash vetcoders-spawn/scripts/skills_sync.sh mgbook16 --with-shell
+bash vetcoders-agents/scripts/skills_sync.sh mgbook16 --with-shell
 ```
 
 ### Bootstrap installer
@@ -247,7 +242,7 @@ curl -fsSL <raw-install-url> | bash -s -- --with-shell
 ```
 
 That bootstrap script clones or updates the repo into a local checkout and then
-delegates to `vetcoders-spawn/scripts/install.sh`.
+delegates to `vetcoders-agents/scripts/install.sh`.
 
 The installer runs two levels of preflight:
 

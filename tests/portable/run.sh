@@ -16,6 +16,10 @@ require_file() {
   [[ -f "$1" ]] || die "Missing file: $1"
 }
 
+require_symlink() {
+  [[ -L "$1" ]] || die "Missing symlink: $1"
+}
+
 wait_for_meta() {
   local meta_path="$1"
   local attempts="${2:-80}"
@@ -60,15 +64,15 @@ assert_not_contains() {
 log "syntax checks"
 bash -n \
   "$repo_root/install.sh" \
-  "$repo_root/vetcoders-spawn/scripts/install.sh" \
-  "$repo_root/vetcoders-spawn/scripts/install-shell.sh" \
-  "$repo_root/vetcoders-spawn/scripts/skills_sync.sh" \
-  "$repo_root/vetcoders-spawn/scripts/observe.sh" \
-  "$repo_root/vetcoders-spawn/scripts/common.sh" \
-  "$repo_root/vetcoders-spawn/scripts/codex_spawn.sh" \
-  "$repo_root/vetcoders-spawn/scripts/claude_spawn.sh" \
-  "$repo_root/vetcoders-spawn/scripts/gemini_spawn.sh"
-zsh -n "$repo_root/vetcoders-spawn/shell/vetcoders.zsh"
+  "$repo_root/vetcoders-agents/scripts/install.sh" \
+  "$repo_root/vetcoders-agents/scripts/install-shell.sh" \
+  "$repo_root/vetcoders-agents/scripts/skills_sync.sh" \
+  "$repo_root/vetcoders-agents/scripts/observe.sh" \
+  "$repo_root/vetcoders-agents/scripts/common.sh" \
+  "$repo_root/vetcoders-agents/scripts/codex_spawn.sh" \
+  "$repo_root/vetcoders-agents/scripts/claude_spawn.sh" \
+  "$repo_root/vetcoders-agents/scripts/gemini_spawn.sh"
+zsh -n "$repo_root/vetcoders-agents/shell/vetcoders.zsh"
 
 workspace="$(mktemp -d)"
 trap 'rm -rf "$workspace"' EXIT
@@ -80,14 +84,20 @@ mkdir -p "$home_dir" "$config_dir" "$work_repo" "$fake_bin"
 
 log "install smoke into clean HOME"
 HOME="$home_dir" XDG_CONFIG_HOME="$config_dir" \
-  bash "$repo_root/vetcoders-spawn/scripts/install.sh" \
+  bash "$repo_root/vetcoders-agents/scripts/install.sh" \
   --source "$repo_root" \
   --tool codex --tool claude --tool gemini \
   --with-shell
 
-require_file "$home_dir/.codex/skills/vetcoders-spawn/scripts/codex_spawn.sh"
-require_file "$home_dir/.claude/skills/vetcoders-spawn/scripts/claude_spawn.sh"
-require_file "$home_dir/.gemini/skills/vetcoders-spawn/scripts/gemini_spawn.sh"
+require_file "$home_dir/.agents/skills/vetcoders-agents/scripts/codex_spawn.sh"
+require_file "$home_dir/.agents/skills/vetcoders-agents/scripts/claude_spawn.sh"
+require_file "$home_dir/.agents/skills/vetcoders-agents/scripts/gemini_spawn.sh"
+require_symlink "$home_dir/.codex/skills/vetcoders-agents"
+require_symlink "$home_dir/.claude/skills/vetcoders-agents"
+require_symlink "$home_dir/.gemini/skills/vetcoders-agents"
+require_file "$home_dir/.codex/skills/vetcoders-agents/scripts/codex_spawn.sh"
+require_file "$home_dir/.claude/skills/vetcoders-agents/scripts/claude_spawn.sh"
+require_file "$home_dir/.gemini/skills/vetcoders-agents/scripts/gemini_spawn.sh"
 require_file "$config_dir/zsh/vetcoders-skills.zsh"
 require_file "$home_dir/.zshrc"
 assert_contains "$home_dir/.zshrc" 'vetcoders-skills.zsh'
@@ -137,9 +147,9 @@ chmod +x "$fake_bin/codex" "$fake_bin/claude" "$fake_bin/gemini"
 common_env=(HOME="$home_dir" XDG_CONFIG_HOME="$config_dir" PATH="$fake_bin:$PATH")
 
 log "headless spawn smoke"
-env "${common_env[@]}" bash "$home_dir/.codex/skills/vetcoders-spawn/scripts/codex_spawn.sh" --mode plan --runtime headless --root "$work_repo" "$work_repo/.ai-agents/plans/test.md"
-env "${common_env[@]}" bash "$home_dir/.claude/skills/vetcoders-spawn/scripts/claude_spawn.sh" --mode review --runtime headless --root "$work_repo" "$work_repo/.ai-agents/plans/test.md"
-env "${common_env[@]}" bash "$home_dir/.gemini/skills/vetcoders-spawn/scripts/gemini_spawn.sh" --mode implement --runtime headless --root "$work_repo" "$work_repo/.ai-agents/plans/test.md"
+env "${common_env[@]}" bash "$home_dir/.codex/skills/vetcoders-agents/scripts/codex_spawn.sh" --mode plan --runtime headless --root "$work_repo" "$work_repo/.ai-agents/plans/test.md"
+env "${common_env[@]}" bash "$home_dir/.claude/skills/vetcoders-agents/scripts/claude_spawn.sh" --mode review --runtime headless --root "$work_repo" "$work_repo/.ai-agents/plans/test.md"
+env "${common_env[@]}" bash "$home_dir/.gemini/skills/vetcoders-agents/scripts/gemini_spawn.sh" --mode implement --runtime headless --root "$work_repo" "$work_repo/.ai-agents/plans/test.md"
 
 codex_meta="$(find "$work_repo/.ai-agents/reports" -maxdepth 1 -type f -name '*_codex.meta.json' | sort | tail -n 1)"
 claude_meta="$(find "$work_repo/.ai-agents/reports" -maxdepth 1 -type f -name '*_claude.meta.json' | sort | tail -n 1)"
@@ -198,14 +208,15 @@ echo rsync "$@"
 EOF_RSYNC
 chmod +x "$fake_bin/rsync"
 
-sync_output="$(env HOME="$home_dir" XDG_CONFIG_HOME="$config_dir" PATH="$fake_bin:$PATH" bash "$repo_root/vetcoders-spawn/scripts/skills_sync.sh" fakehost --source "$repo_root" --dry-run)"
+sync_output="$(env HOME="$home_dir" XDG_CONFIG_HOME="$config_dir" PATH="$fake_bin:$PATH" bash "$repo_root/vetcoders-agents/scripts/skills_sync.sh" fakehost --source "$repo_root" --dry-run)"
 echo "$sync_output" | grep -q "Syncing skills from" || die "Sync dry-run failed to start"
 echo "$sync_output" | grep -q "rsync .* --dry-run" || die "Sync dry-run didn't pass dry-run to rsync"
+echo "$sync_output" | grep -q "~/.agents/skills" || die "Sync dry-run didn't target the shared canonical skill store"
 
 log "docs truth checks"
 assert_not_contains "$repo_root/vetcoders-followup/SKILL.md" 'Use canonical Terminal spawn (`osascript`)'
 assert_not_contains "$repo_root/vetcoders-workflow/SKILL.md" 'osascript preferred'
-assert_not_contains "$repo_root/vetcoders-subagents/SKILL.md" 'PRIMARY METHOD'
+[[ ! -e "$repo_root/vetcoders-subagents/SKILL.md" ]] || die 'vetcoders-subagents should not exist'
 assert_not_contains "$repo_root/docs/index.html" 'Canonical osascript Terminal spawn'
 assert_not_contains "$repo_root/vetcoders-suite-showcase.html" 'External agent fleet via osascript Terminal'
 assert_not_contains "$repo_root/vetcoders-suite-showcase.html" 'vetcoders-skills-suite'

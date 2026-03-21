@@ -6,7 +6,7 @@ usage() {
 Usage: install.sh [--repo-url <git-url>] [--checkout <dir>] [installer args...]
 
 Bootstrap the vetcoders-skills repo into a local checkout and then run the
-portable installer from vetcoders-spawn/scripts/install.sh.
+portable installer from vetcoders-agents/scripts/install.sh.
 
 Examples:
   curl -fsSL <raw-install-url> | bash
@@ -56,4 +56,4 @@ else
   git clone "$repo_url" "$checkout"
 fi
 
-exec zsh -ic "$checkout/vetcoders-spawn/scripts/install.sh" --source "$checkout" "${installer_args[@]}"
+exec zsh -ic "$checkout/vetcoders-agents/scripts/install.sh" --source "$checkout" "${installer_args[@]}"

@@ -591,14 +591,14 @@
             </div>
         </div>
 
-        <!-- 3. Subagents -->
+        <!-- 3. Agents -->
         <div class="skill-card">
             <div class="skill-number green">03</div>
             <div class="skill-body">
                 <div class="skill-tagline green">Parallel Delegation</div>
-                <h3><span class="mono">vetcoders-subagents</span></h3>
+                <h3><span class="mono">vetcoders-agents</span></h3>
                 <p class="skill-desc">
-                    Spawn a fleet of subagents with precise plans. Portable scripts handle
+                    Spawn a fleet of agents with precise plans. Portable scripts handle
                     visible or headless launch automatically. Plans in <code>.ai-agents/plans/</code>,
                     reports in <code>.ai-agents/reports/</code>. Living tree rule mandatory in every prompt.
                 </p>
@@ -618,8 +618,8 @@
                 <div class="skill-tagline green">Post-Implementation Audit</div>
                 <h3><span class="mono">vetcoders-followup</span></h3>
                 <p class="skill-desc">
-                    Strict chain: init &rarr; workflow &rarr; subagents &rarr; synthesis.
-                    Validates subagent claims against real code. P0/P1/P2 severity model.
+                    Strict chain: init &rarr; workflow &rarr; agents &rarr; synthesis.
+                    Validates agent claims against real code. P0/P1/P2 severity model.
                     Ends with GO / GO-WITH-CAVEATS / NO-GO verdict.
                 </p>
                 <div class="skill-features">
@@ -682,7 +682,7 @@
 <section class="divider-section">
     <div class="flow-diagram">
         <span class="blue">vetcoders-init</span> <span class="arrow">&rarr;</span> <span
-            class="blue">vetcoders-workflow</span> <span class="arrow">&rarr;</span> <span class="green">vetcoders-subagents</span>
+            class="blue">vetcoders-workflow</span> <span class="arrow">&rarr;</span> <span class="green">vetcoders-agents</span>
         <span class="arrow">&rarr;</span> <span class="green">vetcoders-followup</span>
         <span class="arrow">&darr;</span>
         <span class="orange">vetcoders-dou</span>
@@ -723,8 +723,8 @@
         <span class="prompt">$</span> <span class="cmd">bash install.sh --checkout "$HOME/.local/share/vetcoders-skills" --with-shell</span>
     </div>
     <p style="color:var(--mid); margin-top:1rem; font-size:0.9rem;">
-        Bootstrap the repo, install the skills into Codex/Claude/Gemini homes, and optionally add the repo-owned zsh
-        helper layer.
+        Bootstrap the repo, install the skills into the canonical shared store at <code>~/.agents/skills</code>, create
+        per-agent symlink views, and optionally add the repo-owned zsh helper layer.
     </p>
 </section>
 

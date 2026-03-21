@@ -1,6 +1,7 @@
 # VetCoders shell helpers
 # Source this from ~/.zshrc to get consistent wrapper commands for the repo-owned
-# spawn runtime installed under ~/.{codex,claude,gemini}/skills.
+# spawn runtime installed canonically under ~/.agents/skills and exposed through
+# ~/.{codex,claude,gemini}/skills symlink views.
 
 _vetcoders_spawn_home() {
   local tool="$1"

@@ -5,7 +5,10 @@ usage() {
   cat <<'EOF_USAGE'
 Usage: skills_sync.sh <host> [--source <repo-root>] [--tool <codex|claude|gemini>]... [--dry-run] [--mirror] [--with-shell] [--no-zshrc] [--no-verify]
 
-Sync canonical skill directories from this repo to another machine's tool homes:
+Sync canonical skill directories from this repo to another machine's shared store:
+  ~/.agents/skills
+
+Then create symlink views inside the remote tool homes:
   ~/.codex/skills
   ~/.claude/skills
   ~/.gemini/skills
@@ -140,14 +143,40 @@ if (( dry_run )); then
 fi
 
 printf 'Syncing skills from %s to %s\n' "$repo_root" "$host"
+remote_shared_target='~/.agents/skills'
+printf -- '-- canonical store -> %s:%s\n' "$host" "$remote_shared_target"
+if (( dry_run )); then
+  printf '  ssh %s mkdir -p %s\n' "$host" "$remote_shared_target"
+else
+  ssh -n "$host" "mkdir -p $remote_shared_target" || die "Could not prepare $remote_shared_target on $host"
+fi
+for skill in "${skills[@]}"; do
+  name="$(basename "$skill")"
+  if (( ! dry_run )); then
+    ssh -n "$host" "mkdir -p $remote_shared_target/$name" || die "Could not create $remote_shared_target/$name on $host"
+  else
+    printf '  ssh %s mkdir -p %s/%s\n' "$host" "$remote_shared_target" "$name"
+  fi
+  rsync "${rsync_args[@]}" "$skill/" "$host:$remote_shared_target/$name/"
+done
+printf '\n'
+
 for tool in "${tools[@]}"; do
   remote_target="~/.${tool}/skills"
-  printf -- '-- %s -> %s:%s\n' "$tool" "$host" "$remote_target"
-  ssh -n "$host" "mkdir -p $remote_target" || die "Could not prepare $remote_target on $host"
+  printf -- '-- %s symlink view -> %s:%s\n' "$tool" "$host" "$remote_target"
+  if (( dry_run )); then
+    printf '  ssh %s mkdir -p %s\n' "$host" "$remote_target"
+  else
+    ssh -n "$host" "mkdir -p $remote_target" || die "Could not prepare $remote_target on $host"
+  fi
   for skill in "${skills[@]}"; do
     name="$(basename "$skill")"
-    ssh -n "$host" "mkdir -p $remote_target/$name" || die "Could not create $remote_target/$name on $host"
-    rsync "${rsync_args[@]}" "$skill/" "$host:$remote_target/$name/"
+    if (( dry_run )); then
+      printf '  ssh %s rm -rf %s/%s && ln -s %s/%s %s/%s\n' "$host" "$remote_target" "$name" "$remote_shared_target" "$name" "$remote_target" "$name"
+    else
+      ssh -n "$host" "rm -rf $remote_target/$name && ln -s $remote_shared_target/$name $remote_target/$name" \
+        || die "Could not link $remote_target/$name -> $remote_shared_target/$name on $host"
+    fi
   done
   printf '\n'
 done
@@ -178,18 +207,23 @@ if (( ! verify )); then
   exit 0
 fi
 
-printf 'Verifying portable spawn runtime on %s\n' "$host"
+printf 'Verifying shared skill store on %s\n' "$host"
 ssh -n "$host" 'for f in \
-  ~/.codex/skills/vetcoders-agents/scripts/codex_spawn.sh \
-  ~/.claude/skills/vetcoders-agents/scripts/claude_spawn.sh \
-  ~/.gemini/skills/vetcoders-agents/scripts/gemini_spawn.sh \
-  ~/.codex/skills/vetcoders-agents/scripts/observe.sh; do
+  ~/.agents/skills/vetcoders-agents/scripts/codex_spawn.sh \
+  ~/.agents/skills/vetcoders-agents/scripts/claude_spawn.sh \
+  ~/.agents/skills/vetcoders-agents/scripts/gemini_spawn.sh \
+  ~/.agents/skills/vetcoders-agents/scripts/observe.sh; do
   if [ -e "$f" ]; then
     echo "OK $f"
   else
     echo "MISSING $f"
   fi
 done'
+
+for tool in "${tools[@]}"; do
+  printf 'Verifying %s symlink view on %s\n' "$tool" "$host"
+  ssh -n "$host" "if [ -L ~/.${tool}/skills/vetcoders-agents ]; then echo OK_LINK ~/.${tool}/skills/vetcoders-agents; else echo MISSING_LINK ~/.${tool}/skills/vetcoders-agents; fi"
+done
 
 if (( with_shell )); then
   ssh -n "$host" 'if [ -f "${XDG_CONFIG_HOME:-$HOME/.config}/zsh/vetcoders-skills.zsh" ]; then

@@ -5,7 +5,10 @@ usage() {
   cat <<'EOF_USAGE'
 Usage: install.sh [--source <repo-root>] [--tool <codex|claude|gemini>]... [--dry-run] [--mirror] [--with-shell] [--no-zshrc] [--list]
 
-Install the canonical skill directories from this repo into local tool homes:
+Install the canonical skill directories from this repo into the shared store:
+  ~/.agents/skills
+
+Then expose them inside local tool homes as symlink views:
   ~/.codex/skills
   ~/.claude/skills
   ~/.gemini/skills
@@ -179,6 +182,9 @@ fi
 
 runtime_preflight
 
+shared_home="${VETCODERS_AGENTS_HOME:-$HOME/.agents}"
+shared_target="$shared_home/skills"
+
 rsync_args=(-az --exclude '.DS_Store' --exclude '.loctree')
 if (( mirror )); then
   rsync_args+=(--delete)
@@ -188,14 +194,39 @@ if (( dry_run )); then
 fi
 
 printf 'Installing skills from %s\n' "$repo_root"
+printf -- '-- canonical store -> %s\n' "$shared_target"
+if (( dry_run )); then
+  printf '  mkdir -p %s\n' "$shared_target"
+else
+  mkdir -p "$shared_target"
+fi
+for skill in "${skills[@]}"; do
+  name="$(basename "$skill")"
+  if (( ! dry_run )); then
+    mkdir -p "$shared_target/$name"
+  fi
+  rsync "${rsync_args[@]}" "$skill/" "$shared_target/$name/"
+done
+printf '\n'
+
 for tool in "${tools[@]}"; do
   target="$HOME/.${tool}/skills"
-  mkdir -p "$target"
-  printf -- '-- %s -> %s\n' "$tool" "$target"
+  if (( dry_run )); then
+    printf '  mkdir -p %s\n' "$target"
+  else
+    mkdir -p "$target"
+  fi
+  printf -- '-- %s symlink view -> %s\n' "$tool" "$target"
   for skill in "${skills[@]}"; do
     name="$(basename "$skill")"
-    mkdir -p "$target/$name"
-    rsync "${rsync_args[@]}" "$skill/" "$target/$name/"
+    link_path="$target/$name"
+    canonical_path="$shared_target/$name"
+    if (( dry_run )); then
+      printf '  ln -s %s %s\n' "$canonical_path" "$link_path"
+    else
+      rm -rf "$link_path"
+      ln -s "$canonical_path" "$link_path"
+    fi
   done
   printf '\n'
 done
