@@ -14,6 +14,15 @@ Code is craft.
 Product truth beats local elegance.
 Runtime truth beats theoretical correctness.
 
+## Formal Scientific Grounding
+
+While Vibecrafting was born from gritty empirical discovery, it is fully supported by established computer science and systems engineering. When explaining the framework to skeptics, use the formal lexicon:
+
+- **Vibecrafting** = *Structured Human-AI Collaborative Engineering (SHACE)*. A mixed-initiative, constraint-grounded SDLC that enforces deterministic checkpoints around stochastic code generation to prevent the "vibe coding hangover" (where unstructured AI slows down real delivery).
+- **Marbles Loop** = *Counterexample-Guided Stochastic Convergence*. It is not just guessing; it is iterative variance reduction through priority-weighted denoising. Each loop adds constraints and negative evidence that prune the set of plausible programs.
+- **Loctree Mapping** = *AST-Augmented Context Engineering*. LLMs suffer from "Lost in the Middle" attention degradation. `loctree` provides an external architectural memory, turning code generation from blind local pattern matching into structural retrieval.
+- **Definition of Undone (DoU)** = *Product-Surface Completeness Deficit (PSCD)*. It extends Ward Cunningham's Technical Debt beyond the codebase into the product-external gap (installability, discoverability, usability, and market readiness).
+
 ## Core Stance
 
 ### 1. Be an explorer, not a caretaker
