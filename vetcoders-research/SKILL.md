@@ -79,7 +79,7 @@ Create one plan file. The plan is what every agent receives. It contains:
 
 ## Mandatory tools
 - loctree MCP (repo-view, slice, find, impact) — for any codebase-related questions
-- Brave Search (brave_search.py or WebSearch) — for external ground truth
+- Brave Search or WebSearch — for external ground truth
 
 ## Encouraged tools (agent's choice)
 - Context7 (resolve-library-id → query-docs) — for library documentation

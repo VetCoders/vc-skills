@@ -6,7 +6,7 @@ description: >-
   "give context to agent", "prepare agent", "bootstrap agent", "daj kontekst",
   "zainicjuj", "przygotuj agenta", "init session", "start fresh with context",
   or when starting work on a repo and the agent needs situational awareness.
-  Fuses three layers — Memory (ai-contexters), Eyes (loctree MCP + cross-tool
+  Fuses three layers — Memory (AICX MCP), Eyes (loctree MCP + cross-tool
   config absorption), and Verify (ground-truth quality gate check) — to equip
   the agent with consciousness before implementation work.
 ---
@@ -15,7 +15,7 @@ description: >-
 
 Bootstrap an agent session with three layers of context:
 
-- **Memory**: What was done before (ai-contexters — session history extraction)
+- **Memory**: What was done before (AICX MCP — session history extraction)
 - **Eyes**: What the code looks like now (loctree MCP — structural map + existing agent configs)
 - **Verify**: Whether what you see is actually true (run quality gates, confirm commands work)
 
@@ -36,22 +36,11 @@ Running init is a forcing function: it prevents blind coding.
 
 ### Step 1: Memory — What Was Done Before
 
-Pull historical context from previous AI sessions for this project:
+Pull historical context from previous AI sessions for this project through AICX MCP:
 
-```bash
-PROJECT=$(basename "$(git rev-parse --show-toplevel)")
-aicx all -p "$PROJECT" -H 168 --incremental
-```
-
-This extracts deduplicated, chunked timelines from Claude Code, Codex, and
-Gemini sessions into `~/.ai-contexters/<project>/`. Incremental mode skips
-already-processed entries.
-
-Then read what was extracted:
-
-```bash
-aicx refs -H 168 -p "$PROJECT"
-```
+- **`aicx_store(hours=168, project=<project>)`** — refresh stored context for the repo
+- **`aicx_refs(hours=168, project=<project>, strict=true)`** — list stored context files
+- **`aicx_rank(project=<project>, hours=168, strict=true, top=5)`** — optionally prioritize the densest recent chunks
 
 Read the most recent 1-2 context files to understand:
 
@@ -59,7 +48,9 @@ Read the most recent 1-2 context files to understand:
 - Are there open TODOs or decisions pending?
 - What signals were extracted (look for `[signals]` blocks)?
 
-**If aicx is not installed**: skip this step and note the gap in the report.
+**If AICX MCP is unavailable**: fall back to `aicx all -p "$PROJECT" -H 168 --incremental`
+and `aicx refs -H 168 -p "$PROJECT"` if the CLI exists. If neither exists,
+skip this step and note the gap in the report.
 Memory is valuable but not blocking.
 
 ### Step 2: Eyes — What the Code Looks Like Now
@@ -250,8 +241,9 @@ Use loctree MCP tools as the primary exploration layer:
 Derive truth from code, not from docs. If a doc says X and code says Y, trust Y.
 
 Historical context from previous sessions:
-~/.ai-contexters/<project_name>/
-aicx refs -p <project_name> -H 168
+- `aicx_store(hours=168, project=<project_name>)`
+- `aicx_refs(hours=168, project=<project_name>, strict=true)`
+- `aicx_rank(project=<project_name>, hours=168, strict=true, top=5)`
 
 Before creating new implementations, search for existing ones:
 - find(name) for symbols
@@ -261,20 +253,21 @@ Before creating new implementations, search for existing ones:
 
 ## Quick Reference
 
-| Step    | Tool                           | What It Gives                  |
-|---------|--------------------------------|--------------------------------|
-| Memory  | `aicx all -p X --incremental`  | Past decisions, TODOs, signals |
-| Refs    | `aicx refs -H 168 -p X`       | Paths to stored context chunks |
-| Eyes    | `repo-view(project)`           | Current structure + health     |
-| Focus   | `focus(directory)`             | Module-level detail            |
-| Signals | `follow(scope)`                | Dead code, cycles, twins       |
-| Configs | Read `.ai-agents/GUIDELINES.md` + glob others | Cross-tool instructions |
-| Git     | `git log --oneline -20`        | Actual commit conventions      |
-| Verify  | Run quality gate commands      | Ground truth on test/lint/type |
+| Step    | Tool                                           | What It Gives                  |
+|---------|------------------------------------------------|--------------------------------|
+| Memory  | `aicx_store(hours=168, project=X)`             | Freshly extracted repo context |
+| Refs    | `aicx_refs(hours=168, project=X, strict=true)` | Paths to stored context chunks |
+| Rank    | `aicx_rank(project=X, hours=168, top=5)`       | Highest-signal recent chunks   |
+| Eyes    | `repo-view(project)`                           | Current structure + health     |
+| Focus   | `focus(directory)`                             | Module-level detail            |
+| Signals | `follow(scope)`                                | Dead code, cycles, twins       |
+| Configs | Read `.ai-agents/GUIDELINES.md` + glob others  | Cross-tool instructions        |
+| Git     | `git log --oneline -20`                        | Actual commit conventions      |
+| Verify  | Run quality gate commands                      | Ground truth on test/lint/type |
 
 ## Fallback
 
-If **aicx** unavailable: skip memory steps, proceed with eyes + verify.
+If **AICX MCP** unavailable: fall back to `aicx` CLI if present, otherwise skip memory steps and proceed with eyes + verify.
 If **loctree MCP** unavailable: fall back to `loct --for-ai` CLI, then `rg --files`.
 If **both** unavailable: read `.ai-agents/GUIDELINES.md` + README.md + `git log -20`. Run quality gates. Announce gaps.
 Quality gate verification has **no fallback** — always attempt it.
@@ -282,7 +275,7 @@ Quality gate verification has **no fallback** — always attempt it.
 ## Anti-Patterns
 
 - Starting implementation without running init (blind coding)
-- Running loctree but skipping ai-contexters (no memory of past work)
+- Running loctree but skipping AICX MCP memory (no memory of past work)
 - Reading every context file (context bloat) — read only the 1-2 most recent
 - Skipping repo-view and jumping to grep (no structural map)
 - Trusting any config file or README without cross-referencing code (doc rot)

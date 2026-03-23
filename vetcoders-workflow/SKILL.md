@@ -8,7 +8,7 @@ description: >
   "plan and implement", "analyze then build", "structured implementation",
   "przebadaj repo i zaimplementuj", or describes a task that requires
   understanding code structure before making changes. Orchestrates a
-  three-phase pipeline: Examine (loctree), Research (brave-search/web),
+  three-phase pipeline: Examine (loctree), Research (Brave Search / web),
   Implement (subagents). Each phase feeds context to the next.
 ---
 
@@ -25,7 +25,7 @@ Each phase accumulates context for the next — no blind implementation.
 ```
  EXAMINE (loctree)          RESEARCH (web)           IMPLEMENT (agents)
  ┌─────────────────┐       ┌─────────────────┐      ┌─────────────────┐
- │ repo-view        │       │ brave-search     │      │ write plans      │
+│ repo-view        │       │ Brave Search     │      │ write plans      │
  │ focus (1-3 dirs) │──────▸│ WebFetch docs    │─────▸│ spawn agents     │
  │ slice + impact   │       │ Context7 libs    │      │ collect reports  │
  │ find symbols     │       │ curate findings  │      │ review + merge   │
@@ -86,12 +86,12 @@ If domain is well-understood, skip Phase 2. Otherwise proceed.
 ## Phase 2: RESEARCH
 
 Investigate ground truth — APIs, libraries, prior art, best practices.
-Combine brave-search, WebFetch, and Context7 for comprehensive coverage.
+Combine Brave Search, WebFetch, and Context7 for comprehensive coverage.
 
 ### Research Sources (priority order)
 
 1. **Context7** (`resolve-library-id` → `query-docs`) — authoritative library docs
-2. **Brave Search** — run the `bravesearch/brave_search.py` script from this repo or from an installed skill copy
+2. **Brave Search** — use the Brave Search tool / API path available in the runtime
 3. **WebFetch** — fetch specific URLs found via search
 4. **Codebase grep** — internal patterns and prior art (only after loctree mapping)
 
@@ -195,8 +195,7 @@ State which phases apply at pipeline start.
 
 - This skill is mandatory for non-trivial feature work requiring multi-file changes.
 - If loctree MCP is unavailable, see `references/phase-examine.md` for grep-based fallback.
-- Brave Search can run from this repo checkout (`python3 bravesearch/brave_search.py "<query>"`) or from an installed
-  skill copy.
+- Brave Search should come from the runtime tool surface or web search fallback, not from a local wrapper directory.
 
 ## Anti-Patterns
 

@@ -10,6 +10,9 @@
     <meta content="VetCoders multi-agent skills suite for Codex, Claude, and Gemini. Bootstrap context, delegate to frontier agents, converge, and ship."
           property="og:description">
     <meta content="index,follow" name="robots">
+    <link rel="icon" href="favicon.ico" sizes="32x32">
+    <link rel="icon" href="logo-64.png" type="image/png" sizes="64x64">
+    <link rel="apple-touch-icon" href="logo-128.png">
     <link href="https://fonts.googleapis.com" rel="preconnect">
     <link crossorigin href="https://fonts.gstatic.com" rel="preconnect">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=Lora:ital,wght@0,400;0,500;0,600;1,400&display=swap"
@@ -37,6 +40,8 @@
             --shadow: 0 18px 50px rgba(0, 0, 0, 0.45);
             --font-head: 'Poppins', Arial, sans-serif;
             --font-body: 'Lora', Georgia, serif;
+            --chrome-offset: 108px;
+            --page-shell: min(1240px, calc(100% - 8vw));
         }
 
         html {
@@ -66,9 +71,7 @@
         }
 
         .shell {
-            max-width: none;
-            margin: 0;
-            padding: 22px 3rem 20px
+            padding: 0 0 24px
         }
 
         /* NAV */
@@ -85,6 +88,7 @@
 
         .nav-shell {
             max-width: none;
+            padding: 0 5vw;
             margin: 0 auto;
             display: flex;
             align-items: center;
@@ -143,7 +147,7 @@
             background: rgba(12, 12, 11, .92);
             backdrop-filter: blur(8px);
             border-bottom: 1px solid rgba(250, 249, 245, .06);
-            padding: 6px 3rem;
+            padding: 6px 5vw;
             display: flex;
             align-items: center;
             justify-content: center;
@@ -173,7 +177,7 @@
         }
         .curl-banner .cb-copy:hover { background: var(--orange); color: var(--dark) }
         @media (max-width: 900px) {
-            .curl-banner { padding: 6px 1rem; gap: 10px }
+            .curl-banner { padding: 6px 4vw; gap: 10px }
             .curl-banner code { font-size: .65rem }
         }
 
@@ -183,18 +187,37 @@
             grid-template-columns: 1fr 1fr;
             align-items: center;
             gap: 48px;
-            max-width: none;
+            width: var(--page-shell);
             margin: 0 auto;
-            padding: 6rem 3rem 3rem
+            min-height: calc(100svh - var(--chrome-offset));
+            padding: clamp(2.75rem, 7vh, 4.75rem) 0 clamp(2.5rem, 6vh, 4rem)
         }
-        .hero-copy { max-width: 38rem }
-        .hero h1 { font-size: clamp(1.6rem, 3.2vw, 2.4rem); margin-bottom: .7rem; letter-spacing: -.015em; line-height: 1.1 }
+        .hero-copy { max-width: 34rem }
+        .hero h1 { font-size: clamp(1.6rem, 3vw, 2.2rem); margin-bottom: .7rem; letter-spacing: -.015em; line-height: 1.1 }
         .hero h1 .accent { color: var(--orange) }
         .hero .tagline { font-size: .85rem; color: var(--mid); margin-bottom: 1rem; max-width: 50ch }
-        .hero .stats-row { display: flex; gap: 2rem; margin-bottom: 1.2rem }
-        .stat .num { font-family: var(--font-head); font-size: 1.3rem; font-weight: 700; color: var(--orange) }
-        .stat .label { font-size: .65rem; color: var(--mid); font-family: var(--font-head); text-transform: uppercase; letter-spacing: .06em }
-        .hero .cta-row { display: flex; gap: .75rem; flex-wrap: wrap }
+        .hero-foundations {
+            margin-top: 1.1rem;
+            padding: .85rem 1rem;
+            border: 1px solid rgba(250, 249, 245, .09);
+            border-radius: 10px;
+            background: rgba(12, 12, 11, .34)
+        }
+        .hero-foundations-label {
+            font-family: var(--font-head);
+            font-size: .68rem;
+            text-transform: uppercase;
+            letter-spacing: .12em;
+            color: var(--orange);
+            margin-bottom: .45rem;
+            font-weight: 600
+        }
+        .hero-foundations-copy {
+            color: var(--mid);
+            font-size: .82rem;
+            line-height: 1.6;
+            margin-bottom: .65rem
+        }
 
         /* Terminal card */
         .hterm { background: #0c0c0b; border: 1px solid rgba(255,255,255,.1); border-radius: 10px; padding: 16px 18px 12px; font-family: 'SF Mono','JetBrains Mono','Fira Code',monospace; font-size: .78rem; line-height: 1.35; color: var(--light) }
@@ -228,55 +251,23 @@
         @media (max-width: 900px) {
             .nav-shell { align-items: flex-start; flex-direction: column }
             .nav-links { gap: 12px; justify-content: flex-start }
-            .hero { grid-template-columns: 1fr; gap: 24px; padding: 5rem 1.5rem 2rem }
+            .hero { grid-template-columns: 1fr; gap: 24px; width: min(100% - 8vw, 720px); min-height: auto; padding: 2.5rem 0 2rem }
             .hterm { font-size: .74rem }
-        }
-
-        .btn {
-            display: inline-flex;
-            align-items: center;
-            gap: .5rem;
-            padding: .75rem 1.5rem;
-            border-radius: 8px;
-            font-family: var(--font-head);
-            font-size: .9rem;
-            font-weight: 600;
-            text-decoration: none;
-            transition: all .2s;
-            cursor: pointer;
-            border: none
-        }
-
-        .btn-primary {
-            background: var(--orange);
-            color: var(--dark)
-        }
-
-        .btn-primary:hover {
-            background: #c4633f;
-            transform: translateY(-1px)
-        }
-
-        .btn-secondary {
-            background: transparent;
-            color: var(--light);
-            border: 1.5px solid var(--mid)
-        }
-
-        .btn-secondary:hover {
-            border-color: var(--orange);
-            color: var(--orange)
+            .foundation-strip { grid-template-columns: 1fr }
         }
 
         /* SECTIONS */
         section {
-            padding: 5rem 0
+            display: flex;
+            align-items: center;
+            min-height: calc(100svh - var(--chrome-offset));
+            padding: clamp(2.75rem, 6vh, 4.5rem) 0;
+            scroll-margin-top: calc(var(--chrome-offset) + 12px)
         }
 
         .container {
-            max-width: none;
-            margin: 0;
-            padding: 0 3rem
+            width: var(--page-shell);
+            margin: 0 auto
         }
 
         .section-title {
@@ -287,7 +278,7 @@
         .section-sub {
             color: var(--mid);
             margin-bottom: 3rem;
-            max-width: 650px
+            max-width: none
         }
 
         .section-label {
@@ -298,6 +289,35 @@
             color: var(--orange);
             margin-bottom: .5rem;
             font-weight: 600
+        }
+
+        .foundation-strip {
+            display: grid;
+            grid-template-columns: 240px 1fr;
+            gap: 1.1rem;
+            align-items: start;
+            border: 1px solid rgba(250, 249, 245, .09);
+            border-radius: 10px;
+            background: rgba(12, 12, 11, .34);
+            padding: 1rem 1.1rem;
+            margin: -1rem 0 2rem
+        }
+
+        .foundation-strip h3 {
+            font-size: .94rem;
+            margin-bottom: .3rem
+        }
+
+        .foundation-strip p {
+            color: var(--mid);
+            font-size: .86rem;
+            line-height: 1.65
+        }
+
+        .foundation-strip-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: .5rem
         }
 
         /* PIPELINE */
@@ -475,11 +495,11 @@
 
         @media (max-width: 768px) {
             .shell {
-                padding: 16px 16px 10px
+                padding: 0 0 10px
             }
 
             .nav-shell {
-                padding: 12px 16px
+                padding: 12px 4vw
             }
 
             .nav-links {
@@ -516,6 +536,15 @@
 
             .pipeline-notes {
                 grid-template-columns: 1fr
+            }
+
+            section {
+                min-height: auto;
+                padding: 2.75rem 0
+            }
+
+            .container {
+                width: min(100% - 8vw, 720px)
             }
         }
 
@@ -588,8 +617,6 @@
         }
 
         .manifesto-block {
-            max-width: 700px;
-            margin: 0 auto
         }
 
         .manifesto-block blockquote {
@@ -628,8 +655,6 @@
         }
 
         .install-block {
-            max-width: 700px;
-            margin: 0 auto
         }
 
         .code-block {
@@ -761,7 +786,7 @@
 <div class="topbar">
     <header class="nav-shell">
         <a class="brand" href="#">
-            <span aria-hidden="true" class="brand-mark"></span>
+            <img src="logo-32.png" alt="" width="24" height="24" style="border-radius:5px">
             <span>VetCoders Skills</span>
         </a>
         <nav aria-label="Primary" class="nav-links">
@@ -787,15 +812,14 @@
         <div class="section-label">VetCoders Vibecraft System</div>
         <h1>Multi-agent <span class="accent">Vibecraft</span> that converges software to production.</h1>
         <p class="tagline">Context bootstrap, frontier delegation, convergence loops, and launch hydration &mdash; one operating system for Codex, Claude, and Gemini.</p>
-        <div class="stats-row">
-            <div class="stat"><div class="num">19</div><div class="label">Skills</div></div>
-            <div class="stat"><div class="num">3</div><div class="label">Foundations</div></div>
-            <div class="stat"><div class="num">3</div><div class="label">Runtimes</div></div>
-        </div>
-        <div class="cta-row">
-            <a class="btn btn-primary" href="#get">Get the suite</a>
-            <a class="btn btn-secondary" href="#skills">Explore skills</a>
-            <a class="btn btn-secondary" href="https://github.com/VetCoders/vetcoders-skills">GitHub</a>
+        <div class="hero-foundations">
+            <div class="hero-foundations-label">Runtime Foundations</div>
+            <p class="hero-foundations-copy">The suite is the callable surface. These three binaries are the substrate underneath it: memory, structural mapping, and durable review artifacts.</p>
+            <div class="foundation-strip-tags">
+                <span class="tag">aicx-mcp = memory</span>
+                <span class="tag">loctree-mcp = structure</span>
+                <span class="tag">prview = review artifacts</span>
+            </div>
         </div>
     </div>
     <div class="hterm fade-up">
@@ -814,7 +838,7 @@
         <div class="hterm-gap"></div>
         <div class="hterm-row g" data-copy="make doctor"><span class="ic">&#x2713;</span><span class="cmd">make doctor</span><span class="dsc">Verify health</span></div>
         <div class="hterm-row g" data-copy="make update"><span class="ic">&#x21bb;</span><span class="cmd">make update</span><span class="dsc">Pull + re-install</span></div>
-        <div class="hterm-row g" data-copy="make list"><span class="ic">&#x25c7;</span><span class="cmd">make list</span><span class="dsc">Bundle status</span></div>
+        <div class="hterm-row g" data-copy="make list"><span class="ic">&#x25c7;</span><span class="cmd">make list</span><span class="dsc">Bundle + runtime foundations</span></div>
         <div class="hterm-gap"></div>
         <div class="hterm-row r" data-copy="make uninstall"><span class="ic">&#x2715;</span><span class="cmd">make uninstall</span><span class="dsc">Remove all</span></div>
         <div class="hterm-row r" data-copy="make restore"><span class="ic">&#x21ba;</span><span class="cmd">make restore</span><span class="dsc">Undo last</span></div>
@@ -870,7 +894,19 @@ flowchart LR
         <div class="section-label">The Suite</div>
         <h2 class="section-title">What's in the Suite</h2>
         <p class="section-sub">Each skill is individually callable. <code>ship</code> chains them, <code>agents</code>
-            scales them out, and <code>delegate</code> stays as the native fallback when external frontier agents are unnecessary. The grid below shows the core Craft surface plus the supporting review, ownership, and research layers; promoted foundations like <code>ai-contexters</code>, <code>loctree</code>, and <code>bravesearch</code> ship alongside it.</p>
+            scales them out, and <code>delegate</code> stays as the native fallback when external frontier agents are unnecessary. The grid below shows the callable VetCoders surface. Underneath it sits the runtime substrate: <code>aicx-mcp</code> for memory, <code>loctree-mcp</code> for structure, and <code>prview</code> for durable review artifacts.</p>
+
+        <div class="foundation-strip">
+            <div>
+                <h3>Runtime Foundations</h3>
+                <p>Not standalone skills. Not optional garnish. These are the shared runtime primitives that make the suite sharper, more truthful, and more durable.</p>
+            </div>
+            <div class="foundation-strip-tags">
+                <span class="tag">aicx-mcp &middot; session memory + recovery</span>
+                <span class="tag">loctree-mcp &middot; repo structure + impact mapping</span>
+                <span class="tag">prview &middot; review artifact packs + merge clarity</span>
+            </div>
+        </div>
 
         <div class="cards-grid">
 
@@ -889,9 +925,9 @@ flowchart LR
             <div class="card">
                 <div class="card-phase build">Phase 1 &middot; Craft</div>
                 <h3>vetcoders-init</h3>
-                <p class="card-desc">Bootstrap session with Memory (ai-contexters) + Eyes (loctree MCP) + Verify. Extracts prior
+                <p class="card-desc">Bootstrap session with Memory (AICX MCP) + Eyes (loctree MCP) + Verify. Extracts prior
                     session history, maps repo structure, and grounds the implementation path before hands-on work.</p>
-                <div class="card-tags"><span class="tag">loctree</span><span class="tag">ai-contexters</span><span
+                <div class="card-tags"><span class="tag">loctree</span><span class="tag">aicx-mcp</span><span
                         class="tag">session bootstrap</span><span class="tag">verify</span></div>
                 <div class="card-trigger">"Init session" &middot; "Daj kontekst agentowi"</div>
             </div>
@@ -900,7 +936,7 @@ flowchart LR
                 <div class="card-phase build">Phase 1 &middot; Craft</div>
                 <h3>vetcoders-workflow</h3>
                 <p class="card-desc">ERi Pipeline: Examine &rarr; Research &rarr; Implement. Structured Vibecraft that replaces "vibe and pray" with deliberate, measured progress.</p>
-                <div class="card-tags"><span class="tag">ERi</span><span class="tag">loctree</span><span class="tag">brave-search</span><span
+                <div class="card-tags"><span class="tag">ERi</span><span class="tag">loctree</span><span class="tag">brave search</span><span
                         class="tag">Context7</span></div>
                 <div class="card-trigger">"ERi pipeline" &middot; "Zbadaj i zaimplementuj"</div>
             </div>
@@ -1159,13 +1195,18 @@ make update      <span class="comment"># pull latest + re-install</span>
 <span class="comment"># Codex / Claude / Gemini get symlink views</span></code></pre>
             </div>
 
-            <h4 style="font-size:1rem;margin:2rem 0 .5rem;color:var(--light)">Requirements</h4>
+            <h4 style="font-size:1rem;margin:2rem 0 .5rem;color:var(--light)">Runtime Foundations</h4>
+            <p style="color:var(--mid);margin:0 0 .9rem;line-height:1.7">
+                The suite can install without them, but it should not pretend to be whole without them.
+                <code>aicx-mcp</code> carries memory, <code>loctree-mcp</code> carries structure, and
+                <code>prview</code> carries durable review surfaces.
+            </p>
             <div class="code-block">
-                <pre><code><span class="comment"># Smart Installer auto-detects foundations and offers to install missing ones</span>
+                <pre><code><span class="comment"># Smart Installer auto-detects runtime foundations and offers to install missing ones</span>
 <span class="comment"># with explicit consent.</span>
 
 <span class="comment"># Or install them manually:</span>
-cargo install aicx loctree-mcp
+cargo install ai-contexters loctree-mcp
 cargo install prview
 
 <span class="comment"># Then add the agent CLIs you actually use:</span>

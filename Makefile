@@ -22,7 +22,7 @@ help:
 	@printf "\n"
 	@printf "  \033[32m✓\033[0m  make doctor        \033[2mVerify installation health\033[0m\n"
 	@printf "  \033[32m↻\033[0m  make update        \033[2mPull latest + re-install\033[0m\n"
-	@printf "  \033[32m◇\033[0m  make list          \033[2mShow bundle + foundation status\033[0m\n"
+	@printf "  \033[32m◇\033[0m  make list          \033[2mShow bundle + runtime foundations\033[0m\n"
 	@printf "\n"
 	@printf "  \033[31m✕\033[0m  make uninstall     \033[2mRemove skills + helpers\033[0m\n"
 	@printf "  \033[31m↺\033[0m  make restore       \033[2mUndo last install/uninstall\033[0m\n"

@@ -4,7 +4,7 @@
 Subcommands:
     install         Install the VetCoders skill bundle
     doctor          Verify installation health
-    list            Show available skills and foundations
+    list            Show available VetCoders skills and the runtime substrate beneath them
     uninstall       Remove VetCoders skills, symlinks, and helpers
     restore         Restore pre-install state from backup
 
@@ -80,9 +80,9 @@ SKILL_CATEGORIES = {
         "prefix": "vetcoders-",
     },
     "foundations": {
-        "label": "Promoted Foundations",
-        "description": "Structural tools promoted as part of the bundle: loctree, ai-contexters, bravesearch",
-        "names": ["loctree", "ai-contexters", "bravesearch"],
+        "label": "Runtime Foundations",
+        "description": "Shared runtime substrate: memory, structure, and review artifacts",
+        "names": [],
     },
     "specialist": {
         "label": "Specialist / Optional",
@@ -122,14 +122,14 @@ class Foundation:
 
 FOUNDATIONS: List[Foundation] = [
     Foundation(
-        name="aicx",
-        description="Session history extraction for AI agents",
+        name="aicx-mcp",
+        description="AICX MCP server for session history and memory recovery",
         channels=["crates", "github"],
         packages={
-            "crates": "aicx",
+            "crates": "ai-contexters",
             "github": "https://github.com/VetCoders/ai-contexters/releases",
         },
-        verify_cmd="aicx --version",
+        verify_cmd="aicx-mcp --version",
     ),
     Foundation(
         name="loctree-mcp",
@@ -259,7 +259,7 @@ def get_repo_url(repo_root: Path) -> str:
 
 
 def discover_skills(repo_root: Path) -> List[Path]:
-    """Find all skill directories (dirs with SKILL.md at top level)."""
+    """Find all canonical VetCoders skill directories."""
     skills = []
     for entry in sorted(repo_root.iterdir()):
         if not entry.is_dir():
@@ -268,6 +268,8 @@ def discover_skills(repo_root: Path) -> List[Path]:
             continue
         if entry.name in ("docs", "scripts", "tests", ".github"):
             continue
+        if not entry.name.startswith("vetcoders-"):
+            continue
         if (entry / "SKILL.md").exists():
             skills.append(entry)
     return skills
@@ -275,9 +277,6 @@ def discover_skills(repo_root: Path) -> List[Path]:
 
 def categorize_skill(name: str) -> str:
     """Return category key for a skill name."""
-    foundation_names = SKILL_CATEGORIES["foundations"]["names"]
-    if name in foundation_names:
-        return "foundations"
     if name.startswith("vetcoders-"):
         return "pipeline"
     return "specialist"
@@ -767,7 +766,7 @@ def cmd_install(args: argparse.Namespace) -> int:
 
     # --- Show bundle ---
     print(bold("Bundle contents:"))
-    for cat_key in ("pipeline", "foundations", "specialist"):
+    for cat_key in ("pipeline", "specialist"):
         cat = SKILL_CATEGORIES[cat_key]
         names = cats[cat_key]
         if names:
@@ -847,8 +846,8 @@ def cmd_install(args: argparse.Namespace) -> int:
         all_runtimes = [rt for rt, sel in zip(AGENT_RUNTIMES, result) if sel]
         print()
 
-    # --- Foundations ---
-    print(bold("Foundations:"))
+    # --- Runtime Foundations ---
+    print(bold("Runtime Foundations:"))
     missing_foundations: List[Foundation] = []
     for f in FOUNDATIONS:
         path = f.is_installed()
@@ -1044,9 +1043,7 @@ def _known_bundle_names() -> List[str]:
     repo_candidate = script_dir.parent
     if (repo_candidate / ".git").is_dir():
         return [s.name for s in discover_skills(repo_candidate)]
-    # Fallback: known prefixes + foundation names
-    foundation_names = SKILL_CATEGORIES["foundations"]["names"]
-    return foundation_names  # At minimum we know these
+    return []
 
 
 def cmd_doctor(args: argparse.Namespace) -> int:
@@ -1127,7 +1124,7 @@ def cmd_list(args: argparse.Namespace) -> int:
     print(f"\n{bold('VetCoders Skills Bundle')}")
     print(dim(f"Source: {repo_root}\n"))
 
-    for cat_key in ("pipeline", "foundations", "specialist"):
+    for cat_key in ("pipeline", "specialist"):
         cat = SKILL_CATEGORIES[cat_key]
         names = cats[cat_key]
         if names:
@@ -1136,7 +1133,7 @@ def cmd_list(args: argparse.Namespace) -> int:
                 print(f"    - {n}")
             print()
 
-    print(f"{bold('Foundations')}")
+    print(f"{bold('Runtime Foundations')} {dim('(substrate beneath the suite)')}")
     for f in FOUNDATIONS:
         path = f.is_installed()
         status = green("installed") if path else (red("missing") if f.required else dim("optional"))
@@ -1423,7 +1420,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     sub.add_parser("doctor", help="Verify installation health")
 
     # list
-    p_list = sub.add_parser("list", help="Show available skills and foundations")
+    p_list = sub.add_parser("list", help="Show available VetCoders skills and the runtime substrate beneath them")
     p_list.add_argument("--source", default=default_source, help="Repo root (default: auto-detect)")
 
     # uninstall

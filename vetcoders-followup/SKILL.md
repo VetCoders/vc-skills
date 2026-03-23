@@ -45,10 +45,11 @@ Do not skip sequence unless user explicitly opts out.
 
 1. Extract context memory:
 
-```bash
-aicx all -p <project> --incremental
-aicx refs -H 168 -p <project>
-```
+- `aicx_store(hours=168, project=<project>)`
+- `aicx_refs(hours=168, project=<project>, strict=true)`
+- optional: `aicx_rank(project=<project>, hours=168, strict=true, top=5)`
+
+If AICX MCP is unavailable, fall back to the `aicx` CLI if present.
 
 2. Map structure:
 

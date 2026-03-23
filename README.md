@@ -8,7 +8,7 @@ This repo exists so our skills stop drifting across:
 - per-agent symlink views: `~/.codex/skills`, `~/.claude/skills`, `~/.gemini/skills`
 
 The goal is simple: one place to edit, review, version, and ship the skills,
-installers, and shell glue that power the VetCoders workflow.
+runtime foundations, installers, and shell glue that power the VetCoders workflow.
 
 ## What This Repo Is
 
@@ -17,23 +17,16 @@ This is not a random backup of local skill folders.
 This repo is meant to be:
 
 - the canonical home for VetCoders skills
+- the docs and install surface for the runtime foundations beneath them
 - the reviewable source for shared agent instructions
 - the sync source for the shared install store plus Codex, Claude, and Gemini symlink views
 - the place where we enforce basic standards: no secrets, no local junk, no silent drift
 
 ## What Lives Here
 
-### Shared foundation skills
-
-- `ai-contexters` — session history extraction (wraps `aicx` CLI)
-- `loctree` — structural code mapping (wraps `loctree-mcp`)
-- `bravesearch` — web search via Brave API
-These are not all "VetCoders-branded", but they are part of the practical stack
-our skills depend on.
-
 ### VetCoders pipeline skills
 
-- `vetcoders-init` — session bootstrap (memory + eyes)
+- `vetcoders-init` — session bootstrap (AICX MCP memory + loctree eyes + verify)
 - `vetcoders-workflow` — ERi pipeline (Examine, Research, Implement)
 - `vetcoders-followup` — post-implementation audit
 - `vetcoders-marbles` — convergence loops
@@ -60,18 +53,22 @@ init -> workflow -> followup -> marbles -> dou -> hydrate
 
 Not every tool is required for every install. Here is the honest dependency map:
 
-### Hard foundations
+### Runtime foundations
 
-These two binaries make the whole skill stack meaningfully better. The installer
-preflights them and tells you how to add them if missing.
+These binaries are the substrate beneath the suite. The installer preflights
+them, offers to install them, and reports clearly when they are missing.
 
 | Tool          | What it does                                     | Install                     |
 |---------------|--------------------------------------------------|-----------------------------|
-| `aicx`        | Extracts deduplicated timelines from AI sessions | `cargo install aicx`        |
+| `aicx-mcp`    | AICX MCP memory + session history recovery       | `cargo install ai-contexters` |
 | `loctree-mcp` | Structural code mapping for agents               | `cargo install loctree-mcp` |
+| `prview`      | Durable PR review artifacts and merge clarity    | `cargo install prview`      |
 
-If they are missing, skills still install and most workflows still run, but
-`vetcoders-init` loses its Memory layer (aicx) and its Eyes layer (loctree).
+If they are missing, skills still install, but the suite loses real substance:
+
+- `vetcoders-init` loses Memory (`aicx-mcp`) and Eyes (`loctree-mcp`)
+- review surfaces lose durable artifact generation (`prview`)
+- the system becomes less truthful, less inspectable, and less reusable
 
 ### Recommended ecosystem tools
 
@@ -89,7 +86,6 @@ You only need the agent CLIs for the runtimes you actually use.
 
 | Tool       | What it does                  | When you need it                      |
 |------------|-------------------------------|---------------------------------------|
-| `prview`   | PR review artifact generation | `vetcoders-prview` skill only         |
 | `loct` CLI | Local loctree without MCP     | Fallback when loctree-mcp unavailable |
 
 ### System requirements
@@ -97,7 +93,7 @@ You only need the agent CLIs for the runtimes you actually use.
 - `zsh` — spawn scripts use `zsh -ic` for interactive shell with user environment
 - `rsync` — installer and remote sync
 - `git` — clone and update
-- `cargo` — installing Rust-based foundations (aicx, loctree-mcp, prview)
+- `cargo` — installing runtime foundations (`ai-contexters`, `loctree-mcp`, `prview`)
 
 ## Repo Principles
 
@@ -116,7 +112,7 @@ local machine config that is outside git.
 
 Example:
 
-- `bravesearch/brave_search.py` now expects `BRAVE_SEARCH_API_KEY` or `BRAVE_API_KEY`
+- `BRAVE_SEARCH_API_KEY` or `BRAVE_API_KEY` should come from user environment
 - hardcoded demo keys are not acceptable here
 
 ### 3. No machine exhaust as canonical content
@@ -136,9 +132,6 @@ because it was nearby when we copied a folder.
 ```text
 README.md
 .gitignore
-ai-contexters/
-bravesearch/
-loctree/
 vetcoders-*/
 vetcoders-agents/
 docs/
@@ -159,7 +152,7 @@ remote sync helpers.
 ### Smart Installer
 
 The installer is interactive when run in a terminal, non-interactive for
-CI/scripting. It auto-detects system deps, agent CLIs, and foundations,
+CI/scripting. It auto-detects system deps, agent CLIs, and runtime foundations,
 then offers to install missing components with consent.
 
 ```bash
@@ -173,7 +166,7 @@ bash vetcoders-agents/scripts/install.sh --with-shell
 bash vetcoders-agents/scripts/install.sh --tool codex --tool claude
 
 # Install specific skills only
-bash vetcoders-agents/scripts/install.sh --skill vetcoders-init --skill loctree
+bash vetcoders-agents/scripts/install.sh --skill vetcoders-init --skill vetcoders-workflow
 
 # Dry-run preview
 bash vetcoders-agents/scripts/install.sh --dry-run
@@ -194,7 +187,7 @@ python3 scripts/vetcoders_install.py list
 ```
 
 The `doctor` subcommand verifies installation health: shared store, symlink
-views, stale copies, foundations, and shell helpers.
+views, stale copies, runtime foundations, and shell helpers.
 
 The shell helper layer provides:
 
@@ -238,9 +231,9 @@ bash install.sh doctor
 bash install.sh list
 ```
 
-If hard foundations (`aicx`, `loctree-mcp`) are missing, the interactive
-installer offers to install them via `cargo install`. In non-interactive
-mode it reports what's missing and continues.
+If runtime foundations (`aicx-mcp`, `loctree-mcp`, `prview`) are missing, the
+interactive installer offers to install them via `cargo install`. In
+non-interactive mode it reports what's missing and continues.
 
 ## Portable Quality Bar
 
