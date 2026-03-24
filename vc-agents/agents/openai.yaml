@@ -1,0 +1,4 @@
+interface:
+  display_name: "VibeCraft Agents"
+  short_description: "Spawn external agent fleet via portable scripts"
+  default_prompt: "Use $vc-agents to split work into parallel tracks, write plans to .ai-agents/plans/, and spawn codex/claude/gemini subagents."

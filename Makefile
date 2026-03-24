@@ -2,7 +2,7 @@
 
 PYTHON   ?= python3
 INSTALLER := scripts/vetcoders_install.py
-SHELL_INSTALLER := vetcoders-agents/scripts/install-shell.sh
+SHELL_INSTALLER := vc-agents/scripts/install-shell.sh
 SOURCE   := $(CURDIR)
 BRANCH   ?= main
 

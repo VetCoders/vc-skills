@@ -1,0 +1,4 @@
+interface:
+  display_name: "VibeCraft Followup"
+  short_description: "Post-implementation audit chain"
+  default_prompt: "Use $vc-followup to run init, workflow context, and delegated audits, then synthesize a GO/NO-GO verdict with P0/P1/P2 findings."

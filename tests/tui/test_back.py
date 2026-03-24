@@ -77,7 +77,7 @@ SKILL_CATEGORIES = {
     "pipeline": {
         "label": "VetCoders Pipeline",
         "description": "Core workflow skills: init, workflow, followup, marbles, dou, hydrate, ship",
-        "prefix": "vetcoders-",
+        "prefix": "vc-",
     },
     "foundations": {
         "label": "Runtime Foundations",
@@ -163,7 +163,7 @@ AGENT_RUNTIMES = ["codex", "claude", "gemini"]
 # Install state
 # ---------------------------------------------------------------------------
 
-STATE_FILE = ".vetcoders-install.json"
+STATE_FILE = ".vc-install.json"
 
 
 @dataclass
@@ -272,7 +272,7 @@ def discover_skills(repo_root: Path) -> List[Path]:
             continue
         if entry.name in ("docs", "scripts", "tests", ".github"):
             continue
-        if not entry.name.startswith("vetcoders-"):
+        if not entry.name.startswith("vc-"):
             continue
         if (entry / "SKILL.md").exists():
             skills.append(entry)
@@ -281,7 +281,7 @@ def discover_skills(repo_root: Path) -> List[Path]:
 
 def categorize_skill(name: str) -> str:
     """Return category key for a skill name."""
-    if name.startswith("vetcoders-"):
+    if name.startswith("vc-"):
         return "pipeline"
     return "specialist"
 
@@ -587,11 +587,11 @@ def create_backup(store_path: Path, runtimes: List[str], bundle_names: List[str]
 
 def _helper_target_path() -> Path:
     config_dir = Path(os.environ.get("XDG_CONFIG_HOME", Path.home() / ".config")) / "zsh"
-    return config_dir / "vetcoders-skills.zsh"
+    return config_dir / "vc-skills.zsh"
 
 
 def _zshrc_source_line() -> str:
-    return '[[ -r "${XDG_CONFIG_HOME:-$HOME/.config}/zsh/vetcoders-skills.zsh" ]] && source "${XDG_CONFIG_HOME:-$HOME/.config}/zsh/vetcoders-skills.zsh"'
+    return '[[ -r "${XDG_CONFIG_HOME:-$HOME/.config}/zsh/vc-skills.zsh" ]] && source "${XDG_CONFIG_HOME:-$HOME/.config}/zsh/vc-skills.zsh"'
 
 
 # ---------------------------------------------------------------------------
@@ -834,7 +834,7 @@ def run_doctor(store_path: Path, state: InstallState) -> List[DoctorFinding]:
             )
 
     # 6. Shell helpers
-    helper_file = Path(os.environ.get("XDG_CONFIG_HOME", Path.home() / ".config")) / "zsh" / "vetcoders-skills.zsh"
+    helper_file = Path(os.environ.get("XDG_CONFIG_HOME", Path.home() / ".config")) / "zsh" / "vc-skills.zsh"
     if helper_file.exists():
         findings.append(DoctorFinding("ok", "shell-helpers", str(helper_file)))
     elif state.shell_helpers:
@@ -1119,7 +1119,7 @@ def cmd_install(args: argparse.Namespace) -> int:
     # --- Execute: shell helpers ---
     if install_shell:
         print(bold("Installing shell helpers..."))
-        shell_script = repo_root / "vetcoders-agents" / "scripts" / "install-shell.sh"
+        shell_script = repo_root / "vc-agents" / "scripts" / "install-shell.sh"
         if shell_script.exists():
             cmd = ["bash", str(shell_script), "--source", str(repo_root)]
             if dry_run:
@@ -1491,7 +1491,7 @@ def cmd_restore(args: argparse.Namespace) -> int:
     if helper_backup.is_dir():
         print(bold("Restoring helpers..."))
         # Helper file
-        backed_helper = helper_backup / "vetcoders-skills.zsh"
+        backed_helper = helper_backup / "vc-skills.zsh"
         if backed_helper.exists():
             dst = _helper_target_path()
             if dry_run:
@@ -1546,7 +1546,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     default_source = detect_repo_root()
 
     parser = argparse.ArgumentParser(
-        prog="vetcoders-install",
+        prog="vc-install",
         description="VetCoders Skills Installer v2 — manifest-driven, multi-channel, interactive.",
     )
     sub = parser.add_subparsers(dest="command")

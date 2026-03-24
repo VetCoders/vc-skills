@@ -1,0 +1,4 @@
+interface:
+  display_name: "VibeCraft Ownership"
+  short_description: "Full-spectrum end-to-end delivery"
+  default_prompt: "Use $vc-ownership to take the wheel: architecture, coding, debugging, polish, packaging, docs, and wow-effect finish."

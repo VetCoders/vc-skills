@@ -1,31 +1,31 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Bootstrap installer: clone/update the vetcoders-skills repo, then run
+# Bootstrap installer: clone/update the vc-skills repo, then run
 # the Smart Installer from it.
 #
 # Usage:
 #   curl -fsSL <raw-url>/install.sh | bash
 #   curl -fsSL <raw-url>/install.sh | bash -s -- --with-shell
-#   bash install.sh --checkout "$HOME/.local/share/vetcoders-skills"
+#   bash install.sh --checkout "$HOME/.local/share/vc-skills"
 
 usage() {
   cat <<'EOF_USAGE'
 Usage: install.sh [--repo-url <git-url>] [--checkout <dir>] [installer args...]
 
-Bootstrap the vetcoders-skills repo into a local checkout and then run the
+Bootstrap the vc-skills repo into a local checkout and then run the
 Smart Installer (Python).
 
 Examples:
   curl -fsSL <raw-install-url> | bash
   curl -fsSL <raw-install-url> | bash -s -- --with-shell
-  bash install.sh --checkout "$HOME/.local/share/vetcoders-skills"
+  bash install.sh --checkout "$HOME/.local/share/vc-skills"
   bash install.sh doctor
 EOF_USAGE
 }
 
-default_checkout="${VETCODERS_SKILLS_HOME:-$HOME/.local/share/vetcoders-skills}"
-default_repo_url="${VETCODERS_SKILLS_REPO_URL:-https://github.com/VetCoders/vetcoders-skills.git}"
+default_checkout="${VETCODERS_SKILLS_HOME:-$HOME/.local/share/vc-skills}"
+default_repo_url="${VETCODERS_SKILLS_REPO_URL:-https://github.com/VetCoders/vc-skills.git}"
 checkout="$default_checkout"
 repo_url="$default_repo_url"
 subcommand="install"

@@ -1,6 +1,6 @@
-# VetCoders Skills
+# VibeCraft Skills
 
-Canonical source of truth for the reusable VetCoders skill stack.
+Canonical source of truth for the reusable VibeCraft skill stack.
 
 This repo exists so our skills stop drifting across:
 
@@ -8,7 +8,7 @@ This repo exists so our skills stop drifting across:
 - per-agent symlink views: `~/.codex/skills`, `~/.claude/skills`, `~/.gemini/skills`
 
 The goal is simple: one place to edit, review, version, and ship the skills,
-runtime foundations, installers, and shell glue that power the VetCoders workflow.
+runtime foundations, installers, and shell glue that power the VibeCraft workflow.
 
 ## What This Repo Is
 
@@ -16,7 +16,7 @@ This is not a random backup of local skill folders.
 
 This repo is meant to be:
 
-- the canonical home for VetCoders skills
+- the canonical home for VibeCraft skills
 - the docs and install surface for the runtime foundations beneath them
 - the reviewable source for shared agent instructions
 - the sync source for the shared install store plus Codex, Claude, and Gemini symlink views
@@ -24,25 +24,25 @@ This repo is meant to be:
 
 ## What Lives Here
 
-### VetCoders pipeline skills
+### VibeCraft pipeline skills
 
-- `vetcoders-init` — session bootstrap (AICX MCP history index + loctree eyes + verify)
-- `vetcoders-workflow` — ERi pipeline (Examine, Research, Implement)
-- `vetcoders-followup` — post-implementation audit
-- `vetcoders-marbles` — convergence loops
-- `vetcoders-dou` — Definition of Undone (product surface audit)
-- `vetcoders-hydrate` — packaging and go-to-market gap fill
-- `vetcoders-decorate` — visual polish and micro-interactions
-- `vetcoders-delegate` — in-session implementation (safe alternative when external agents are unnecessary)
-- `vetcoders-partner` — executive debug + agent swarms
-- `vetcoders-ownership` — full-spectrum end-to-end delivery mode
-- `vetcoders-screenscribe` — screenshot analysis
-- `vetcoders-agents` — external agent fleet via portable scripts
-- `vetcoders-ship` — shipping orchestrator
-- `vetcoders-prune` — dead code and runtime cone extraction
-- `vetcoders-prview` — PR review pipeline (wraps `prview` binary)
+- `vc-init` — session bootstrap (AICX MCP history index + loctree eyes + verify)
+- `vc-workflow` — ERi pipeline (Examine, Research, Implement)
+- `vc-followup` — post-implementation audit
+- `vc-marbles` — convergence loops
+- `vc-dou` — Definition of Undone (product surface audit)
+- `vc-hydrate` — packaging and go-to-market gap fill
+- `vc-decorate` — visual polish and micro-interactions
+- `vc-delegate` — in-session implementation (safe alternative when external agents are unnecessary)
+- `vc-partner` — executive debug + agent swarms
+- `vc-ownership` — full-spectrum end-to-end delivery mode
+- `vc-screenscribe` — screenshot analysis
+- `vc-agents` — external agent fleet via portable scripts
+- `vc-ship` — shipping orchestrator
+- `vc-prune` — dead code and runtime cone extraction
+- `vc-prview` — PR review pipeline (wraps `prview` binary)
 
-Together, these define the current VetCoders operating model:
+Together, these define the current VibeCraft operating model:
 
 ```text
 init -> workflow -> followup -> marbles -> dou -> hydrate
@@ -66,7 +66,7 @@ them, offers to install them, and reports clearly when they are missing.
 
 If they are missing, skills still install, but the suite loses real substance:
 
-- `vetcoders-init` loses History (`aicx-mcp`) and Eyes (`loctree-mcp`)
+- `vc-init` loses History (`aicx-mcp`) and Eyes (`loctree-mcp`)
 - review surfaces lose durable artifact generation (`prview`)
 - the system becomes less truthful, less inspectable, and less reusable
 
@@ -132,10 +132,10 @@ because it was nearby when we copied a folder.
 ```text
 README.md
 .gitignore
-vetcoders-*/
-vetcoders-agents/
+vc-*/
+vc-agents/
 docs/
-vetcoders-suite-showcase.html
+vc-suite-showcase.html
 ```
 
 Notes:
@@ -157,25 +157,25 @@ then offers to install missing components with consent.
 
 ```bash
 # Interactive install (full bundle, all runtimes)
-bash vetcoders-agents/scripts/install.sh
+bash vc-agents/scripts/install.sh
 
 # With zsh shell helpers
-bash vetcoders-agents/scripts/install.sh --with-shell
+bash vc-agents/scripts/install.sh --with-shell
 
 # Limit to specific runtimes
-bash vetcoders-agents/scripts/install.sh --tool codex --tool claude
+bash vc-agents/scripts/install.sh --tool codex --tool claude
 
 # Install specific skills only
-bash vetcoders-agents/scripts/install.sh --skill vetcoders-init --skill vetcoders-workflow
+bash vc-agents/scripts/install.sh --skill vc-init --skill vc-workflow
 
 # Dry-run preview
-bash vetcoders-agents/scripts/install.sh --dry-run
+bash vc-agents/scripts/install.sh --dry-run
 
 # Canonical mirror (deletes extra files in installed dirs)
-bash vetcoders-agents/scripts/install.sh --mirror
+bash vc-agents/scripts/install.sh --mirror
 
 # Non-interactive (CI/scripts)
-bash vetcoders-agents/scripts/install.sh --non-interactive --with-shell
+bash vc-agents/scripts/install.sh --non-interactive --with-shell
 ```
 
 Or call the Python installer directly:
@@ -201,7 +201,7 @@ It does **not** try to copy private shell aesthetics, banners, or unrelated alia
 Install only the zsh helper layer:
 
 ```bash
-bash vetcoders-agents/scripts/install-shell.sh
+bash vc-agents/scripts/install-shell.sh
 ```
 
 ### Remote sync
@@ -209,10 +209,10 @@ bash vetcoders-agents/scripts/install-shell.sh
 Sync the canonical skills to another machine without copying private dotfiles:
 
 ```bash
-bash vetcoders-agents/scripts/skills_sync.sh mgbook16
-bash vetcoders-agents/scripts/skills_sync.sh mgbook16 --dry-run
-bash vetcoders-agents/scripts/skills_sync.sh mgbook16 --mirror
-bash vetcoders-agents/scripts/skills_sync.sh mgbook16 --with-shell
+bash vc-agents/scripts/skills_sync.sh mgbook16
+bash vc-agents/scripts/skills_sync.sh mgbook16 --dry-run
+bash vc-agents/scripts/skills_sync.sh mgbook16 --mirror
+bash vc-agents/scripts/skills_sync.sh mgbook16 --with-shell
 ```
 
 ### Bootstrap installer
@@ -263,7 +263,7 @@ Recommended workflow:
 
 ## Showcase
 
-`vetcoders-suite-showcase.html` is good enough to be a real outward-facing
+`vc-suite-showcase.html` is good enough to be a real outward-facing
 artifact, not just a local file.
 
 My take: yes, it should probably live on `vetcoders.github.io`.
@@ -271,7 +271,7 @@ My take: yes, it should probably live on `vetcoders.github.io`.
 Good next shapes:
 
 - `https://vetcoders.github.io/skills/`
-- or `https://vetcoders.github.io/vetcoders-skills/`
+- or `https://vetcoders.github.io/vc-skills/`
 
 That gives the skills suite:
 
@@ -291,7 +291,7 @@ The highest-leverage next moves for this repo are:
     - accidental junk files
 4. Publish the showcase to GitHub Pages.
 
-## VetCoders Context
+## VibeCraft Context
 
 VetCoders build through Vibecrafting, but that does not mean we should accept
 chaotic skill drift.

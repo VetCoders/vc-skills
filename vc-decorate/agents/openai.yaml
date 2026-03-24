@@ -1,0 +1,4 @@
+interface:
+  display_name: "VibeCraft Decorate"
+  short_description: "Visual polish and micro-interactions"
+  default_prompt: "Use $vc-decorate to detect the existing design language and propose tasteful visual enhancements within the current palette."

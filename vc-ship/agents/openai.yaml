@@ -1,0 +1,4 @@
+interface:
+  display_name: "VibeCraft Ship"
+  short_description: "Full Build-Converge-Ship pipeline"
+  default_prompt: "Use $vc-ship to run the complete pipeline: init, workflow, followup, marbles convergence, dou audit, and hydrate for market."

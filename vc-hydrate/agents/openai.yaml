@@ -1,0 +1,4 @@
+interface:
+  display_name: "VibeCraft Hydrate"
+  short_description: "Packaging and go-to-market bridging"
+  default_prompt: "Use $vc-hydrate to fix DoU gaps: repo governance, SEO, distribution artifacts, marketplace listings, and onboarding flows."

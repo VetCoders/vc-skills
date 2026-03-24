@@ -1,0 +1,4 @@
+interface:
+  display_name: "VibeCraft DoU"
+  short_description: "Definition of Undone product surface audit"
+  default_prompt: "Use $vc-dou to audit the entire product surface: repo governance, install paths, discoverability, and commercial readiness."

@@ -1,7 +1,0 @@
-interface:
-  display_name: "VetCoders Partner"
-  short_description: "Executive debug + agent swarms"
-  default_prompt: "Use $vetcoders-partner to split this workflow into research tracks, run planner swarms, and resume the same sessions into implementation."
-
-policy:
-  allow_implicit_invocation: true
