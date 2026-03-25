@@ -5,20 +5,20 @@
 }
 
 :root {
-    --dark: #141413;
-    --light: #faf9f5;
-    --mid: #b0aea5;
+    --dark: #1b1b1a;
+    --light: #f2efdd;
+    --mid: #9b9a95;
     --lgray: #e8e6dc;
-    --orange: #d97757;
-    --blue: #6a9bcc;
-    --green: #788c5d;
-    --card-bg: #1e1e1d;
-    --card-border: #2a2a29;
+    --orange: #d46b3f;
+    --blue: #5b87a8;
+    --green: #7d8e57;
+    --card-bg: rgba(30, 30, 28, 0.6);
+    --card-border: rgba(242, 239, 221, 0.1);
     --terminal: #0b0b0a;
     --terminal-soft: #111110;
-    --glow: rgba(217, 119, 87, 0.28);
-    --shadow: 0 18px 50px rgba(0, 0, 0, 0.45);
-    --font-head: 'Poppins', Arial, sans-serif;
+    --glow: rgba(212, 107, 63, 0.35);
+    --shadow: 0 20px 50px rgba(0, 0, 0, 0.6);
+    --font-head: 'Poppins', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
     --font-body: 'Lora', Georgia, serif;
     --chrome-offset: 108px;
     --page-shell: min(1240px, calc(100% - 8vw));
@@ -30,12 +30,32 @@ html {
 
 body {
     font-family: var(--font-body);
-    background: radial-gradient(circle at 18% 18%, rgba(106, 155, 204, .16), transparent 42%),
-    radial-gradient(circle at 82% 2%, rgba(120, 140, 93, .15), transparent 36%),
-    linear-gradient(180deg, #161615 0%, #121211 100%);
+    background-color: var(--dark);
     color: var(--light);
     line-height: 1.7;
-    overflow-x: hidden
+    overflow-x: hidden;
+}
+
+body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    background-image: url('bg-texture.webp');
+    background-size: cover;
+    background-position: center;
+    opacity: 0.25;
+    mix-blend-mode: overlay;
+    pointer-events: none;
+    z-index: -1;
+}
+
+body::after {
+    content: "";
+    position: fixed;
+    inset: 0;
+    background: radial-gradient(circle at 50% 30%, transparent 20%, rgba(15, 15, 14, 0.85) 100%);
+    pointer-events: none;
+    z-index: -1;
 }
 
 code, .code-block, .formula {
@@ -77,13 +97,10 @@ h1, h2, h3, h4, h5, h6 {
 /* NAV */
 .topbar {
     position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    z-index: 100;
-    background: rgba(20, 20, 19, .85);
-    backdrop-filter: blur(12px);
-    border-bottom: 1px solid var(--card-border)
+    top: 0; left: 0; right: 0; z-index: 100;
+    background: rgba(27, 27, 26, 0.7);
+    backdrop-filter: blur(16px);
+    border-bottom: 1px solid rgba(255,255,255,0.05);
 }
 
 .nav-shell {
@@ -247,13 +264,14 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .manifesto-title {
-    font-size: clamp(3rem, 6vw, 4.5rem);
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-    font-weight: 800;
+    font-size: clamp(2.5rem, 8vw, 4.5rem);
+    font-family: var(--font-head);
+    font-weight: 700;
     line-height: 1.05;
-    letter-spacing: -0.04em;
-    color: #fff;
+    letter-spacing: -0.03em;
+    color: var(--light);
     margin-bottom: 1.5rem;
+    text-shadow: 0 4px 25px rgba(0,0,0,0.4);
 }
 
 .manifesto-lead {
@@ -271,34 +289,41 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .btn-solid {
-    background: #fff;
-    color: #000;
-    font-weight: 700;
-    padding: 14px 28px;
-    border-radius: 4px; /* Hard, non-SaaS edge */
+    background: var(--orange);
+    color: var(--light);
+    font-family: var(--font-head);
+    font-weight: 600;
+    padding: 14px 32px;
+    border-radius: 6px;
     text-decoration: none;
     font-size: 0.95rem;
-    letter-spacing: 0.02em;
+    letter-spacing: 0.05em;
     text-transform: uppercase;
-    transition: background-color 0.2s;
+    transition: all 0.2s;
+    box-shadow: 0 4px 15px var(--glow);
+    border: 1px solid rgba(255,255,255,0.1);
 }
 
 .btn-solid:hover {
-    background: #e0e0e0;
+    background: #e57d51;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px var(--glow);
 }
 
 .btn-outline {
-    background: transparent;
-    color: #fff;
-    border: 1px solid rgba(255, 255, 255, 0.4);
-    font-weight: 700;
-    padding: 14px 28px;
-    border-radius: 4px;
+    background: rgba(30,30,28,0.5);
+    backdrop-filter: blur(8px);
+    color: var(--light);
+    font-family: var(--font-head);
+    border: 1px solid rgba(242, 239, 221, 0.2);
+    font-weight: 600;
+    padding: 14px 32px;
+    border-radius: 6px;
     text-decoration: none;
     font-size: 0.95rem;
-    letter-spacing: 0.02em;
+    letter-spacing: 0.05em;
     text-transform: uppercase;
-    transition: border-color 0.2s;
+    transition: all 0.2s;
 }
 
 .btn-outline:hover {
@@ -1135,4 +1160,19 @@ footer .tagline-footer {
     .card {
         transform: none !important
     }
+}
+
+.stats {
+    position: absolute;
+    top: 16px;
+    right: 16px;
+    padding: 10px 14px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+    background: rgba(20, 20, 19, 0.8);
+    backdrop-filter: blur(8px);
+    font-family: var(--font-head);
+    font-size: 0.8rem;
+    color: var(--mid);
+    z-index: 10;
 }

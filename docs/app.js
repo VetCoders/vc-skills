@@ -330,317 +330,171 @@ function shuffleArr(a) {
     return a;
 }
 
-// ============ HERO MARBLE SHOWCASE ============
-(function () {
+// ============ HERO MARBLE SHOWCASE (PHYSICS CONVERGENCE) ============(
+function () {
     var canvas = document.getElementById('marbleCanvas');
-    var loopCounter = document.getElementById('loopCounter');
-    var coverageCounter = document.getElementById('coverageCounter');
-    if (!canvas || !loopCounter || !coverageCounter || !canvas.getContext) return;
+    if (!canvas || !canvas.getContext) return;
     var ctx = canvas.getContext('2d');
-    if (!ctx) return;
-
-    var reduceMotion = false; // VibeCrafting: force marbles to run regardless of OS settings
+    
     var dpr = Math.max(1, Math.min(window.devicePixelRatio || 1, 2));
-    var hover = {x: -9999, y: -9999};
-    var parallax = {x: 0, y: 0};
-    var currentCoverage = reduceMotion ? 80 : 0;
-    var displayCoverage = currentCoverage;
-    var loop = reduceMotion ? 4 : 0;
-    var targets = reduceMotion ? [80] : [0, 15, 38, 58, 80];
-    var targetIndex = reduceMotion ? targets.length - 1 : 0;
-    var hold = 0;
-    var lastAt = performance.now();
     var width = 0, height = 0;
-
-    function mulberry32(seed) {
-        return function () {
-            var t = (seed += 0x6d2b79f5);
-            t = Math.imul(t ^ (t >>> 15), t | 1);
-            t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
-            return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-        };
-    }
-
-    function clamp(v, a, b) {
-        return Math.max(a, Math.min(b, v));
-    }
-
-    function MarbleShowcaseFactory(radius) {
-        this.radius = radius;
-        this.cache = {};
-        this.palettes = [
-            ['#e0a252', '#a96a2b', '#f5c57a'],
-            ['#63b1e3', '#2e6f95', '#b5e4ff'],
-            ['#6ba26d', '#3b6e3f', '#aed9af'],
-            ['#8a8d97', '#50535a', '#cacbd2'],
-            ['#ca7985', '#8e4351', '#e9b5bf'],
-            ['#9a79d0', '#5d438f', '#cab7ed'],
-            ['#d8aa5a', '#9f6b2d', '#f6d9a8'],
-            ['#4da9a7', '#2b6d73', '#9de2df']
-        ];
-    }
-
-    MarbleShowcaseFactory.prototype.make = function (seed, pattern) {
-        var key = seed + ':' + pattern + ':' + this.radius;
-        if (this.cache[key]) return this.cache[key];
-        var size = this.radius * 2 + 8;
-        var off = document.createElement('canvas');
-        off.width = size * dpr;
-        off.height = size * dpr;
-        var o = off.getContext('2d');
-        if (!o) return off;
-        o.scale(dpr, dpr);
-
-        var rr = this.radius;
-        var cx = size / 2;
-        var cy = size / 2;
-        var rng = mulberry32(seed);
-        var p = this.palettes[seed % this.palettes.length];
-
-        var base = o.createRadialGradient(cx - rr * 0.33, cy - rr * 0.36, rr * 0.2, cx, cy, rr);
-        base.addColorStop(0, p[2]);
-        base.addColorStop(0.62, p[0]);
-        base.addColorStop(1, p[1]);
-        o.beginPath();
-        o.arc(cx, cy, rr, 0, Math.PI * 2);
-        o.fillStyle = base;
-        o.fill();
-
-        o.save();
-        o.beginPath();
-        o.arc(cx, cy, rr * 0.95, 0, Math.PI * 2);
-        o.clip();
-
-        if (pattern === 0) {
-            o.strokeStyle = 'rgba(255,255,255,0.5)';
-            o.lineWidth = rr * 0.18;
-            o.beginPath();
-            o.moveTo(cx - rr * 0.7, cy + rr * 0.2);
-            o.bezierCurveTo(cx - rr * 0.2, cy - rr * 0.5, cx + rr * 0.15, cy + rr * 0.8, cx + rr * 0.65, cy - rr * 0.2);
-            o.stroke();
-        } else if (pattern === 1) {
-            o.strokeStyle = 'rgba(255,255,255,0.35)';
-            o.lineWidth = rr * 0.1;
-            for (var i = 0; i < 3; i++) {
-                o.beginPath();
-                o.arc(cx + (i - 1) * rr * 0.15, cy, rr * (0.2 + i * 0.2), 0, Math.PI * 2);
-                o.stroke();
-            }
-        } else if (pattern === 2) {
-            for (var s = 0; s < 22; s++) {
-                var ang = rng() * Math.PI * 2;
-                var dist = rng() * rr * 0.7;
-                o.fillStyle = 'rgba(255,255,255,' + (0.15 + rng() * 0.35).toFixed(2) + ')';
-                o.beginPath();
-                o.arc(cx + Math.cos(ang) * dist, cy + Math.sin(ang) * dist, 0.8 + rng() * 1.2, 0, Math.PI * 2);
-                o.fill();
-            }
-        } else {
-            var core = o.createRadialGradient(cx, cy, rr * 0.05, cx, cy, rr * 0.65);
-            core.addColorStop(0, 'rgba(255,255,255,0.7)');
-            core.addColorStop(0.35, 'rgba(255,255,255,0.15)');
-            core.addColorStop(1, 'rgba(255,255,255,0)');
-            o.fillStyle = core;
-            o.beginPath();
-            o.arc(cx, cy, rr * 0.68, 0, Math.PI * 2);
-            o.fill();
-        }
-
-        o.restore();
-
-        var shine = o.createRadialGradient(cx - rr * 0.35, cy - rr * 0.5, rr * 0.05, cx - rr * 0.35, cy - rr * 0.5, rr * 0.65);
-        shine.addColorStop(0, 'rgba(255,255,255,0.65)');
-        shine.addColorStop(1, 'rgba(255,255,255,0)');
-        o.fillStyle = shine;
-        o.beginPath();
-        o.arc(cx - rr * 0.18, cy - rr * 0.24, rr * 0.78, 0, Math.PI * 2);
-        o.fill();
-
-        o.strokeStyle = 'rgba(0,0,0,0.24)';
-        o.lineWidth = rr * 0.08;
-        o.beginPath();
-        o.arc(cx, cy, rr * 0.95, 0, Math.PI * 2);
-        o.stroke();
-
-        this.cache[key] = off;
-        return off;
-    };
-
-    function makeHexGrid(cx, cy, circleRadius, marbleRadius) {
-        var spacing = marbleRadius * 2.12;
-        var rowH = spacing * 0.866;
-        var points = [];
-        var y = -circleRadius;
-        while (y <= circleRadius) {
-            var row = Math.round(y / rowH);
-            var offset = row % 2 ? spacing * 0.5 : 0;
-            var x = -circleRadius;
-            while (x <= circleRadius) {
-                var px = x + offset;
-                var dist = Math.sqrt(px * px + y * y);
-                if (dist + marbleRadius <= circleRadius) {
-                    points.push({x: cx + px, y: cy + y});
-                }
-                x += spacing;
-            }
-            y += rowH;
-        }
-        return points;
-    }
-
+    var slots = [];
     var marbles = [];
+    var marbleRadius = 12;
     var board = {x: 0, y: 0, radius: 0};
-    var marbleFactory = new MarbleShowcaseFactory(9.5);
-
+    var currentLoop = 0;
+    var lastAt = performance.now();
+    var loopTimer = 0;
+    
+    var statsDiv = document.querySelector('.stats');
+    var loopCounter, coverageCounter;
+    if (statsDiv) {
+        statsDiv.style.display = 'flex';
+        statsDiv.innerHTML = '<div style="display:flex; flex-direction:column; align-items:flex-end;"><span>Loop: <strong id="loopCounter" style="color:var(--orange)">0</strong></span><span>Coverage: <strong id="coverageCounter" style="color:var(--green)">0%</strong></span></div>';
+        loopCounter = document.getElementById('loopCounter');
+        coverageCounter = document.getElementById('coverageCounter');
+    }
+    
+    function buildBoard() {
+        slots = hexGridInCircle(board.x, board.y, board.radius, marbleRadius);
+        slots.forEach(s => s.assigned = false);
+        marbles = [];
+        currentLoop = 0;
+        updateCounters();
+    }
+    
     function resizeCanvas() {
         var rect = canvas.getBoundingClientRect();
-        if (!rect.width || !rect.height) return;
-        width = rect.width;
-        height = rect.height;
-        canvas.width = Math.floor(width * dpr);
-        canvas.height = Math.floor(height * dpr);
+        if (!rect.width) return;
+        width = rect.width; height = rect.height;
+        canvas.width = width * dpr; canvas.height = height * dpr;
         ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-
-        board.x = width * 0.5;
-        board.y = height * 0.54;
-        board.radius = Math.min(width, height) * 0.36;
-        marbleFactory.radius = Math.max(9, board.radius * 0.09);
-
-        var points = makeHexGrid(board.x, board.y, board.radius, marbleFactory.radius);
-        marbles = points.map(function (p, i) {
-            return {
-                baseX: p.x,
-                baseY: p.y,
-                seed: (i + 1) * 97,
-                pattern: i % 4,
-                energy: reduceMotion ? (i < Math.floor(points.length * 0.8) ? 1 : 0) : 0,
-                settle: reduceMotion ? (i < Math.floor(points.length * 0.8) ? 1 : 0) : 0,
-                shake: 0
-            };
-        });
-        drawFrame(lastAt);
+        
+        board.x = width / 2;
+        board.y = height / 2;
+        board.radius = Math.min(width, height) * 0.42;
+        marbleRadius = Math.max(10, board.radius * 0.08);
+        
+        buildBoard();
     }
-
-    function drawGroove(x, y, r, alpha) {
-        var g = ctx.createRadialGradient(x - r * 0.25, y - r * 0.25, r * 0.1, x, y, r * 1.08);
-        g.addColorStop(0, 'rgba(255,255,255,' + (0.06 + alpha * 0.1).toFixed(3) + ')');
-        g.addColorStop(0.62, 'rgba(17,17,16,0.75)');
-        g.addColorStop(1, 'rgba(5,5,5,0.78)');
-        ctx.fillStyle = g;
-        ctx.beginPath();
-        ctx.arc(x, y, r * 1.01, 0, Math.PI * 2);
-        ctx.fill();
-    }
-
-    function drawFrame(now) {
-        if (!width || !height) return;
-        ctx.clearRect(0, 0, width, height);
-
-        var activeCount = Math.floor(marbles.length * (displayCoverage / 100));
-        var spotlightRadius = marbleFactory.radius * 12;
-        var px = parallax.x * 9;
-        var py = parallax.y * 7;
-
-        for (var i = 0; i < marbles.length; i++) {
-            var m = marbles[i];
-            var target = i < activeCount ? 1 : 0;
-
-            if (reduceMotion) {
-                m.energy = target;
-                m.settle = target;
-                m.shake = 0;
-            } else {
-                var prev = m.energy;
-                m.energy += (target - m.energy) * 0.1;
-                if (target === 1) {
-                    m.settle = clamp(m.settle + 0.07, 0, 1);
-                } else {
-                    if (prev > 0.2) m.shake = 1;
-                    m.settle = clamp(m.settle - 0.06, 0, 1);
-                }
-                if (m.shake > 0) m.shake = Math.max(0, m.shake - 0.035);
-            }
-
-            drawGroove(m.baseX + px * 0.35, m.baseY + py * 0.35, marbleFactory.radius * 1.08, 1 - m.energy);
+    
+    window.addEventListener('resize', resizeCanvas);
+    resizeCanvas();
+    
+    function throwWave() {
+        var unassigned = slots.filter(s => !s.assigned);
+        if (unassigned.length === 0) {
+            setTimeout(buildBoard, 4000);
+            return;
         }
-
-        for (var j = 0; j < marbles.length; j++) {
-            var marble = marbles[j];
-            var dx = marble.baseX - hover.x;
-            var dy = marble.baseY - hover.y;
-            var dist = Math.sqrt(dx * dx + dy * dy);
-            var spot = dist < spotlightRadius ? 1 - dist / spotlightRadius : 0;
-            var alpha = 0.15 + marble.energy * 0.67 + spot * 0.24;
-            var sprite = marbleFactory.make(marble.seed, marble.pattern);
-            var dropY = (1 - marble.settle) * 24;
-            var wiggle = marble.shake > 0 ? Math.sin(now * 0.04 + marble.seed) * marble.shake * 2.3 : 0;
-            var mx = marble.baseX + px + wiggle;
-            var my = marble.baseY + py - dropY;
-            var size = marbleFactory.radius * 2 + 8;
-            ctx.globalAlpha = clamp(alpha, 0.08, 1);
-            ctx.drawImage(sprite, mx - size * 0.5, my - size * 0.5, size, size);
+        
+        currentLoop++;
+        var toThrow = Math.ceil(unassigned.length * (0.15 + Math.random() * 0.2));
+        if (unassigned.length < 6) toThrow = unassigned.length;
+        
+        shuffleArr(unassigned);
+        
+        for(var i=0; i<toThrow; i++) {
+            var slot = unassigned[i];
+            slot.assigned = true;
+            marbles.push({
+                x: board.x + (Math.random() - 0.5) * board.radius * 1.8,
+                y: -marbleRadius * 4 - Math.random() * 150,
+                vx: (Math.random() - 0.5) * 16,
+                vy: 8 + Math.random() * 15,
+                target: slot,
+                settled: false,
+                seed: Math.floor(Math.random() * 99999),
+                pattern: MarbleFactory.PATTERNS[Math.floor(Math.random() * MarbleFactory.PATTERNS.length)],
+                palIdx: Math.floor(Math.random() * MarbleFactory.PALETTES.length)
+            });
         }
-
-        ctx.globalAlpha = 1;
-        loopCounter.textContent = String(loop);
-        coverageCounter.textContent = Math.round(displayCoverage) + '%';
+        updateCounters();
     }
-
+    
+    function updateCounters() {
+        if(loopCounter) loopCounter.textContent = currentLoop;
+        if(coverageCounter) {
+            var pct = slots.length ? Math.round((slots.filter(s=>s.assigned).length / slots.length) * 100) : 0;
+            coverageCounter.textContent = pct + '%';
+        }
+    }
+    
     function tick(now) {
         var dt = Math.min(32, now - lastAt);
         lastAt = now;
-
-        if (hold > 0) {
-            hold -= dt;
-        } else {
-            currentCoverage += (targets[targetIndex] - currentCoverage) * 0.02;
-            if (Math.abs(targets[targetIndex] - currentCoverage) < 0.45) {
-                currentCoverage = targets[targetIndex];
-                if (targetIndex === targets.length - 1) {
-                    hold = 1000;
-                    targetIndex = 0;
-                    loop += 1;
-                } else {
-                    targetIndex += 1;
+        
+        ctx.clearRect(0, 0, width, height);
+        
+        // Base plate
+        ctx.beginPath();
+        ctx.arc(board.x, board.y, board.radius * 1.05, 0, Math.PI * 2);
+        var bg = ctx.createRadialGradient(board.x, board.y, 0, board.x, board.y, board.radius * 1.05);
+        bg.addColorStop(0, 'rgba(30,30,28,0.6)');
+        bg.addColorStop(1, 'rgba(15,15,14,0.8)');
+        ctx.fillStyle = bg;
+        ctx.fill();
+        ctx.strokeStyle = 'rgba(255,255,255,0.04)';
+        ctx.lineWidth = 1;
+        ctx.stroke();
+        
+        slots.forEach(s => {
+            drawGroove(ctx, s.x, s.y, marbleRadius);
+        });
+        
+        marbles.forEach(m => {
+            if (!m.settled) {
+                var dx = m.target.x - m.x;
+                var dy = m.target.y - m.y;
+                var dist = Math.sqrt(dx*dx + dy*dy);
+                
+                var chaos = dist > marbleRadius * 2 ? (Math.random() - 0.5) * 4.5 : 0;
+                
+                m.vx += dx * 0.012 + chaos;
+                m.vy += dy * 0.012 + chaos;
+                
+                m.vx *= 0.86;
+                m.vy *= 0.86;
+                
+                m.x += m.vx;
+                m.y += m.vy;
+                
+                if (dist < 1.5 && Math.abs(m.vx) < 0.5 && Math.abs(m.vy) < 0.5) {
+                    m.settled = true;
+                    m.x = m.target.x;
+                    m.y = m.target.y;
                 }
             }
+        });
+        
+        var renderList = marbles.slice().sort((a,b) => a.y - b.y);
+        
+        renderList.forEach(m => {
+            var sprite = MarbleFactory.createSprite(marbleRadius, m.palIdx, m.pattern, m.seed);
+            var speed = Math.sqrt(m.vx*m.vx + m.vy*m.vy);
+            var hover = m.settled ? 0 : Math.min(18, Math.max(0, speed * 1.5));
+            
+            if (hover > 0) {
+                ctx.beginPath();
+                ctx.ellipse(m.x, m.y + marbleRadius * 0.8, marbleRadius * 0.7, marbleRadius * 0.35, 0, 0, Math.PI*2);
+                ctx.fillStyle = 'rgba(0,0,0,' + (0.35 - hover/60) + ')';
+                ctx.fill();
+            }
+            
+            ctx.drawImage(sprite, m.x - sprite.width/2, m.y - hover - sprite.height/2);
+        });
+        
+        loopTimer -= dt;
+        if (loopTimer <= 0 && marbles.length < slots.length) {
+            throwWave();
+            loopTimer = 1600 + Math.random() * 1200; 
         }
-
-        displayCoverage += (currentCoverage - displayCoverage) * 0.08;
-        drawFrame(now);
+        
         requestAnimationFrame(tick);
     }
-
-    function setParallax(e) {
-        var r = canvas.getBoundingClientRect();
-        var nx = (e.clientX - r.left) / r.width - 0.5;
-        var ny = (e.clientY - r.top) / r.height - 0.5;
-        parallax.x = clamp(nx, -1, 1);
-        parallax.y = clamp(ny, -1, 1);
-        hover.x = e.clientX - r.left;
-        hover.y = e.clientY - r.top;
-    }
-
-    function clearHover() {
-        hover.x = -9999;
-        hover.y = -9999;
-        parallax.x *= 0.8;
-        parallax.y *= 0.8;
-        drawFrame(lastAt);
-    }
-
-    if (!reduceMotion) {
-        canvas.addEventListener('mousemove', setParallax);
-        canvas.addEventListener('mouseleave', clearHover);
-    }
-
-    window.addEventListener('resize', resizeCanvas);
-    resizeCanvas();
-    if (reduceMotion) {
-        drawFrame(lastAt);
-    } else {
-        requestAnimationFrame(tick);
-    }
+    
+    loopTimer = 800;
+    requestAnimationFrame(tick);
 })();
 
 // ============ DIFFUSION CANVAS (solitaire convergence, dimmed + hover spotlight) ============
