@@ -51,10 +51,16 @@
     --space-lg: 2rem;
     --space-xl: 4rem;
     --space-2xl: 6rem;
+
+    /* View system — each nav link = one full-height view */
+    --view-height: 100svh;
+    --view-offset: var(--nav-height);
+    --view-inner: calc(var(--view-height) - var(--view-offset));
 }
 
 html {
-    scroll-behavior: smooth
+    scroll-behavior: smooth;
+    scroll-snap-type: y proximity;
 }
 
 body {
@@ -283,20 +289,19 @@ h1, h2, h3, h4, h5, h6 {
 .founder-manifesto {
     width: var(--page-shell);
     margin: 0 auto;
-    padding-top: calc(var(--nav-height) + var(--banner-height));
+    padding: 0;
     font-family: var(--font-body);
 }
 
-/* HERO SPLIT — copy left, canvas right */
+/* HERO SPLIT — copy left, canvas right — first snap view */
 .hero-split {
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: var(--space-lg);
     align-items: center;
-    height: calc(100svh - var(--nav-height) - var(--banner-height));
-    max-height: calc(100svh - var(--nav-height) - var(--banner-height));
-    padding: var(--space-lg) 0;
-    overflow: hidden;
+    height: var(--view-inner);
+    padding: calc(var(--view-offset) + var(--space-lg)) 0 var(--space-lg);
+    scroll-snap-align: start;
 }
 
 .hero-canvas {
@@ -375,8 +380,10 @@ h1, h2, h3, h4, h5, h6 {
 @media (max-width: 900px) {
     .hero-split {
         grid-template-columns: 1fr;
-        gap: 24px;
-        min-height: auto;
+        gap: var(--space-md);
+        height: auto;
+        min-height: var(--view-inner);
+        padding-top: calc(var(--view-offset) + var(--space-md));
     }
     .hero-copy {
         text-align: center;
@@ -442,12 +449,14 @@ h1, h2, h3, h4, h5, h6 {
 .manifesto-body {
     max-width: 650px;
     margin: 0 auto;
+    padding-top: var(--space-xl);
 }
 
 .manifesto-body section {
     display: block;
     min-height: auto;
     padding: 0;
+    scroll-snap-align: none;
 }
 
 .manifesto-prose {
@@ -562,13 +571,14 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 
-/* SECTIONS */
+/* SECTIONS — each section is a snap-aligned view */
 section {
     display: flex;
     align-items: center;
-    min-height: calc(100svh - var(--chrome-offset));
-    padding: clamp(2.75rem, 6vh, 4.5rem) 0;
-    scroll-margin-top: calc(var(--chrome-offset) + 12px)
+    min-height: var(--view-inner);
+    padding: var(--space-lg) 0;
+    scroll-margin-top: var(--view-offset);
+    scroll-snap-align: start;
 }
 
 .container {
