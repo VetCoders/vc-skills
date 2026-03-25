@@ -37,9 +37,20 @@
     --font-mono: 'SF Mono', 'JetBrains Mono', 'Fira Code', monospace;
 
     /* Layout */
+    --nav-height: 52px;
+    --banner-height: 36px;
     --chrome-offset: 108px;
     --page-shell: min(1240px, calc(100% - 8vw));
     --gap-section: clamp(2.5rem, 5vh, 4rem);
+    --hero-canvas-max: min(480px, calc(100svh - var(--nav-height) - var(--banner-height) - var(--space-xl) - var(--space-lg)));
+
+    /* Spacing */
+    --space-xs: 0.25rem;
+    --space-sm: 0.5rem;
+    --space-md: 1rem;
+    --space-lg: 2rem;
+    --space-xl: 4rem;
+    --space-2xl: 6rem;
 }
 
 html {
@@ -116,20 +127,21 @@ h1, h2, h3, h4, h5, h6 {
 .topbar {
     position: fixed;
     top: 0; left: 0; right: 0; z-index: 100;
-    background: rgba(27, 27, 26, 0.7);
-    backdrop-filter: blur(16px);
-    border-bottom: 1px solid rgba(255,255,255,0.05);
+    height: var(--nav-height);
+    background: var(--surface-glass);
+    backdrop-filter: var(--blur);
+    border-bottom: 1px solid var(--card-border);
 }
 
 .nav-shell {
     max-width: none;
-    padding: 0 5vw;
     margin: 0 auto;
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 16px;
-    padding: 14px 18px
+    gap: var(--space-md);
+    height: 100%;
+    padding: 0 var(--space-lg);
 }
 
 .brand {
@@ -181,13 +193,13 @@ h1, h2, h3, h4, h5, h6 {
 /* CURL BANNER */
 .curl-banner {
     position: fixed;
-    top: 56px;
+    top: var(--nav-height);
     left: 0;
     right: 0;
-    z-index: 80;
-    background: rgba(12, 12, 11, .92);
-    backdrop-filter: blur(8px);
-    border-bottom: 1px solid rgba(250, 249, 245, .06);
+    z-index: 90;
+    background: rgba(12, 12, 11, .95);
+    backdrop-filter: var(--blur);
+    border-bottom: 1px solid var(--card-border);
     padding: 6px 5vw;
     display: flex;
     align-items: center;
@@ -271,7 +283,7 @@ h1, h2, h3, h4, h5, h6 {
 .founder-manifesto {
     width: var(--page-shell);
     margin: 0 auto;
-    padding: var(--gap-section) 0;
+    padding-top: calc(var(--nav-height) + var(--banner-height));
     font-family: var(--font-body);
 }
 
@@ -279,16 +291,18 @@ h1, h2, h3, h4, h5, h6 {
 .hero-split {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: 40px;
+    gap: var(--space-lg);
     align-items: center;
-    min-height: calc(100svh - var(--chrome-offset));
-    padding: clamp(1.5rem, 3vh, 2.5rem) 0;
+    height: calc(100svh - var(--nav-height) - var(--banner-height));
+    max-height: calc(100svh - var(--nav-height) - var(--banner-height));
+    padding: var(--space-lg) 0;
+    overflow: hidden;
 }
 
 .hero-canvas {
     position: relative;
     aspect-ratio: 1;
-    max-height: calc(100svh - var(--chrome-offset) - 4rem);
+    max-height: var(--hero-canvas-max);
     border-radius: var(--radius-lg);
     overflow: hidden;
     background: radial-gradient(circle at 50% 40%, rgba(33,33,32,.9), var(--terminal) 78%);
@@ -437,7 +451,7 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .manifesto-prose {
-    margin-bottom: 5rem;
+    margin-bottom: var(--space-xl);
 }
 
 .manifesto-prose h2 {
@@ -458,8 +472,8 @@ h1, h2, h3, h4, h5, h6 {
 .manifesto-body section.manifesto-evidence {
     display: flex;
     flex-direction: column;
-    gap: 3rem;
-    margin-bottom: 6rem;
+    gap: var(--space-lg);
+    margin-bottom: var(--space-2xl);
 }
 
 .evidence-item {

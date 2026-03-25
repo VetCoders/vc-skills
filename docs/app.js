@@ -349,8 +349,59 @@ function shuffleArr(a) {
     var loopCounter = document.getElementById('loopCounter');
     var coverageCounter = document.getElementById('coverageCounter');
     
+    // Shape generators — your app is a canvas, you define the shape, agents fill the gaps
+    var shapeIndex = 0;
+    var SHAPES = [
+        // Circle (default solitaire)
+        function(cx, cy, R, mr) { return hexGridInCircle(cx, cy, R, mr); },
+        // Triangle
+        function(cx, cy, R, mr) {
+            var pos = [], sp = mr * 2.12, rh = sp * 0.866;
+            var h = R * 1.6, base = R * 1.8;
+            var topY = cy - h * 0.45;
+            for (var y = topY; y <= topY + h; y += rh) {
+                var progress = (y - topY) / h;
+                var rowW = progress * base;
+                for (var x = cx - rowW / 2; x <= cx + rowW / 2; x += sp) {
+                    pos.push({x: x, y: y});
+                }
+            }
+            return pos;
+        },
+        // Diamond
+        function(cx, cy, R, mr) {
+            var pos = [], sp = mr * 2.12, rh = sp * 0.866;
+            for (var y = cy - R; y <= cy + R; y += rh) {
+                var dy = Math.abs(y - cy) / R;
+                var rowW = R * (1 - dy) * 1.6;
+                for (var x = cx - rowW / 2; x <= cx + rowW / 2; x += sp) {
+                    pos.push({x: x, y: y});
+                }
+            }
+            return pos;
+        },
+        // Star (5-point, fill inside)
+        function(cx, cy, R, mr) {
+            var pos = [], sp = mr * 2.12;
+            function inStar(px, py) {
+                var dx = px - cx, dy = py - cy;
+                var a = Math.atan2(dy, dx), d = Math.sqrt(dx * dx + dy * dy);
+                var r = R * 0.9 * (0.45 + 0.55 * Math.pow(Math.abs(Math.cos(2.5 * a - Math.PI / 2)), 0.6));
+                return d <= r;
+            }
+            for (var y = cy - R; y <= cy + R; y += sp * 0.866) {
+                var off = (Math.round((y - cy) / (sp * 0.866)) % 2) ? sp / 2 : 0;
+                for (var x = cx - R; x <= cx + R; x += sp) {
+                    if (inStar(x + off, y)) pos.push({x: x + off, y: y});
+                }
+            }
+            return pos;
+        }
+    ];
+
     function buildBoard() {
-        slots = hexGridInCircle(board.x, board.y, board.radius, marbleRadius);
+        var shapeFn = SHAPES[shapeIndex % SHAPES.length];
+        slots = shapeFn(board.x, board.y, board.radius, marbleRadius);
         slots.forEach(s => s.assigned = false);
         marbles = [];
         currentLoop = 0;
@@ -375,10 +426,27 @@ function shuffleArr(a) {
     window.addEventListener('resize', resizeCanvas);
     resizeCanvas();
     
+    var morphing = false;
+
     function throwWave() {
         var unassigned = slots.filter(s => !s.assigned);
         if (unassigned.length === 0) {
-            setTimeout(buildBoard, 4000);
+            if (morphing) return;
+            morphing = true;
+            // Shape complete — hold, scatter, morph to next shape
+            setTimeout(function() {
+                marbles.forEach(function(m) {
+                    m.settled = false;
+                    var angle = Math.random() * Math.PI * 2;
+                    m.vx = Math.cos(angle) * (12 + Math.random() * 10);
+                    m.vy = Math.sin(angle) * (12 + Math.random() * 10) - 8;
+                });
+                setTimeout(function() {
+                    shapeIndex++;
+                    morphing = false;
+                    buildBoard();
+                }, 900);
+            }, 2500);
             return;
         }
         
@@ -409,7 +477,8 @@ function shuffleArr(a) {
     function updateCounters() {
         if(loopCounter) loopCounter.textContent = currentLoop;
         if(coverageCounter) {
-            var pct = slots.length ? Math.round((slots.filter(s=>s.assigned).length / slots.length) * 100) : 0;
+            var settled = marbles.filter(function(m) { return m.settled; }).length;
+            var pct = slots.length ? Math.round((settled / slots.length) * 100) : 0;
             coverageCounter.textContent = pct + '%';
         }
     }
@@ -479,10 +548,11 @@ function shuffleArr(a) {
         });
         
         loopTimer -= dt;
-        if (loopTimer <= 0 && marbles.length < slots.length) {
+        if (loopTimer <= 0) {
             throwWave();
-            loopTimer = 1600 + Math.random() * 1200; 
+            loopTimer = 1600 + Math.random() * 1200;
         }
+        updateCounters();
         
         requestAnimationFrame(tick);
     }
