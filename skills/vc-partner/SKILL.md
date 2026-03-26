@@ -241,9 +241,9 @@ Preserve chronology, corrections, and reversals of interpretation.
 Run the same plan through independent planners using the portable spawn scripts:
 
 ```bash
-bash ~/.codex/skills/vc-agents/scripts/codex_spawn.sh .ai-agents/plans/<plan>.md --mode plan
-bash ~/.claude/skills/vc-agents/scripts/claude_spawn.sh .ai-agents/plans/<plan>.md --mode plan
-bash ~/.gemini/skills/vc-agents/scripts/gemini_spawn.sh .ai-agents/plans/<plan>.md --mode plan
+bash $VIBECRAFT_ROOT/skills/vc-agents/scripts/codex_spawn.sh .ai-agents/plans/<plan>.md --mode plan
+bash $VIBECRAFT_ROOT/skills/vc-agents/scripts/claude_spawn.sh .ai-agents/plans/<plan>.md --mode plan
+bash $VIBECRAFT_ROOT/skills/vc-agents/scripts/gemini_spawn.sh .ai-agents/plans/<plan>.md --mode plan
 ```
 
 > **Note**: If your environment has `codex-plan`, `claude-plan`, `gemini-plan`
@@ -275,7 +275,7 @@ zsh -ic 'codex-resume <session-uuid> "<continuation prompt>"'
 zsh -ic 'gemini-resume <session-uuid> "<continuation prompt>"'
 
 # If not, use portable scripts with the synthesis as the new plan:
-bash ~/.codex/skills/vc-agents/scripts/codex_spawn.sh .ai-agents/plans/<implementation-plan>.md --mode implement
+bash $VIBECRAFT_ROOT/skills/vc-agents/scripts/codex_spawn.sh .ai-agents/plans/<implementation-plan>.md --mode implement
 ```
 
 Do not pretend continuity exists if the resume helper does not exist.
