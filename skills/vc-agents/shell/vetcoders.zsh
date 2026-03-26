@@ -4,9 +4,27 @@
 
 _vetcoders_spawn_home() {
   local tool="$1"
-  # We now resolve directly to the canonical store in VIBECRAFT_ROOT
-  local v_root="${VIBECRAFT_ROOT:-$HOME/Libraxis/vetcoders-skills}"
-  printf '%s/skills/vc-agents' "$v_root"
+  local crafted_home="${VIBECRAFTED_HOME:-$HOME/.vibecrafted}"
+  local crafted_store="$crafted_home/skills/vc-agents"
+  if [[ -d "$crafted_store" ]]; then
+    printf '%s' "$crafted_store"
+    return 0
+  fi
+
+  local repo_root
+  repo_root="${VIBECRAFT_ROOT:-$(_vetcoders_repo_root)}"
+  if [[ -d "$repo_root/skills/vc-agents" ]]; then
+    printf '%s/skills/vc-agents' "$repo_root"
+    return 0
+  fi
+
+  local legacy_store="$HOME/.agents/skills/vc-agents"
+  if [[ -d "$legacy_store" ]]; then
+    printf '%s' "$legacy_store"
+    return 0
+  fi
+
+  printf '%s' "$crafted_store"
 }
 
 _vetcoders_spawn_script() {
@@ -192,4 +210,27 @@ codex-decorate() { _vetcoders_skill codex decorate "$@"; }
 claude-decorate() { _vetcoders_skill claude decorate "$@"; }
 gemini-decorate() { _vetcoders_skill gemini decorate "$@"; }
 
+skills-sync() {
+  local script
+  script="$(_vetcoders_spawn_script codex skills_sync.sh)" || return 1
+  bash "$script" "$@"
+}
 
+vc-frontier-paths() {
+  local root
+  root="$(_vetcoders_frontier_root)" || return 1
+  printf 'STARSHIP_CONFIG=%s/starship.toml\n' "$root"
+  printf 'ATUIN_CONFIG=%s/atuin/config.toml\n' "$root"
+  printf 'ZELLIJ_CONFIG=%s/zellij/config.kdl\n' "$root"
+}
+
+vc-frontier-install() {
+  local repo_root script
+  repo_root="$(_vetcoders_repo_root)"
+  script="$repo_root/skills/vc-agents/scripts/install-frontier-config.sh"
+  [[ -f "$script" ]] || {
+    echo "Frontier installer not found in current repo checkout: $script" >&2
+    return 1
+  }
+  bash "$script" --source "$repo_root" "$@"
+}

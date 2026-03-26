@@ -6,7 +6,7 @@ usage() {
 Usage: skills_sync.sh <host> [--source <repo-root>] [--tool <codex|claude|gemini>]... [--dry-run] [--mirror] [--with-shell] [--no-zshrc] [--no-verify]
 
 Sync canonical skill directories from this repo to another machine's shared store:
-  ~/.agents/skills
+  ~/.vibecrafted/skills
 
 Then create symlink views inside the remote tool homes:
   ~/.codex/skills
@@ -14,11 +14,11 @@ Then create symlink views inside the remote tool homes:
   ~/.gemini/skills
 
 Examples:
-  bash vc-agents/scripts/skills_sync.sh mgbook16
-  bash vc-agents/scripts/skills_sync.sh mgbook16 --tool codex --tool claude
-  bash vc-agents/scripts/skills_sync.sh mgbook16 --dry-run
-  bash vc-agents/scripts/skills_sync.sh mgbook16 --mirror
-  bash vc-agents/scripts/skills_sync.sh mgbook16 --with-shell
+  bash skills/vc-agents/scripts/skills_sync.sh mgbook16
+  bash skills/vc-agents/scripts/skills_sync.sh mgbook16 --tool codex --tool claude
+  bash skills/vc-agents/scripts/skills_sync.sh mgbook16 --dry-run
+  bash skills/vc-agents/scripts/skills_sync.sh mgbook16 --mirror
+  bash skills/vc-agents/scripts/skills_sync.sh mgbook16 --with-shell
 EOF_USAGE
 }
 
@@ -116,11 +116,15 @@ done
 source_line='[[ -r "${XDG_CONFIG_HOME:-$HOME/.config}/zsh/vc-skills.zsh" ]] && source "${XDG_CONFIG_HOME:-$HOME/.config}/zsh/vc-skills.zsh"'
 
 skills=()
+skills_root="$repo_root"
+if [[ -d "$repo_root/skills" ]]; then
+  skills_root="$repo_root/skills"
+fi
 while IFS= read -r skill; do
   [[ -n "$skill" ]] || continue
   skills+=("$skill")
 done < <(
-  find "$repo_root" -mindepth 1 -maxdepth 1 -type d \
+  find "$skills_root" -mindepth 1 -maxdepth 1 -type d \
     ! -name '.git' \
     ! -name '.loctree' \
     ! -name 'docs' \
@@ -128,7 +132,7 @@ done < <(
     -exec test -f '{}/SKILL.md' ';' -print | sort
 )
 
-[[ ${#skills[@]} -gt 0 ]] || die "No top-level skill directories found under $repo_root"
+[[ ${#skills[@]} -gt 0 ]] || die "No skill directories found under $skills_root"
 
 if [[ ${#tools[@]} -eq 0 ]]; then
   tools=(codex claude gemini)
@@ -143,7 +147,7 @@ if (( dry_run )); then
 fi
 
 printf 'Syncing skills from %s to %s\n' "$repo_root" "$host"
-remote_shared_target='~/.agents/skills'
+remote_shared_target='~/.vibecrafted/skills'
 printf -- '-- canonical store -> %s:%s\n' "$host" "$remote_shared_target"
 if (( dry_run )); then
   printf '  ssh %s mkdir -p %s\n' "$host" "$remote_shared_target"
@@ -182,7 +186,8 @@ for tool in "${tools[@]}"; do
 done
 
 if (( with_shell )); then
-  shell_source="$repo_root/vc-agents/shell/vetcoders.zsh"
+  shell_source="$repo_root/skills/vc-agents/shell/vetcoders.zsh"
+  [[ -f "$shell_source" ]] || shell_source="$repo_root/vc-agents/shell/vetcoders.zsh"
   [[ -f "$shell_source" ]] || die "Shell helper file not found: $shell_source"
 
   remote_config_dir='${XDG_CONFIG_HOME:-$HOME/.config}/zsh'
@@ -209,10 +214,10 @@ fi
 
 printf 'Verifying shared skill store on %s\n' "$host"
 ssh -n "$host" 'for f in \
-  ~/.agents/skills/vc-agents/scripts/codex_spawn.sh \
-  ~/.agents/skills/vc-agents/scripts/claude_spawn.sh \
-  ~/.agents/skills/vc-agents/scripts/gemini_spawn.sh \
-  ~/.agents/skills/vc-agents/scripts/observe.sh; do
+  ~/.vibecrafted/skills/vc-agents/scripts/codex_spawn.sh \
+  ~/.vibecrafted/skills/vc-agents/scripts/claude_spawn.sh \
+  ~/.vibecrafted/skills/vc-agents/scripts/gemini_spawn.sh \
+  ~/.vibecrafted/skills/vc-agents/scripts/observe.sh; do
   if [ -e "$f" ]; then
     echo "OK $f"
   else

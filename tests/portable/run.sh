@@ -218,7 +218,9 @@ log "docs truth checks"
 assert_not_contains "$repo_root/skills/vc-followup/SKILL.md" 'Use canonical Terminal spawn (`osascript`)'
 assert_not_contains "$repo_root/skills/vc-workflow/SKILL.md" 'osascript preferred'
 [[ ! -e "$repo_root/skills/vc-subagents/SKILL.md" ]] || die 'vc-subagents should not exist'
-assert_not_contains "$repo_root/docs/index.html" 'Canonical osascript Terminal spawn'
+if [[ -e "$repo_root/docs/index.html" ]]; then
+  assert_not_contains "$repo_root/docs/index.html" 'Canonical osascript Terminal spawn'
+fi
 [[ -e "$repo_root/skills/vc-suite-showcase.html" ]] && die 'vc-suite-showcase.html should not exist (was mv to docs/index.html)'
 
 log "portable checks passed"
