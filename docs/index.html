@@ -3,21 +3,21 @@
 <head>
     <meta charset="UTF-8">
     <meta content="width=device-width, initial-scale=1.0" name="viewport">
-    <title>VibeCraft Skills — The Vibecraft Framework for Founders</title>
+    <title>VibeCraft Skills — The VibeCraft Framework for Founders</title>
     <meta content="An operating system for AI agents (Codex, Claude, Gemini) built by founders to survive the 'Always-in-Production' plague and actually ship software."
           name="description">
-    <meta content="VibeCraft Skills: The Vibecraft Framework" property="og:title">
+    <meta content="VibeCraft Skills: The VibeCraft Framework" property="og:title">
     <meta content="Stop playing with AI toys. Use the framework we built to force LLMs to converge and ship real products."
           property="og:description">
-    <meta content="https://vetcoders.github.io/vc-skills/og-image.png" property="og:image">
+    <meta content="https://vetcoders.github.io/vibecrafted/og-image.png" property="og:image">
     <meta content="1536" property="og:image:width">
     <meta content="1024" property="og:image:height">
     <meta content="website" property="og:type">
-    <meta content="https://vetcoders.github.io/vc-skills/" property="og:url">
+    <meta content="https://vetcoders.github.io/vibecrafted/" property="og:url">
     <meta content="summary_large_image" name="twitter:card">
-    <meta content="VibeCraft Skills: The Vibecraft Framework" name="twitter:title">
+    <meta content="VibeCraft Skills: The VibeCraft Framework" name="twitter:title">
     <meta content="Stop playing with AI toys. Use the framework we built to force LLMs to converge and ship real products." name="twitter:description">
-    <meta content="https://vetcoders.github.io/vc-skills/og-image.png" name="twitter:image">
+    <meta content="https://vetcoders.github.io/vibecrafted/og-image.png" name="twitter:image">
     <meta content="T5B-vRPBGSbPiROhDSZPMplZ6bA5yCgT_3egIGQ8kIE" name="google-site-verification">
     <meta content="index,follow" name="robots">
     <link href="favicon.ico" rel="icon" sizes="32x32">
@@ -28,6 +28,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&amp;family=Lora:ital,wght@0,400;0,500;0,600;1,400&amp;display=swap"
           rel="stylesheet">
     <link href="styles.css?v=20260325b" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10.8.0/dist/mermaid.min.js"></script>
 </head>
 <body>
 <a class="skip-link" href="#main-content">Skip to content</a>
@@ -39,13 +40,13 @@
             <img alt="" aria-hidden="true" class="brand-logo" height="24" src="./logo-32.png">
         </a>
         <nav aria-label="Primary" class="nav-links">
-            <a href="#pipeline">Vibecraft</a>
+            <a href="#pipeline">VibeCraft</a>
             <a href="#skills">Skills</a>
             <a href="#marbles">Marbles</a>
             <a href="#dou">DoU</a>
             <div class="nav-get-zone">
                 <a href="#get" id="nav-get-link">Get</a>
-                <a aria-label="GitHub" class="nav-icon-link" href="https://github.com/VetCoders/vc-skills">
+                <a aria-label="GitHub" class="nav-icon-link" href="https://github.com/VetCoders/vibecrafted">
                     <svg aria-hidden="true" class="nav-icon" viewBox="0 0 24 24">
                         <path d="M12 1.5a10.5 10.5 0 0 0-3.32 20.46c.53.1.72-.23.72-.51v-1.81c-2.94.64-3.56-1.24-3.56-1.24-.48-1.22-1.16-1.55-1.16-1.55-.95-.65.07-.63.07-.63 1.05.07 1.6 1.08 1.6 1.08.94 1.6 2.45 1.14 3.04.87.09-.68.37-1.14.66-1.4-2.35-.27-4.82-1.18-4.82-5.25 0-1.16.41-2.1 1.08-2.84-.11-.27-.47-1.36.1-2.83 0 0 .88-.28 2.89 1.08a10.08 10.08 0 0 1 5.26 0c2-1.36 2.88-1.08 2.88-1.08.58 1.47.22 2.56.11 2.83.67.74 1.08 1.68 1.08 2.84 0 4.08-2.48 4.97-4.85 5.23.38.33.72.97.72 1.95v2.89c0 .28.19.62.73.51A10.5 10.5 0 0 0 12 1.5Z"></path>
                     </svg>
@@ -57,9 +58,9 @@
 
 <div class="curl-banner" id="get">
     <code><span class="cb-g">$</span> curl -fsSLO
-        https://raw.githubusercontent.com/VetCoders/vc-skills/main/install.sh &amp;&amp; bash install.sh</code>
+        https://raw.githubusercontent.com/VetCoders/vibecrafted/main/install.sh &amp;&amp; bash install.sh</code>
     <button class="cb-copy"
-            data-copy="curl -fsSLO https://raw.githubusercontent.com/VetCoders/vc-skills/main/install.sh &amp;&amp; bash install.sh"
+            data-copy="curl -fsSLO https://raw.githubusercontent.com/VetCoders/vibecrafted/main/install.sh &amp;&amp; bash install.sh"
             type="button">
         Copy
     </button>
@@ -72,13 +73,13 @@
 
         <section class="hero-split fade-up">
             <header class="hero-copy">
-                <h1 class="manifesto-title">The <span class="accent">Vibecraft</span> Framework<br>for Founders.</h1>
+                <h1 class="manifesto-title">The <span class="accent">VibeCraft</span> Framework<br>for Founders.</h1>
                 <p class="manifesto-lead">
-                    Agents are no longer toys. VibeCraft gives you a full-featured factory of frontier engineers to ship real products.
+                    Agents are no longer toys. VibeCraft gives founders a&nbsp;real system for shipping with AI agents.
                 </p>
                 <div class="manifesto-actions">
                     <a href="#evidence" class="btn-solid">See the Evidence</a>
-                    <a href="https://github.com/VetCoders/vc-skills" class="btn-outline">View on GitHub</a>
+                    <a href="https://github.com/VetCoders/vibecrafted" class="btn-outline">View on GitHub</a>
                 </div>
             </header>
             <figure class="hero-canvas" id="showcase">
@@ -180,14 +181,17 @@
     <!-- PIPELINE -->
     <section class="pipeline-section" id="pipeline">
         <div class="container fade-up">
-            <div class="section-label">Vibecraft</div>
+            <div class="section-label">VibeCraft</div>
             <h2 class="section-title">Craft &rarr; Converge &rarr; Ship</h2>
             <p class="section-sub">Vibecrafting is what happens when you stop treating AI like a magic wand and start
                 treating it like a stochastic engine that needs iron-clad guardrails. Shape the path, loop until it
                 stops breaking, then force it to ship.</p>
 
-            <div class="mmd-shell">
+            <div class="mmd-shell" data-mode="code">
+                <button class="mmd-split" type="button">Split</button>
+                <button class="mmd-toggle" type="button">Preview</button>
                 <button class="mmd-copy" type="button">Copy</button>
+                <div class="mmd-code">
             <pre><code><span class="comment">%% vetcoders pipeline</span>
 flowchart LR
     subgraph Craft
@@ -203,6 +207,8 @@ flowchart LR
     decorate --&gt; hydrate[hydrate]
 
     hydrate --&gt; ship([ship-ready surface])</code></pre>
+                </div>
+                <div class="mmd-preview"></div>
             </div>
 
             <div class="pipeline-notes">
@@ -466,7 +472,7 @@ flowchart LR
                 <p class="transition-caption">Convergence
                     Trajectory &mdash; loop until the circle is full</p>
                 <div class="trajectory" id="trajectoryBars">
-                    <div class="bar bar--orange" data-h="15"><span
+                    <div class="bar bar--orange" data-h="24"><span
                             class="bar-label">Loop 1</span><span class="bar-score">15</span></div>
                     <div class="bar bar--orange" data-h="40"><span
                             class="bar-label">Loop 2</span><span class="bar-score">40</span></div>
@@ -528,27 +534,27 @@ flowchart LR
                 <li class="reference-item">
                     <p class="reference-citation">Morris, K.; B&ouml;ckeler, B. (2026). <em>Humans and Agents in Software Engineering Loops</em>. Thoughtworks / Martin Fowler.</p>
                     <p class="reference-note">Grounding for the why-loop / how-loop split, harness design, and disciplined human-guided agent workflows.</p>
-                    <p class="reference-links"><a href="https://martinfowler.com/articles/exploring-gen-ai/humans-and-agents.html">Primary essay</a> &middot; <a href="https://github.com/VetCoders/vc-skills/blob/main/VIBECRAFT.md#influences">Manifest note</a></p>
+                    <p class="reference-links"><a href="https://martinfowler.com/articles/exploring-gen-ai/humans-and-agents.html">Primary essay</a> &middot; <a href="https://github.com/VetCoders/vibecrafted/blob/main/VIBECRAFT.md#influences">Manifest note</a></p>
                 </li>
                 <li class="reference-item">
                     <p class="reference-citation">Gong, L.; Elhoushi, M.; Cheung, A. (2024). <em>AST-T5: Structure-Aware Pretraining for Code Generation and Understanding</em>. Guo, D. et al. (2021). <em>GraphCodeBERT: Pre-training Code Representations with Data Flow</em>.</p>
                     <p class="reference-note">Structure-aware code modeling research behind Loctree-style mapping and the insistence that global code shape matters more than a flat token stream.</p>
-                    <p class="reference-links"><a href="https://arxiv.org/abs/2401.03003">AST-T5</a> &middot; <a href="https://arxiv.org/abs/2009.08366">GraphCodeBERT</a> &middot; <a href="https://github.com/VetCoders/vc-skills/blob/main/VIBECRAFT.md#influences">Manifest note</a></p>
+                    <p class="reference-links"><a href="https://arxiv.org/abs/2401.03003">AST-T5</a> &middot; <a href="https://arxiv.org/abs/2009.08366">GraphCodeBERT</a> &middot; <a href="https://github.com/VetCoders/vibecrafted/blob/main/VIBECRAFT.md#influences">Manifest note</a></p>
                 </li>
                 <li class="reference-item">
                     <p class="reference-citation">Cunningham, W. (1992); Fowler, M. (2009). <em>Technical debt</em> and the later debt literature.</p>
                     <p class="reference-note">Source of the debt metaphor that VibeCraft extends beyond code quality into onboarding, installability, discoverability, and commercial readiness.</p>
-                    <p class="reference-links"><a href="https://martinfowler.com/bliki/TechnicalDebtQuadrant.html">Technical Debt Quadrant</a> &middot; <a href="https://github.com/VetCoders/vc-skills/blob/main/VIBECRAFT.md#influences">Manifest note</a></p>
+                    <p class="reference-links"><a href="https://martinfowler.com/bliki/TechnicalDebtQuadrant.html">Technical Debt Quadrant</a> &middot; <a href="https://github.com/VetCoders/vibecrafted/blob/main/VIBECRAFT.md#influences">Manifest note</a></p>
                 </li>
                 <li class="reference-item">
                     <p class="reference-citation">Jha, S. et al. (2014 onward). <em>Counterexample-Guided Inductive Synthesis</em> and later counterexample-guided optimization literature.</p>
                     <p class="reference-note">Formal substrate for Marbles loops: iterative convergence under failure pressure, counterexamples, and variance reduction instead of optimistic one-shot generation.</p>
-                    <p class="reference-links"><a href="https://www.cprover.org/synthesis">CEGIS overview</a> &middot; <a href="https://github.com/VetCoders/vc-skills/blob/main/VIBECRAFT.md#influences">Manifest note</a></p>
+                    <p class="reference-links"><a href="https://www.cprover.org/synthesis">CEGIS overview</a> &middot; <a href="https://github.com/VetCoders/vibecrafted/blob/main/VIBECRAFT.md#influences">Manifest note</a></p>
                 </li>
                 <li class="reference-item">
                     <p class="reference-citation">VetCoders (2026). <em>The VibeCraft Manifesto</em>.</p>
                     <p class="reference-note">Primary source for SHACE, Marbles, Loctree Mapping, PSCD, and the Definition of Undone as original concepts refined in real shipping work.</p>
-                    <p class="reference-links"><a href="https://github.com/VetCoders/vc-skills/blob/main/VIBECRAFT.md">Read the manifesto</a></p>
+                    <p class="reference-links"><a href="https://github.com/VetCoders/vibecrafted/blob/main/VIBECRAFT.md">Read the manifesto</a></p>
                 </li>
             </ol>
         </div>
@@ -575,8 +581,6 @@ flowchart LR
                     <a href="https://vetcoders.io">Homepage</a>
                     <a href="https://github.com/VetCoders">GitHub</a>
                     <a href="https://www.linkedin.com/search/results/companies/?keywords=VetCoders">LinkedIn</a>
-                    <a href="https://www.reddit.com/r/VibeCrafted/">Reddit</a>
-                    <a href="https://x.com/VetCoders">X</a>
                     <a href="https://www.facebook.com/VetCoders">Facebook</a>
                 </div>
             </div>
@@ -596,13 +600,12 @@ flowchart LR
             </div>
         </div>
         <div class="footer-credit-stack">
-            <p class="footer-line"><a href="https://div0.space">Maciej Gad</a> - a veterinarian who got tired of fragile software and chose violence.</p>
-            <p class="footer-line"><a href="https://vetcoders.io">Monika Szymanska</a> - a veterinarian who got tired of him, and started to do the same. <a href="mailto:hello@vetcoders.io">hello@vetcoders.io</a></p>
-            <p class="footer-line"><a href="https://github.com/VetCoders">Hundreds of Anonymous AIs</a> - who had to build the tools to survive them both.</p>
-            <p class="tagline-footer">Vibecrafted through stochastic pain by VetCoders &copy; 2026</p>
+            <p class="footer-line"><a href="https://github.com/VetCoders">VetCoders</a></p>
+            <p class="footer-line"><a href="mailto:hello@vetcoders.io">hello@vetcoders.io</a></p>
+            <p class="tagline-footer">VibeCraft &copy; 2026</p>
         </div>
     </footer>
 
-    <script src="app.js?v=20260325b"></script>
+    <script src="app.js?v=20260326a"></script>
 </body>
 </html>

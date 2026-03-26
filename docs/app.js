@@ -482,6 +482,8 @@ function shuffleArr(a) {
                 y: startY,
                 vx: (Math.random() - 0.5) * 16 * chaosLevel,
                 vy: (Math.random() - 0.5) * 12 * chaosLevel + 4,
+                z: 40 + Math.random() * 120 + chaosLevel * 100,
+                vz: (Math.random() - 0.2) * 8,
                 target: slot,
                 settled: false,
                 chaosLevel: chaosLevel,
@@ -502,6 +504,8 @@ function shuffleArr(a) {
                     var kickAngle = Math.random() * Math.PI * 2;
                     m.vx = Math.cos(kickAngle) * (6 + Math.random() * 8);
                     m.vy = Math.sin(kickAngle) * (6 + Math.random() * 8) - 4;
+                    m.z = 2 + Math.random() * 10;
+                    m.vz = 6 + Math.random() * 8;
                     // Reassign to a random empty slot
                     var empties = slots.filter(function(s) { return !s.assigned; });
                     if (empties.length > 0) {
@@ -564,24 +568,39 @@ function shuffleArr(a) {
                 var dy = m.target.y - m.y;
                 var dist = Math.sqrt(dx*dx + dy*dy);
 
+                if (m.z === undefined) { m.z = 0; m.vz = 0; }
+                m.vz -= 0.85; // Gravity
+                m.z += m.vz;
+                if (m.z < 0) {
+                    m.z = 0;
+                    if (Math.abs(m.vz) > 1.8) {
+                        m.vz = -m.vz * 0.45; // Bounce
+                    } else {
+                        m.vz = 0; // Roll
+                    }
+                }
+                var inAir = m.z > 0;
+
                 // Per-marble chaos — decreases as convergence increases
                 var mChaos = (m.chaosLevel || 0.5) * (1 - conv * 0.7);
                 var jitter = dist > marbleRadius * 2 ? (Math.random() - 0.5) * 4.5 * mChaos : 0;
 
                 // Attraction strength increases with convergence (more precise late)
-                var attract = 0.01 + conv * 0.015;
+                var attract = (0.01 + conv * 0.015) * (inAir ? 0.15 : 1.0);
                 m.vx += dx * attract + jitter;
                 m.vy += dy * attract + jitter;
 
                 // Friction — tighter late
                 var friction = 0.84 + conv * 0.06; // 0.84 early → 0.90 late
+                if (inAir) friction = 0.98; // Air resistance only
+                
                 m.vx *= friction;
                 m.vy *= friction;
 
                 m.x += m.vx;
                 m.y += m.vy;
 
-                if (dist < 1.5 && Math.abs(m.vx) < 0.5 && Math.abs(m.vy) < 0.5) {
+                if (dist < 1.5 && Math.abs(m.vx) < 0.5 && Math.abs(m.vy) < 0.5 && m.z <= 0) {
                     m.settled = true;
                     m.x = m.target.x;
                     m.y = m.target.y;
@@ -593,17 +612,22 @@ function shuffleArr(a) {
 
         renderList.forEach(m => {
             var sprite = MarbleFactory.createSprite(marbleRadius, m.palIdx, m.pattern, m.seed);
-            var speed = Math.sqrt(m.vx*m.vx + m.vy*m.vy);
-            var hover = m.settled ? 0 : Math.min(18, Math.max(0, speed * 1.5));
+            var speed = m.vx !== undefined ? Math.sqrt(m.vx*m.vx + m.vy*m.vy) : 0;
+            var hover = m.z || 0;
 
             // Marble alpha: settled marbles are brighter as convergence increases
             var mAlpha = m.settled ? (0.7 + conv * 0.3) : (0.5 + Math.min(speed * 0.03, 0.4));
             mAlpha *= fadeOutAlpha; // fade on shape complete
 
-            if (hover > 0) {
-                ctx.globalAlpha = mAlpha * 0.4;
+            if (hover > 0 || speed > 0.5) {
+                var shadowScale = Math.max(0.4, 1 - hover / 180);
+                var shadowW = marbleRadius * 0.8 * shadowScale;
+                var shadowH = marbleRadius * 0.4 * shadowScale;
+                var shadowAlpha = Math.max(0.05, 0.4 - hover / 250);
+                
+                ctx.globalAlpha = mAlpha * shadowAlpha;
                 ctx.beginPath();
-                ctx.ellipse(m.x, m.y + marbleRadius * 0.8, marbleRadius * 0.7, marbleRadius * 0.35, 0, 0, Math.PI*2);
+                ctx.ellipse(m.x, m.y + marbleRadius * 0.6 + hover * 0.15, shadowW, shadowH, 0, 0, Math.PI*2);
                 ctx.fillStyle = 'rgba(0,0,0,1)';
                 ctx.fill();
             }
@@ -1038,6 +1062,71 @@ function shuffleArr(a) {
             announceUiMessage(ok ? 'Pipeline code copied.' : 'Copy failed.');
         });
     });
+})();
+
+// ============ MERMAID TOGGLE ============
+(function() {
+    var toggleBtn = document.querySelector('.mmd-toggle');
+    var splitBtn = document.querySelector('.mmd-split');
+    var shell = document.querySelector('.mmd-shell');
+    var codeBlock = shell ? shell.querySelector('code') : null;
+    var previewPane = shell ? shell.querySelector('.mmd-preview') : null;
+    
+    if (!toggleBtn || !shell || !codeBlock || !previewPane) return;
+    
+    var mermaidInitialized = false;
+    
+    function initMermaid() {
+        if (!mermaidInitialized && window.mermaid) {
+            mermaid.initialize({ startOnLoad: false, theme: 'dark' });
+            var rawText = codeBlock.innerText || codeBlock.textContent;
+            mermaid.render('mermaid-graph-1', rawText).then(function(result) {
+                previewPane.innerHTML = result.svg;
+            });
+            mermaidInitialized = true;
+        }
+    }
+
+    function setMode(newMode) {
+        shell.setAttribute('data-mode', newMode);
+        if (newMode === 'preview') {
+            toggleBtn.style.color = 'var(--orange)';
+            toggleBtn.style.borderColor = 'var(--orange)';
+            if(splitBtn) {
+                splitBtn.style.color = '';
+                splitBtn.style.borderColor = '';
+            }
+            initMermaid();
+        } else if (newMode === 'split') {
+            if(splitBtn) {
+                splitBtn.style.color = 'var(--orange)';
+                splitBtn.style.borderColor = 'var(--orange)';
+            }
+            toggleBtn.style.color = '';
+            toggleBtn.style.borderColor = '';
+            initMermaid();
+        } else {
+            // code
+            toggleBtn.style.color = '';
+            toggleBtn.style.borderColor = '';
+            if(splitBtn) {
+                splitBtn.style.color = '';
+                splitBtn.style.borderColor = '';
+            }
+        }
+    }
+
+    toggleBtn.addEventListener('click', function() {
+        var mode = shell.getAttribute('data-mode');
+        setMode(mode === 'preview' ? 'code' : 'preview');
+    });
+
+    if(splitBtn) {
+        splitBtn.addEventListener('click', function() {
+            var mode = shell.getAttribute('data-mode');
+            setMode(mode === 'split' ? 'code' : 'split');
+        });
+    }
 })();
 
 // ============ HOVER CURL BANNER ============ 
