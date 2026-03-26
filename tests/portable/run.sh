@@ -90,9 +90,9 @@ HOME="$home_dir" XDG_CONFIG_HOME="$config_dir" \
   --tool codex --tool claude --tool gemini \
   --with-shell
 
-require_file "$home_dir/.agents/skills/vc-agents/scripts/codex_spawn.sh"
-require_file "$home_dir/.agents/skills/vc-agents/scripts/claude_spawn.sh"
-require_file "$home_dir/.agents/skills/vc-agents/scripts/gemini_spawn.sh"
+require_file "$home_dir/.vibecrafted/skills/vc-agents/scripts/codex_spawn.sh"
+require_file "$home_dir/.vibecrafted/skills/vc-agents/scripts/claude_spawn.sh"
+require_file "$home_dir/.vibecrafted/skills/vc-agents/scripts/gemini_spawn.sh"
 require_symlink "$home_dir/.codex/skills/vc-agents"
 require_symlink "$home_dir/.claude/skills/vc-agents"
 require_symlink "$home_dir/.gemini/skills/vc-agents"
@@ -212,7 +212,7 @@ chmod +x "$fake_bin/rsync"
 sync_output="$(env HOME="$home_dir" XDG_CONFIG_HOME="$config_dir" PATH="$fake_bin:$PATH" bash "$repo_root/skills/vc-agents/scripts/skills_sync.sh" fakehost --source "$repo_root" --dry-run)"
 echo "$sync_output" | grep -q "Syncing skills from" || die "Sync dry-run failed to start"
 echo "$sync_output" | grep -q "rsync .* --dry-run" || die "Sync dry-run didn't pass dry-run to rsync"
-echo "$sync_output" | grep -q "~/.agents/skills" || die "Sync dry-run didn't target the shared canonical skill store"
+echo "$sync_output" | grep -q "~/.vibecrafted/skills\|~/.agents/skills" || die "Sync dry-run didn't target the shared canonical skill store"
 
 log "docs truth checks"
 assert_not_contains "$repo_root/skills/vc-followup/SKILL.md" 'Use canonical Terminal spawn (`osascript`)'

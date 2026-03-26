@@ -230,7 +230,7 @@ def _is_writable(path: Path) -> bool:
         return False
 
 AGENT_RUNTIMES = ["codex", "claude", "gemini"]
-SYMLINK_TARGETS = ["codex", "claude", "agents"]  # agents = ~/.agents/skills/ (shared industry dir)
+SYMLINK_TARGETS = ["agents"]  # ~/.agents/skills/ — single source of truth, all agents read from here
 
 # ---------------------------------------------------------------------------
 # Install state
@@ -1349,8 +1349,9 @@ def cmd_install(args: argparse.Namespace) -> int:
     if not dry_run:
         store_path.mkdir(parents=True, exist_ok=True)
 
+    skills_dir = repo_root / "skills" if (repo_root / "skills").is_dir() else repo_root
     for name in selected_skills:
-        src = repo_root / name
+        src = skills_dir / name
         dst = store_path / name
         print(f"  {dim('->')} {name}")
         rsync_skill(src, dst, dry_run=dry_run, mirror=mirror)
