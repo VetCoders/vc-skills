@@ -83,7 +83,7 @@ def main():
     print_info("3. This line points to our 'vetcoders.zsh' script.")
     print_info("4. When you use VibeCraft, we load our beautiful 'frontier configs' (starship, zellij) dynamically as sidecars.")
     
-    if not ask_yes_no("Do you understand and agree to proceed?"):
+    if not ask_yes_no("Ready to install?"):
         print("\nSetup aborted by user. No changes were made.")
         sys.exit(0)
 
