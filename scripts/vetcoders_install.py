@@ -1039,25 +1039,27 @@ class DoctorFinding:
 
 
 KNOWN_ZSH_SESSION_NOISE = {
-    "Saving session...",
-    "...copying shared history...",
-    "...saving history...truncating history files...",
-    "...completed.",
-    "Deleting expired sessions...none found.",
+    "saving session",
+    "copying shared history",
+    "saving history",
+    "truncating history files",
+    "completed",
+    "deleting expired sessions",
+    "none found",
 }
 
 
 def is_benign_zsh_session_noise(stderr: str) -> bool:
     """Return True when stderr only contains macOS shell session housekeeping."""
-    normalized = " ".join(line.strip() for line in stderr.splitlines() if line.strip())
+    normalized = " ".join(line.strip().lower() for line in stderr.splitlines() if line.strip())
     if not normalized:
         return False
 
     remainder = normalized
     for fragment in sorted(KNOWN_ZSH_SESSION_NOISE, key=len, reverse=True):
         remainder = remainder.replace(fragment, "")
-
-    return not remainder.strip()
+    remainder = remainder.replace(".", "").replace(" ", "")
+    return not remainder
 
 
 def run_doctor(store_path: Path, state: InstallState) -> List[DoctorFinding]:
@@ -1216,6 +1218,11 @@ def print_doctor(findings: List[DoctorFinding]) -> int:
 # ---------------------------------------------------------------------------
 # Subcommand: install
 # ---------------------------------------------------------------------------
+
+
+class GoBack(Exception):
+    """Raised by the interactive wizard to re-visit a previous step."""
+    pass
 
 
 def cmd_install(args: argparse.Namespace) -> int:

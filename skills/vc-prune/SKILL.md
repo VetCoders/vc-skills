@@ -7,7 +7,10 @@ description: >
   shipping, or published API, separate product code from tooling, archives,
   experiments, agent exhaust, and stale surfaces, and run ruthless cleanup with
   proof instead of sentiment. External `vc-agents` is the default first
-  move for non-trivial prune work.
+  move for non-trivial prune work. Trigger phrases: "prune", "prune repo",
+  "strip dead code", "runtime cone", "publish cone", "clean up the codebase",
+  "wyczyść repo", "usuń martwy kod", "remove unused", "radykalnie wyczyść",
+  "what can we delete", "co można usunąć", "bez litości wyczyść".
 ---
 
 # vc-prune - Runtime / Publish Cone Pruning

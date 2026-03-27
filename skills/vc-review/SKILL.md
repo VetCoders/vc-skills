@@ -7,8 +7,6 @@ description: >
   "sprawdź PR", "zrób review", "audit PR", "daj findings", "zbadaj branch",
   "artifact pack", "PR quality check", "merge gate", "findings-max", "deep review",
   or needs structured PR artifacts with line-level analysis for AI review pipelines.
-metadata:
-  short-description: "Generate + audit PR artifacts, findings-max (v1)"
 ---
 
 # vc-review — Code Review Pipeline (Generate + Audit)

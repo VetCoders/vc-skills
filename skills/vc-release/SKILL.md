@@ -1,15 +1,11 @@
 ---
 name: vc-release
-description: "Ship code to market: release mechanics, financial awareness, legal basics, deployment reality"
-triggers:
-  - "release"
-  - "ship to market"
-  - "publish"
-  - "deploy to production"
-  - "vc-release"
-  - "go live"
-  - "launch"
 version: "0.1.0"
+description: >
+  Ship code to market: release mechanics, financial awareness, legal basics,
+  deployment reality. Trigger phrases: "release", "ship to market", "publish",
+  "deploy to production", "vc-release", "go live", "launch", "wypuść wersję",
+  "deploy", "release prep", "launch path".
 ---
 
 # vc-release: Ship to Market

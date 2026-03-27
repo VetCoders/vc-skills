@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 import os
 import shlex
-import sys
 import shutil
+import subprocess
+import sys
 
 _IS_TTY = sys.stdout.isatty() and sys.stdin.isatty()
 
@@ -55,8 +56,6 @@ def get_shell_rc():
     else:
         # Default to zshrc if we can't figure it out, it's most common on mac
         return os.path.join(home, ".zshrc")
-
-import subprocess
 
 def run_underlying_installer(repo_dir):
     installer_path = os.path.join(repo_dir, "scripts", "vetcoders_install.py")

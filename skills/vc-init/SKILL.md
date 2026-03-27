@@ -1,6 +1,6 @@
 ---
 name: vc-init
-version: "2.2"
+version: "2.2.0"
 description: >-
   This skill should be used when the user asks to "init", "initialize session",
   "give context to agent", "prepare agent", "bootstrap agent", "daj kontekst",

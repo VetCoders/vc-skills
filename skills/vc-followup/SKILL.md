@@ -5,7 +5,10 @@ description: >
   Production follow-up audit skill for VetCoders. Runs a strict chain:
   vc-init -> vc-workflow -> vc-agents, then synthesizes
   implementation gaps, readiness risks, quality gate outcomes, and next actions
-  before hands-on build/testing.
+  before hands-on build/testing. Trigger phrases: "follow-up check",
+  "followup audit", "czy sa jeszcze luki", "readiness before hands-on",
+  "audit this implementation", "po implementacji", "gaps after agents",
+  "co zostało do zrobienia", "post-implementation review".
 ---
 
 # vc-followup

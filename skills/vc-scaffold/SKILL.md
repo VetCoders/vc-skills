@@ -1,15 +1,11 @@
 ---
 name: vc-scaffold
-description: "Founder-first architecture planning. Takes a vague idea, maps the landscape, produces a scoped build plan. Trigger: 'scaffold', 'plan this', 'architect this', 'I have an idea', 'design the system', 'break this down', 'vc-scaffold'"
 version: 0.1.0
-triggers:
-  - scaffold
-  - "plan this"
-  - "architect this"
-  - "break this down"
-  - "I have an idea"
-  - "design the system"
-  - "vc-scaffold"
+description: >
+  Founder-first architecture planning. Takes a vague idea, maps the landscape,
+  produces a scoped build plan. Trigger phrases: "scaffold", "plan this",
+  "architect this", "break this down", "I have an idea", "design the system",
+  "vc-scaffold", "zaplanuj to", "rozrysuj architekturę", "mam pomysł".
 ---
 
 # vc-scaffold: Founder-First Architecture Planning
@@ -53,12 +49,12 @@ No fluff. No 50-page design docs. Architects ship plans that work.
 
 If there's an existing codebase:
 
-- Run `loctree-repo-view` to understand size, languages, health
-- Use `loctree-focus` on suspect modules (the messy ones, the hot ones)
-- Use `loctree-slice` on critical files to see dependency chains
-- Use `loctree-tree` to map directory structure and find LOC hotspots
-- Use `loctree-find` to locate key symbols, patterns, or potential conflicts
-- Use `loctree-follow` with scope=all to detect dead code, cycles, twins, hotspots
+- Run `repo-view(project)` to understand size, languages, health
+- Use `focus(directory)` on suspect modules (the messy ones, the hot ones)
+- Use `slice(file)` on critical files to see dependency chains
+- Use `tree(project)` to map directory structure and find LOC hotspots
+- Use `find(name)` to locate key symbols, patterns, or potential conflicts
+- Use `follow(scope)` with scope=all to detect dead code, cycles, twins, hotspots
 
 Spend 15 minutes here. You'll find the constraints that matter.
 
