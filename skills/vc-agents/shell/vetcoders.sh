@@ -272,7 +272,8 @@ VibeCraft Framework — Skills & Helpers
 Pipeline:  scaffold → init → workflow → followup → marbles → dou → decorate → hydrate → release
 Modes:     partner (collaborative) | justdo (autonomous)
 Research:  research (triple-agent) | delegate (in-session)
-Quality:   review | prune | screenscribe
+Quality:   review | prune
+Video:     screenscribe (foundation)
 
 Spawn helpers (× claude, codex, gemini):
   <agent>-implement <plan.md>    Full implementation from plan
@@ -304,7 +305,7 @@ Frontier docs:  docs/FRONTIER.md (mise, zellij, starship, atuin quickstart)
 HELP
   printf '\nInbox:     %s/inbox/\n' "$crafted_home"
   printf 'Artifacts: %s/artifacts/<org>/<repo>/<YYYY_MMDD>/\n' "$crafted_home"
-  printf 'Skills:    %s/skills/ (17 installed)\n' "$crafted_home"
+  printf 'Skills:    %s/skills/ (16 installed)\n' "$crafted_home"
 }
 
 skills-sync() {

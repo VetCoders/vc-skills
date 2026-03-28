@@ -102,6 +102,20 @@ the quick aliases for review-quality output.
 
 ---
 
+## ScreenScribe Integration
+
+vc-review can analyze screencast recordings alongside code diffs when
+ScreenScribe is available as a foundation tool. Use this for:
+
+- Runtime behavior review (visual confirmation of what the code does)
+- Bug demo analysis (narrated screen recordings -> structured findings)
+- UX review passes (screencast of user flow -> P-leveled UX issues)
+
+ScreenScribe is optional. If not installed, vc-review operates on code
+artifacts only.
+
+---
+
 ## Artifact Pack Layout
 
 Output: `~/.prview/pr-artifacts/<branch>/<timestamp>/`

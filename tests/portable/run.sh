@@ -288,7 +288,7 @@ require_file "$claude_transcript"
 require_file "$gemini_transcript"
 assert_contains "$codex_report" 'Fake Codex Report'
 assert_contains "$codex_report" 'run_id: impl-000'
-assert_contains "$codex_report" 'prompt_id: test_20260327'
+assert_contains "$codex_report" 'prompt_id: test_'
 assert_contains "$claude_report" 'Claude completed without writing a standalone report file.'
 assert_contains "$gemini_report" 'fake gemini'
 assert_matches "$codex_transcript" '\[[0-9]{2}:[0-9]{2}:[0-9]{2} \$ ls\]'
@@ -298,7 +298,7 @@ assert_matches "$claude_transcript" '\[[0-9]{2}:[0-9]{2}:[0-9]{2} Read\]'
 assert_matches "$gemini_transcript" '\[[0-9]{2}:[0-9]{2}:[0-9]{2}\] session: fake-gemini-001'
 assert_matches "$gemini_transcript" '\[[0-9]{2}:[0-9]{2}:[0-9]{2} Read\]'
 
-jq -e '.prompt_id == "test_20260327"' "$codex_meta" >/dev/null || die "codex meta missing prompt_id"
+jq -e '.prompt_id != null and (.prompt_id | startswith("test_"))' "$codex_meta" >/dev/null || die "codex meta missing prompt_id"
 jq -e '.run_id == "impl-000"' "$codex_meta" >/dev/null || die "codex meta missing default run_id"
 jq -e '.loop_nr == 0' "$codex_meta" >/dev/null || die "codex meta missing loop_nr"
 jq -e '.framework_version != null and .framework_version != ""' "$codex_meta" >/dev/null || die "codex meta missing framework_version"

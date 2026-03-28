@@ -57,6 +57,13 @@ scaffold → init → workflow → followup → marbles → [DOU] → decorate �
 - Periodic health check (recommended: every 2 weeks)
 - When the feeling of progress exceeds the reality of completion
 
+## ScreenScribe Input
+
+If `screenscribe` is available as a foundation tool, vc-dou can consume a
+screencast of the install path, onboarding flow, or first-run experience as
+audit evidence. Use this when you need product-surface truth from a real
+operator path, not just repo and web artifacts.
+
 ## The Undone Matrix
 
 Every project is scored on three axes:

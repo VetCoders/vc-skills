@@ -108,15 +108,8 @@ def main():
     print_info(f"Safe: Everything reversible with 'make -C {shlex.quote(control_plane)} uninstall'")
     run_underlying_installer(repo_dir)
 
-    print_success("VibeCraft is ready.")
-    print_info(f"Control plane: {control_plane}")
-    print_info(f"Shared skills: {vibecrafted_home}/skills/")
-    print_info("Shell helper: ~/.config/vetcoders/vc-skills.sh")
-    print_info("Agent views: ~/.claude/skills/, ~/.codex/skills/, ~/.agents/skills/")
-    print()
-    print(f"{Colors.BOLD}Reverse:{Colors.ENDC} make -C {control_plane} uninstall")
-    print(f"{Colors.BOLD}Verify:{Colors.ENDC}  make -C {control_plane} doctor")
-    print(f"{Colors.BOLD}Start:{Colors.ENDC}   source ~/.bashrc  (or source ~/.zshrc, or open a new terminal)")
+    # Summary is now printed by vetcoders_install.py (the unicode box).
+    # No duplicate output needed here.
 
 if __name__ == "__main__":
     main()

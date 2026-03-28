@@ -84,6 +84,73 @@ Decorate applies to CLI surfaces too:
 If the product has a terminal interface, that interface is part of the
 product surface. Decorate it.
 
+## ScreenScribe Input
+
+If `screenscribe` is available as a foundation tool, vc-decorate can consume
+a narrated UI screencast to detect visual drift, awkward transitions, and
+coherence breaks across a real user flow. Use this when static screenshots are
+too thin to explain how the experience actually feels in motion.
+
+### Unicode Toolkit for CLI
+
+VibeCraft ships a Unicode database (2601 characters, 13 categories) and a
+unicode-puzzles-mcp server. Use them for CLI decoration instead of
+guessing code points or hardcoding ANSI escape sequences.
+
+**Pipeline: plain text → unicode transform → decorate_text**
+
+Always follow this order:
+1. Write the plain text content first
+2. Transform labels/titles via `rewrite_using_unicode` (choose style)
+3. Wrap the final layout with `decorate_text` for box art (if needed)
+
+Never hand-pick individual code points by memory. Use the MCP tools — they
+return verified, consistent characters from the same Unicode block.
+
+**Available styles** (via `rewrite_using_unicode`):
+
+| Style | Look | Best for |
+|-------|------|----------|
+| `squared` | 🄵🅁🄰🄼🄴 | Branding stamps, footer badges |
+| `vaporwave` | Ｖｉｂｅ | Spaced-out headers |
+| `monospace` | 𝚟𝚒𝚋𝚎 | CLI subheaders, version strings |
+| `smallCaps` | Vɪʙᴇ | Inline emphasis |
+| `fraktur` | 𝔙𝔦𝔟𝔢 | Decorative section titles |
+| `doubleStruck` | 𝕍𝕚𝕓𝕖 | Mathematical / formal labels |
+| `bubble` | Ⓥⓘⓑⓔ | Status badges, tags |
+
+**CLI decoration elements** (from the Unicode DB):
+
+| Need | Characters | Source |
+|------|-----------|--------|
+| Box frames | `╭─╮│╰─╯` | Box Drawing block |
+| Separators | `·` `─` `━` `┄` | Box Drawing, General Punctuation |
+| Checkmarks | `✓` `✗` `⚠` | Dingbats |
+| Bullets | `▸` `▪` `◆` `›` | Geometric Shapes |
+| Progress | `⣿⣶⣤⣀` `█▓▒░` | Braille Patterns, Block Elements |
+| Sparklines | `⣀⣤⣶⣿` (8px per cell) | Braille Patterns (256 combos) |
+| Arrows | `→` `←` `↑` `↓` `⟶` | Arrows block |
+| Status | `⚒` `⚡` `⚙` `⟳` | Misc Symbols |
+| Brands | `🄵·🅁·🄰·🄼·🄴·🅆·🄾·🅁·🄺` | Enclosed Alphanumerics |
+
+**Braille sparklines** deserve special attention. A single Braille character
+encodes 8 dots in a 2×4 grid (256 combinations). This means a line of 40
+Braille characters can display a **320-point convergence curve** in the
+terminal — no graphics library needed. Use them for:
+- token usage over time
+- P0/P1/P2 findings across marbles loops
+- agent activity timelines
+- any trend data in CLI output
+
+**Rules:**
+- Zero ANSI escape codes for text styling — pure unicode renders everywhere
+- ANSI colors (`\033[32m` etc.) are acceptable for status coloring only
+- Never mix Unicode blocks within one label (squared F next to negative
+  squared R looks like a bug, not a choice — unless deliberately designed
+  as a signature mark like `🅵·🅁·🄰·🄼·🄴·🅆·🄾·🅁·🄺`)
+- Test rendering on at least two terminals (macOS Terminal + Linux default)
+- Use `search_unicode` when looking for a specific symbol — don't guess
+
 ---
 
 ## What Decorate Is For

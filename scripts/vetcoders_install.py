@@ -120,6 +120,10 @@ class Foundation:
                 hints.append(f"npm i -g {pkg}")
             elif ch == "github":
                 hints.append(f"Download from {pkg}")
+            elif ch == "pip":
+                hints.append(f"pipx install {pkg}")
+            elif ch == "source":
+                hints.append(f"Download from {pkg}")
         return " | ".join(hints)
 
 
@@ -154,6 +158,17 @@ FOUNDATIONS: List[Foundation] = [
             "github": "https://github.com/VetCoders/prview/releases",
         },
         verify_cmd="prview --version",
+        required=False,
+    ),
+    Foundation(
+        name="screenscribe",
+        description="Screencast analysis — turns narrated recordings into structured engineering findings",
+        channels=["pip", "source"],
+        packages={
+            "pip": "screenscribe",
+            "source": "https://github.com/VetCoders/Screenscribe/releases",
+        },
+        verify_cmd="screenscribe --version",
         required=False,
     ),
     Foundation(
@@ -1272,11 +1287,8 @@ def cmd_install(args: argparse.Namespace) -> int:
 
     # --- Header ---
     print()
-    if _IS_TTY:
-        print(bold("  \U0001d5e9\U0001d5f6\U0001d5ef\U0001d5f2\U0001d5d6\U0001d5f3\U0001d5ee\U0001d5f3\U0001d601 \U0001d5d9\U0001d5f3\U0001d5ee\U0001d5fa\U0001d5f2\U0001d600\U0001d5fc\U0001d5f3\U0001d5f8 \U0001d5dc\U0001d5fb\U0001d600\U0001d601\U0001d5ee\U0001d5f9\U0001d5f9\U0001d5f2\U0001d5f3"))
-        print(dim("  \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500"))
-    else:
-        print(bold("VibeCraft Framework Installer"))
+    print(bold("  \u2692  VibeCraft Installer"))
+    print(dim("  \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500"))
     fw_ver = get_framework_version(repo_root)
     print(dim(f"  Source: {repo_root}"))
     if fw_ver != "unknown":
@@ -1658,40 +1670,44 @@ def cmd_install(args: argparse.Namespace) -> int:
         fnd_str += f" +{len(fnd_ok) - 3}"
     store_display = str(store_path).replace(str(Path.home()), "~")
 
-    copper = "\033[38;5;173m" if _IS_TTY else ""
-    steel = "\033[38;5;247m" if _IS_TTY else ""
-    rst = "\033[0m" if _IS_TTY else ""
-    bld = "\033[1m" if _IS_TTY else ""
-    grn = "\033[32m" if _IS_TTY else ""
+    # Pure unicode summary — zero ANSI escape codes, renders everywhere.
+    # All unicode text generated via unicode-puzzles-mcp, verified code points.
+    # Styles: vaporwave (header), monospace (subheader), squared (footer stamp).
 
-    chk = f"{grn}\u2713{rst}"
-    sep = "\u2500" * 47
+    # Unicode literals — MCP-verified
+    vapor_header = "\uFF36\uFF49\uFF42\uFF45\uFF23\uFF52\uFF41\uFF46\uFF54\uFF45\uFF44"  # ＶｉｂｅＣｒａｆｔｅｄ
+    mono_sub = "\U0001D69F\U0001D692\U0001D68B\U0001D68E\U0001D68C\U0001D69B\U0001D68A\U0001D68F\U0001D69D"  # 𝚟𝚒𝚋𝚎𝚌𝚛𝚊𝚏𝚝
+    mono_cli = "\U0001D69F\U0001D68C-\U0001D68C\U0001D695\U0001D692"  # 𝚟𝚌-𝚌𝚕𝚒
+    sq_framework = (  # 🅵·🅁·🄰·🄼·🄴·🅆·🅞·🅡·🅺
+        "\U0001F175\u00b7\U0001F141\u00b7\U0001F130\u00b7\U0001F13C"
+        "\u00b7\U0001F134\u00b7\U0001F146\u00b7\U0001F15E\u00b7\U0001F161\u00b7\U0001F17A"
+    )
+    sep = "\u2500" * 37
 
-    def _row(label: str, value: str, check: bool = False) -> str:
-        """Format a box row with consistent width."""
-        mark = f" {chk}" if check else ""
-        # Pad to 42 visible chars (excluding ANSI) then close box
-        visible = f"   {label:<13s}{value}"
-        pad = 44 - len(label) - len(value) - 3
-        if pad < 1:
-            pad = 1
-        return f"  \u2502{visible}{mark}{' ' * pad}\u2502"
+    lines = [
+        f"\u2692 {vapor_header} \u2692",
+        "",
+        f"{mono_sub} ({mono_cli}) \U0001D69F{fw_ver_display}",
+        sep,
+        "",
+        f"\u2713 Skills       {skill_count} installed",
+        f"\u2713 Agents       {agent_list}",
+        f"\u2713 Helpers      {shell_str}",
+        f"\u2713 Foundations   {fnd_str}",
+        f"\u2713 Store        {store_display}",
+        "",
+        sep,
+        f"  Start        vibecraft help",
+        f"  Verify       vibecraft doctor",
+        f"  Reverse      vibecraft uninstall",
+        "",
+        f"  {sq_framework}",
+    ]
 
     print()
-    print(f"  \u256d{sep}\u256e")
-    print(f"  \u2502  {copper}{bld}\u2692  VibeCraft {fw_ver_display}{rst}                              \u2502")
-    print(f"  \u2502                                               \u2502")
-    print(_row("Skills", f"{skill_count} installed", True))
-    print(_row("Agents", agent_list, True))
-    print(_row("Helpers", shell_str, True))
-    print(_row("Foundations", fnd_str, True))
-    print(_row("Store", store_display))
-    print(f"  \u2502                                               \u2502")
-    print(f"  \u2502   {steel}{'\u2500' * 39}{rst}         \u2502")
-    print(f"  \u2502   {bld}Start{rst}       vibecraft help                \u2502")
-    print(f"  \u2502   {bld}Verify{rst}      vibecraft doctor              \u2502")
-    print(f"  \u2502   {bld}Reverse{rst}     vibecraft uninstall           \u2502")
-    print(f"  \u2570{sep}\u256f")
+    for line in lines:
+        print(f"  {line}")
+    print()
 
     missing_fnd = [f for f in FOUNDATIONS if f.required and not f.is_installed()]
     if missing_fnd:
