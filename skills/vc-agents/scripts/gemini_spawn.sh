@@ -94,7 +94,9 @@ model_flag=""
 qfilter="$(printf '%q' "$SCRIPT_DIR/gemini_stream_filter.jq")"
 # Gemini emits non-JSON noise (YOLO banner, MCP bootstrap) before JSONL.
 # grep '^{' strips non-JSON lines so jq doesn't choke.
-launch_cmd="set -o pipefail && cd $qroot && prompt=\$(cat $qruntime) && gemini -p \"\$prompt\" -y $model_flag -o stream-json 2>&1 | grep --line-buffered '^{' | jq --unbuffered -rj -f $qfilter | tee -a $qtranscript"
+vibecrafted_home="${VIBECRAFTED_HOME:-$HOME/.vibecrafted}"
+qvhome="$(printf '%q' "$vibecrafted_home")"
+launch_cmd="set -o pipefail && cd $qroot && prompt=\$(cat $qruntime) && gemini -p \"\$prompt\" -y $model_flag --include-directories $qvhome -o stream-json 2>&1 | grep --line-buffered '^{' | jq --unbuffered -rj -f $qfilter | tee -a $qtranscript"
 
 spawn_generate_launcher "$SPAWN_LAUNCHER" \
   "$SPAWN_META" \
