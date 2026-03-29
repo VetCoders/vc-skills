@@ -349,7 +349,7 @@ repo-full() {
 
   # shellcheck disable=SC1083 # @{u} is git upstream ref syntax, not shell braces
   if git rev-parse '@{u}' >/dev/null 2>&1; then
-    read upstream_ahead upstream_behind <<< "$(git rev-list --left-right --count HEAD...'@{u}' 2>/dev/null)"
+    read -r upstream_ahead upstream_behind <<< "$(git rev-list --left-right --count HEAD...'@{u}' 2>/dev/null)"
   else
     upstream_ahead="-"
     upstream_behind="-"
@@ -359,11 +359,12 @@ repo-full() {
     local ref="$1"
     git rev-parse --verify "$ref" >/dev/null 2>&1 || return 0
     local ahead behind sha
-    read ahead behind <<< "$(git rev-list --left-right --count HEAD..."$ref" 2>/dev/null)"
+    read -r ahead behind <<< "$(git rev-list --left-right --count HEAD..."$ref" 2>/dev/null)"
     sha="$(git rev-parse --short "$ref" 2>/dev/null)"
     printf "%-24s ahead:%-4s behind:%-4s sha:%s\n" "$ref" "$ahead" "$behind" "$sha"
   }
 
+  # shellcheck disable=SC2016 # expressions in awk are intentional
   _repo_full_human_awk='
     function human(x) {
       split("B KB MB GB TB", u, " ");
@@ -517,11 +518,14 @@ vc-dashboard() {
 }
 
 vc-frontier-install() {
-  local repo_root script
-  repo_root="$(_vetcoders_repo_root)"
-  script="$repo_root/skills/vc-agents/scripts/install-frontier-config.sh"
+  local frontier_root repo_root script base
+  frontier_root="$(_vetcoders_frontier_root)" || return 1
+  repo_root="$(dirname "$frontier_root")"
+  base="$(_vetcoders_spawn_home "vc-agents")"
+  script="$base/scripts/install-frontier-config.sh"
+  
   [[ -f "$script" ]] || {
-    echo "Frontier installer not found in current repo checkout: $script" >&2
+    echo "Frontier installer not found: $script" >&2
     return 1
   }
   bash "$script" --source "$repo_root" "$@"
