@@ -139,9 +139,9 @@ cmd_init() {
 
   printf '%b⚒%b  Starting %b%s%b with vc-init...\n' "$_copper" "$_reset" "$_bold" "$agent" "$_reset"
   case "$agent" in
-    claude) claude -i "Use [$vc-init](/Users/maciejgad/.vibecrafted/skills/vc-init/SKILL.md) on this repository and give me full operating context." ;;
-    codex) codex -i "Use [$vc-init](/Users/maciejgad/.vibecrafted/skills/vc-init/SKILL.md) on this repository and give me full operating context." ;;
-    gemini) gemini -i "Use [$vc-init](/Users/maciejgad/.vibecrafted/skills/vc-init/SKILL.md) on this repository and give me full operating context." ;;
+    claude) claude -i 'Use [$vc-init](/Users/maciejgad/.vibecrafted/skills/vc-init/SKILL.md) on this repository and give me full operating context.' ;;
+    codex) codex -i 'Use [$vc-init](/Users/maciejgad/.vibecrafted/skills/vc-init/SKILL.md) on this repository and give me full operating context.' ;;
+    gemini) gemini -i 'Use [$vc-init](/Users/maciejgad/.vibecrafted/skills/vc-init/SKILL.md) on this repository and give me full operating context.' ;;
   esac
 }
 
