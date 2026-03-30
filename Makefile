@@ -6,7 +6,7 @@ SHELL_INSTALLER := skills/vc-agents/scripts/install-shell.sh
 SOURCE   := $(CURDIR)
 BRANCH   ?= main
 
-.PHONY: help vibecrafted vibecraft check install skills helpers setup-dev dry-run doctor list update uninstall restore migrate init-hooks
+.PHONY: help vibecrafted check install skills helpers setup-dev dry-run doctor list update uninstall restore migrate init-hooks
 
 help:
 	@printf "\n"
@@ -40,8 +40,6 @@ help:
 
 vibecrafted: init-hooks
 	@$(PYTHON) scripts/installer_tui.py
-
-vibecraft: vibecrafted
 
 install: init-hooks
 	@$(PYTHON) $(INSTALLER) install --source "$(SOURCE)" --with-shell --non-interactive

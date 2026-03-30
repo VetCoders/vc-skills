@@ -228,6 +228,13 @@ _vetcoders_skill() {
   VIBECRAFT_SKILL_CODE="$code" VIBECRAFT_LOOP_NR="$loop_nr" _vetcoders_prompt "$tool" implement "$prompt"
 }
 
+_vetcoders_skill_entry() {
+  local tool="$1"
+  local skill="$2"
+  shift 2
+  _vetcoders_skill "$tool" "$skill" "$@"
+}
+
 codex-dou() { _vetcoders_skill codex dou "$@"; }
 claude-dou() { _vetcoders_skill claude dou "$@"; }
 gemini-dou() { _vetcoders_skill gemini dou "$@"; }
@@ -276,6 +283,70 @@ codex-partner() { _vetcoders_skill codex partner "$@"; }
 claude-partner() { _vetcoders_skill claude partner "$@"; }
 gemini-partner() { _vetcoders_skill gemini partner "$@"; }
 
+codex-skill-agents() { _vetcoders_skill_entry codex agents "$@"; }
+claude-skill-agents() { _vetcoders_skill_entry claude agents "$@"; }
+gemini-skill-agents() { _vetcoders_skill_entry gemini agents "$@"; }
+
+codex-skill-decorate() { _vetcoders_skill_entry codex decorate "$@"; }
+claude-skill-decorate() { _vetcoders_skill_entry claude decorate "$@"; }
+gemini-skill-decorate() { _vetcoders_skill_entry gemini decorate "$@"; }
+
+codex-skill-delegate() { _vetcoders_skill_entry codex delegate "$@"; }
+claude-skill-delegate() { _vetcoders_skill_entry claude delegate "$@"; }
+gemini-skill-delegate() { _vetcoders_skill_entry gemini delegate "$@"; }
+
+codex-skill-dou() { _vetcoders_skill_entry codex dou "$@"; }
+claude-skill-dou() { _vetcoders_skill_entry claude dou "$@"; }
+gemini-skill-dou() { _vetcoders_skill_entry gemini dou "$@"; }
+
+codex-skill-followup() { _vetcoders_skill_entry codex followup "$@"; }
+claude-skill-followup() { _vetcoders_skill_entry claude followup "$@"; }
+gemini-skill-followup() { _vetcoders_skill_entry gemini followup "$@"; }
+
+codex-skill-hydrate() { _vetcoders_skill_entry codex hydrate "$@"; }
+claude-skill-hydrate() { _vetcoders_skill_entry claude hydrate "$@"; }
+gemini-skill-hydrate() { _vetcoders_skill_entry gemini hydrate "$@"; }
+
+codex-skill-init() { _vetcoders_skill_entry codex init "$@"; }
+claude-skill-init() { _vetcoders_skill_entry claude init "$@"; }
+gemini-skill-init() { _vetcoders_skill_entry gemini init "$@"; }
+
+codex-skill-justdo() { _vetcoders_skill_entry codex justdo "$@"; }
+claude-skill-justdo() { _vetcoders_skill_entry claude justdo "$@"; }
+gemini-skill-justdo() { _vetcoders_skill_entry gemini justdo "$@"; }
+
+codex-skill-marbles() { _vetcoders_marbles codex "$@"; }
+claude-skill-marbles() { _vetcoders_marbles claude "$@"; }
+gemini-skill-marbles() { _vetcoders_marbles gemini "$@"; }
+
+codex-skill-partner() { _vetcoders_skill_entry codex partner "$@"; }
+claude-skill-partner() { _vetcoders_skill_entry claude partner "$@"; }
+gemini-skill-partner() { _vetcoders_skill_entry gemini partner "$@"; }
+
+codex-skill-prune() { _vetcoders_skill_entry codex prune "$@"; }
+claude-skill-prune() { _vetcoders_skill_entry claude prune "$@"; }
+gemini-skill-prune() { _vetcoders_skill_entry gemini prune "$@"; }
+
+codex-skill-release() { _vetcoders_skill_entry codex release "$@"; }
+claude-skill-release() { _vetcoders_skill_entry claude release "$@"; }
+gemini-skill-release() { _vetcoders_skill_entry gemini release "$@"; }
+
+codex-skill-research() { _vetcoders_skill_entry codex research "$@"; }
+claude-skill-research() { _vetcoders_skill_entry claude research "$@"; }
+gemini-skill-research() { _vetcoders_skill_entry gemini research "$@"; }
+
+codex-skill-review() { _vetcoders_skill_entry codex review "$@"; }
+claude-skill-review() { _vetcoders_skill_entry claude review "$@"; }
+gemini-skill-review() { _vetcoders_skill_entry gemini review "$@"; }
+
+codex-skill-scaffold() { _vetcoders_skill_entry codex scaffold "$@"; }
+claude-skill-scaffold() { _vetcoders_skill_entry claude scaffold "$@"; }
+gemini-skill-scaffold() { _vetcoders_skill_entry gemini scaffold "$@"; }
+
+codex-skill-workflow() { _vetcoders_skill_entry codex workflow "$@"; }
+claude-skill-workflow() { _vetcoders_skill_entry claude workflow "$@"; }
+gemini-skill-workflow() { _vetcoders_skill_entry gemini workflow "$@"; }
+
 vc-help() {
   local crafted_home="${VIBECRAFTED_HOME:-$HOME/.vibecrafted}"
   cat <<'HELP'
@@ -304,6 +375,12 @@ Spawn helpers (× claude, codex, gemini):
   <agent>-justdo                 Autonomous e2e implementation
   <agent>-partner                Collaborative partner mode
   <agent>-observe --last         Check last report
+
+Command deck:
+  vibecrafted help               Main command surface
+  vibecrafted <skill> <agent>    Run a repo skill via the launcher
+  vc-marbles codex --count 4     Skill wrapper example
+  vc-init claude                 First-context entrypoint
 
 Utilities:
   repo-full                      Full git context dump
