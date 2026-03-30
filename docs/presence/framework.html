@@ -11,16 +11,34 @@
     <link crossorigin href="https://fonts.gstatic.com" rel="preconnect">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&amp;family=Lora:ital,wght@0,400;0,500;0,600;1,400&amp;display=swap"
           rel="stylesheet">
-    <link href="styles.css?v=20260330m" rel="stylesheet">
+    <link href="styles.css?v=20260330n" rel="stylesheet">
+    <link href="framework.css?v=20260330a" rel="stylesheet">
 </head>
 <body class="framework-page framework-page--playground">
 <main class="framework-page-shell">
-    <a class="framework-page__back" href="../index.html#marbles">Back to Marbles</a>
-    <header class="framework-page__copy">
-        <p class="framework-playground__kicker">Standalone Playground</p>
-        <h1>Command the board, don’t watch a slideshow</h1>
-        <p>The convergence loop now lives in its own viewport. Choose a phase, read the board, and use <code>Marbles</code> as the manual throw control instead of passive autoplay.</p>
-    </header>
+    <div class="framework-page__masthead">
+        <a class="framework-page__brand" href="../index.html">
+            <img alt="" aria-hidden="true" class="framework-page__brand-logo" height="32" src="logo-64.png" width="32">
+            <span class="framework-page__brand-copy">
+                <span class="framework-page__brand-wordmark">vibecrafted</span>
+                <span class="framework-page__brand-tag">Framework Demo</span>
+            </span>
+        </a>
+        <nav aria-label="Framework" class="framework-page__nav">
+            <a class="framework-page__nav-link" href="../index.html">Home</a>
+            <a aria-current="page" class="framework-page__nav-link" href="framework.html">Demo</a>
+        </nav>
+    </div>
+    <section aria-labelledby="framework-page-title" class="framework-page__hero">
+        <div class="framework-page__eyebrow">
+            <p class="framework-playground__kicker">Standalone Playground</p>
+            <a class="framework-page__back" href="../index.html#marbles">Back to Marbles on the homepage</a>
+        </div>
+        <header class="framework-page__copy">
+            <h1 id="framework-page-title">Command the board, don’t watch a slideshow</h1>
+            <p>The convergence loop now lives in its own viewport. Choose a phase, read the board, and use <code>Marbles</code> as the manual throw control instead of passive autoplay.</p>
+        </header>
+    </section>
     <div data-framework-autoplay="false" data-framework-layout="standalone" data-framework-playground data-framework-start="init"></div>
 </main>
 
