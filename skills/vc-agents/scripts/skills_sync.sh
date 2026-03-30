@@ -113,6 +113,7 @@ done
 }
 [[ -d "$repo_root" ]] || die "Repo root not found: $repo_root"
 
+# shellcheck disable=SC2016
 source_line='[[ -r "${XDG_CONFIG_HOME:-$HOME/.config}/zsh/vc-skills.zsh" ]] && source "${XDG_CONFIG_HOME:-$HOME/.config}/zsh/vc-skills.zsh"'
 
 skills=()
@@ -147,6 +148,7 @@ if (( dry_run )); then
 fi
 
 printf 'Syncing skills from %s to %s\n' "$repo_root" "$host"
+# shellcheck disable=SC2088
 remote_shared_target='~/.vibecrafted/skills'
 printf -- '-- canonical store -> %s:%s\n' "$host" "$remote_shared_target"
 if (( dry_run )); then
@@ -166,6 +168,7 @@ done
 printf '\n'
 
 for tool in "${tools[@]}"; do
+  # shellcheck disable=SC2088
   remote_target="~/.${tool}/skills"
   printf -- '-- %s symlink view -> %s:%s\n' "$tool" "$host" "$remote_target"
   if (( dry_run )); then
@@ -190,6 +193,7 @@ if (( with_shell )); then
   [[ -f "$shell_source" ]] || shell_source="$repo_root/vc-agents/shell/vetcoders.zsh"
   [[ -f "$shell_source" ]] || die "Shell helper file not found: $shell_source"
 
+  # shellcheck disable=SC2016
   remote_config_dir='${XDG_CONFIG_HOME:-$HOME/.config}/zsh'
   remote_shell_target="$remote_config_dir/vc-skills.zsh"
 

@@ -19,6 +19,8 @@ model="${GEMINI_MODEL:-}"
 root=""
 plan_file=""
 dry_run=0
+success_hook_extra=""
+failure_hook_extra=""
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -45,6 +47,16 @@ while [[ $# -gt 0 ]]; do
     --dry-run)
       dry_run=1
       ;;
+    --success-hook)
+      shift
+      [[ $# -gt 0 ]] || spawn_die "Missing value for --success-hook"
+      success_hook_extra="$1"
+      ;;
+    --failure-hook)
+      shift
+      [[ $# -gt 0 ]] || spawn_die "Missing value for --failure-hook"
+      failure_hook_extra="$1"
+      ;;
     -h|--help)
       usage
       exit 0
@@ -64,8 +76,9 @@ done
 spawn_require_file "$plan_file"
 spawn_validate_runtime "$runtime"
 spawn_prepare_paths gemini "$plan_file" "$root"
+spawn_scan_active "$SPAWN_REPORT_DIR"
 runtime_input="$SPAWN_TMP_DIR/${SPAWN_TS}_${SPAWN_SLUG}_gemini_prompt.md"
-spawn_build_runtime_prompt "$SPAWN_PLAN" "$runtime_input" "$SPAWN_REPORT"
+spawn_build_runtime_prompt "$SPAWN_PLAN" "$runtime_input" "$SPAWN_REPORT" gemini
 spawn_write_meta "$SPAWN_META" "launching" "gemini" "$mode" "$SPAWN_ROOT" "$SPAWN_PLAN" "$SPAWN_REPORT" "$SPAWN_TRANSCRIPT" "$SPAWN_LAUNCHER" "$model"
 
 if (( !dry_run )); then
@@ -74,15 +87,16 @@ fi
 
 qroot="$(printf '%q' "$SPAWN_ROOT")"
 qruntime="$(printf '%q' "$runtime_input")"
-qreport="$(printf '%q' "$SPAWN_REPORT")"
 qtranscript="$(printf '%q' "$SPAWN_TRANSCRIPT")"
 qmodel="$(printf '%q' "$model")"
 
+# shellcheck disable=SC2016
 gemini_success_hook='
   if [[ ! -s "$report" && -s "$transcript" ]]; then
     cp "$transcript" "$report"
   fi'
 
+# shellcheck disable=SC2016
 gemini_failure_hook='
   if [[ ! -s "$report" && -s "$transcript" ]]; then
     cp "$transcript" "$report"
@@ -90,9 +104,18 @@ gemini_failure_hook='
 
 model_flag=""
 [[ -n "$model" ]] && model_flag="--model $qmodel"
-qfilter="$(printf '%q' "$SCRIPT_DIR/gemini_stream_filter.sh")"
-# Gemini output is text but has massive 429 retry blocks and MCP bootstrap noise
-launch_cmd="set -o pipefail && cd $qroot && prompt=\$(cat $qruntime) && gemini -p \"\$prompt\" -y $model_flag -o text 2>&1 | bash $qfilter | tee -a $qtranscript"
+qfilter="$(printf '%q' "$SCRIPT_DIR/gemini_stream_filter.jq")"
+# Gemini emits non-JSON noise (YOLO banner, MCP bootstrap) before JSONL.
+# grep '^{' strips non-JSON lines so jq doesn't choke.
+vibecrafted_home="${VIBECRAFTED_HOME:-$HOME/.vibecrafted}"
+qvhome="$(printf '%q' "$vibecrafted_home")"
+launch_cmd="set -o pipefail && cd $qroot && prompt=\$(cat $qruntime) && gemini -p \"\$prompt\" -y $model_flag --include-directories $qvhome -o stream-json 2>&1 | grep --line-buffered '^{' | jq --unbuffered -rj -f $qfilter | tee -a $qtranscript"
+
+# Combine built-in hooks with caller-provided hooks (marbles chain, etc.)
+combined_success="${gemini_success_hook}${success_hook_extra:+
+$success_hook_extra}"
+combined_failure="${gemini_failure_hook}${failure_hook_extra:+
+$failure_hook_extra}"
 
 spawn_generate_launcher "$SPAWN_LAUNCHER" \
   "$SPAWN_META" \
@@ -101,8 +124,8 @@ spawn_generate_launcher "$SPAWN_LAUNCHER" \
   "$SCRIPT_DIR/common.sh" \
   "$launch_cmd" \
   "" \
-  "$gemini_success_hook" \
-  "$gemini_failure_hook"
+  "$combined_success" \
+  "$combined_failure"
 
 chmod +x "$SPAWN_LAUNCHER"
 spawn_print_launch gemini "$mode" "$runtime"

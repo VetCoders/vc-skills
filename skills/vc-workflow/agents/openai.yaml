@@ -1,4 +1,4 @@
 interface:
-  display_name: "VibeCraft Workflow"
+  display_name: "VC Workflow"
   short_description: "ERi pipeline: Examine Research Implement"
   default_prompt: "Use $vc-workflow to run the three-phase pipeline: examine with loctree, research with web, implement with agents."

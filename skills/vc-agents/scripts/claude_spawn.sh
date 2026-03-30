@@ -19,6 +19,8 @@ model="${CLAUDE_SPAWN_MODEL:-}"
 root=""
 plan_file=""
 dry_run=0
+success_hook_extra=""
+failure_hook_extra=""
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -45,6 +47,16 @@ while [[ $# -gt 0 ]]; do
     --dry-run)
       dry_run=1
       ;;
+    --success-hook)
+      shift
+      [[ $# -gt 0 ]] || spawn_die "Missing value for --success-hook"
+      success_hook_extra="$1"
+      ;;
+    --failure-hook)
+      shift
+      [[ $# -gt 0 ]] || spawn_die "Missing value for --failure-hook"
+      failure_hook_extra="$1"
+      ;;
     -h|--help)
       usage
       exit 0
@@ -64,8 +76,9 @@ done
 spawn_require_file "$plan_file"
 spawn_validate_runtime "$runtime"
 spawn_prepare_paths claude "$plan_file" "$root"
+spawn_scan_active "$SPAWN_REPORT_DIR"
 runtime_input="$SPAWN_TMP_DIR/${SPAWN_TS}_${SPAWN_SLUG}_claude_prompt.md"
-spawn_build_runtime_prompt "$SPAWN_PLAN" "$runtime_input" "$SPAWN_REPORT"
+spawn_build_runtime_prompt "$SPAWN_PLAN" "$runtime_input" "$SPAWN_REPORT" claude
 spawn_write_meta "$SPAWN_META" "launching" "claude" "$mode" "$SPAWN_ROOT" "$SPAWN_PLAN" "$SPAWN_REPORT" "$SPAWN_TRANSCRIPT" "$SPAWN_LAUNCHER" "$model"
 
 if (( !dry_run )); then
@@ -74,10 +87,10 @@ fi
 
 qroot="$(printf '%q' "$SPAWN_ROOT")"
 qruntime="$(printf '%q' "$runtime_input")"
-qreport="$(printf '%q' "$SPAWN_REPORT")"
 qtranscript="$(printf '%q' "$SPAWN_TRANSCRIPT")"
 qmodel="$(printf '%q' "$model")"
 
+# shellcheck disable=SC2016
 claude_success_hook='
   if [[ ! -s "$report" ]]; then
     cat > "$report" <<TXT
@@ -87,6 +100,7 @@ $transcript
 TXT
   fi'
 
+# shellcheck disable=SC2016
 claude_failure_hook='
   if [[ ! -s "$report" ]]; then
     cat > "$report" <<TXT
@@ -103,6 +117,12 @@ qfilter="$(printf '%q' "$SCRIPT_DIR/claude_stream_filter.jq")"
 # Raw JSONL lives in ~/.claude/projects/ — aicx ingests from there, not from us
 launch_cmd="set -o pipefail && cd $qroot && prompt=\$(cat $qruntime) && claude -p --output-format stream-json --verbose --dangerously-skip-permissions $model_flag \"\$prompt\" 2>&1 | jq --unbuffered -rj -f $qfilter | tee -a $qtranscript ; echo ; { grep -o 'session: [a-f0-9-]*' $qtranscript 2>/dev/null | tail -1 | awk '{print \$2}' | xargs -I{} printf '\\n\\033[33m━━━ session: {} ━━━\\033[0m\\n'; } || true"
 
+# Combine built-in hooks with caller-provided hooks (marbles chain, etc.)
+combined_success="${claude_success_hook}${success_hook_extra:+
+$success_hook_extra}"
+combined_failure="${claude_failure_hook}${failure_hook_extra:+
+$failure_hook_extra}"
+
 spawn_generate_launcher "$SPAWN_LAUNCHER" \
   "$SPAWN_META" \
   "$SPAWN_REPORT" \
@@ -110,8 +130,8 @@ spawn_generate_launcher "$SPAWN_LAUNCHER" \
   "$SCRIPT_DIR/common.sh" \
   "$launch_cmd" \
   "" \
-  "$claude_success_hook" \
-  "$claude_failure_hook"
+  "$combined_success" \
+  "$combined_failure"
 
 chmod +x "$SPAWN_LAUNCHER"
 spawn_print_launch claude "$mode" "$runtime"

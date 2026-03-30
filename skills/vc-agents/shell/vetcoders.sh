@@ -1,6 +1,10 @@
+# shellcheck shell=bash
 # VetCoders shell helpers (bash/zsh compatible)
 # Source this from your ~/.bashrc or ~/.zshrc to get consistent wrapper commands
-# for the VibeCraft framework installed under your local repository path.
+# for the VibeCrafted framework installed under your local repository path.
+# These are shell functions, not standalone binaries. Non-interactive callers
+# should use `zsh -ic "<helper> ..."` so ~/.zshrc sources this file; fall back
+# to `bash -ic` on bash-only systems.
 
 _vetcoders_spawn_home() {
   local tool="$1"
@@ -218,8 +222,17 @@ _vetcoders_skill() {
   local skill="$2"
   shift 2
   local extra="$*"
+  local code="${skill:0:4}"
+  local loop_nr="${VIBECRAFT_LOOP_NR:-0}"
   local prompt="Perform the vc-${skill} skill on this repository.${extra:+ }${extra}"
-  _vetcoders_prompt "$tool" implement "$prompt"
+  VIBECRAFT_SKILL_CODE="$code" VIBECRAFT_LOOP_NR="$loop_nr" _vetcoders_prompt "$tool" implement "$prompt"
+}
+
+_vetcoders_skill_entry() {
+  local tool="$1"
+  local skill="$2"
+  shift 2
+  _vetcoders_skill "$tool" "$skill" "$@"
 }
 
 codex-dou() { _vetcoders_skill codex dou "$@"; }
@@ -230,9 +243,17 @@ codex-hydrate() { _vetcoders_skill codex hydrate "$@"; }
 claude-hydrate() { _vetcoders_skill claude hydrate "$@"; }
 gemini-hydrate() { _vetcoders_skill gemini hydrate "$@"; }
 
-codex-marbles() { _vetcoders_skill codex marbles "$@"; }
-claude-marbles() { _vetcoders_skill claude marbles "$@"; }
-gemini-marbles() { _vetcoders_skill gemini marbles "$@"; }
+_vetcoders_marbles() {
+  local tool="$1"
+  shift
+  local script
+  script="$(_vetcoders_spawn_script "$tool" "marbles_spawn.sh")" || return 1
+  bash "$script" --agent "$tool" "$@" --runtime "$(_vetcoders_default_runtime)"
+}
+
+codex-marbles() { _vetcoders_marbles codex "$@"; }
+claude-marbles() { _vetcoders_marbles claude "$@"; }
+gemini-marbles() { _vetcoders_marbles gemini "$@"; }
 
 codex-decorate() { _vetcoders_skill codex decorate "$@"; }
 claude-decorate() { _vetcoders_skill claude decorate "$@"; }
@@ -262,15 +283,80 @@ codex-partner() { _vetcoders_skill codex partner "$@"; }
 claude-partner() { _vetcoders_skill claude partner "$@"; }
 gemini-partner() { _vetcoders_skill gemini partner "$@"; }
 
+codex-skill-agents() { _vetcoders_skill_entry codex agents "$@"; }
+claude-skill-agents() { _vetcoders_skill_entry claude agents "$@"; }
+gemini-skill-agents() { _vetcoders_skill_entry gemini agents "$@"; }
+
+codex-skill-decorate() { _vetcoders_skill_entry codex decorate "$@"; }
+claude-skill-decorate() { _vetcoders_skill_entry claude decorate "$@"; }
+gemini-skill-decorate() { _vetcoders_skill_entry gemini decorate "$@"; }
+
+codex-skill-delegate() { _vetcoders_skill_entry codex delegate "$@"; }
+claude-skill-delegate() { _vetcoders_skill_entry claude delegate "$@"; }
+gemini-skill-delegate() { _vetcoders_skill_entry gemini delegate "$@"; }
+
+codex-skill-dou() { _vetcoders_skill_entry codex dou "$@"; }
+claude-skill-dou() { _vetcoders_skill_entry claude dou "$@"; }
+gemini-skill-dou() { _vetcoders_skill_entry gemini dou "$@"; }
+
+codex-skill-followup() { _vetcoders_skill_entry codex followup "$@"; }
+claude-skill-followup() { _vetcoders_skill_entry claude followup "$@"; }
+gemini-skill-followup() { _vetcoders_skill_entry gemini followup "$@"; }
+
+codex-skill-hydrate() { _vetcoders_skill_entry codex hydrate "$@"; }
+claude-skill-hydrate() { _vetcoders_skill_entry claude hydrate "$@"; }
+gemini-skill-hydrate() { _vetcoders_skill_entry gemini hydrate "$@"; }
+
+codex-skill-init() { _vetcoders_skill_entry codex init "$@"; }
+claude-skill-init() { _vetcoders_skill_entry claude init "$@"; }
+gemini-skill-init() { _vetcoders_skill_entry gemini init "$@"; }
+
+codex-skill-justdo() { _vetcoders_skill_entry codex justdo "$@"; }
+claude-skill-justdo() { _vetcoders_skill_entry claude justdo "$@"; }
+gemini-skill-justdo() { _vetcoders_skill_entry gemini justdo "$@"; }
+
+codex-skill-marbles() { _vetcoders_marbles codex "$@"; }
+claude-skill-marbles() { _vetcoders_marbles claude "$@"; }
+gemini-skill-marbles() { _vetcoders_marbles gemini "$@"; }
+
+codex-skill-partner() { _vetcoders_skill_entry codex partner "$@"; }
+claude-skill-partner() { _vetcoders_skill_entry claude partner "$@"; }
+gemini-skill-partner() { _vetcoders_skill_entry gemini partner "$@"; }
+
+codex-skill-prune() { _vetcoders_skill_entry codex prune "$@"; }
+claude-skill-prune() { _vetcoders_skill_entry claude prune "$@"; }
+gemini-skill-prune() { _vetcoders_skill_entry gemini prune "$@"; }
+
+codex-skill-release() { _vetcoders_skill_entry codex release "$@"; }
+claude-skill-release() { _vetcoders_skill_entry claude release "$@"; }
+gemini-skill-release() { _vetcoders_skill_entry gemini release "$@"; }
+
+codex-skill-research() { _vetcoders_skill_entry codex research "$@"; }
+claude-skill-research() { _vetcoders_skill_entry claude research "$@"; }
+gemini-skill-research() { _vetcoders_skill_entry gemini research "$@"; }
+
+codex-skill-review() { _vetcoders_skill_entry codex review "$@"; }
+claude-skill-review() { _vetcoders_skill_entry claude review "$@"; }
+gemini-skill-review() { _vetcoders_skill_entry gemini review "$@"; }
+
+codex-skill-scaffold() { _vetcoders_skill_entry codex scaffold "$@"; }
+claude-skill-scaffold() { _vetcoders_skill_entry claude scaffold "$@"; }
+gemini-skill-scaffold() { _vetcoders_skill_entry gemini scaffold "$@"; }
+
+codex-skill-workflow() { _vetcoders_skill_entry codex workflow "$@"; }
+claude-skill-workflow() { _vetcoders_skill_entry claude workflow "$@"; }
+gemini-skill-workflow() { _vetcoders_skill_entry gemini workflow "$@"; }
+
 vc-help() {
   local crafted_home="${VIBECRAFTED_HOME:-$HOME/.vibecrafted}"
   cat <<'HELP'
-VibeCraft Framework — Skills & Helpers
+VibeCrafted Framework — Skills & Helpers
 
 Pipeline:  scaffold → init → workflow → followup → marbles → dou → decorate → hydrate → release
 Modes:     partner (collaborative) | justdo (autonomous)
 Research:  research (triple-agent) | delegate (in-session)
-Quality:   review | prune | screenscribe
+Quality:   review | prune
+Video:     screenscribe (foundation)
 
 Spawn helpers (× claude, codex, gemini):
   <agent>-implement <plan.md>    Full implementation from plan
@@ -290,9 +376,16 @@ Spawn helpers (× claude, codex, gemini):
   <agent>-partner                Collaborative partner mode
   <agent>-observe --last         Check last report
 
+Command deck:
+  vibecrafted help               Main command surface
+  vibecrafted <skill> <agent>    Run a repo skill via the launcher
+  vc-marbles codex --count 4     Skill wrapper example
+  vc-init claude                 First-context entrypoint
+
 Utilities:
   repo-full                      Full git context dump
   skills-sync                    Sync skills to agents
+  vc-dashboard                   Open Mission Control zellij dashboard
   vc-frontier-paths              Show frontier config paths
   vc-frontier-install            Install starship/atuin/zellij presets
   vc-help                        This help
@@ -301,7 +394,7 @@ Frontier docs:  docs/FRONTIER.md (mise, zellij, starship, atuin quickstart)
 HELP
   printf '\nInbox:     %s/inbox/\n' "$crafted_home"
   printf 'Artifacts: %s/artifacts/<org>/<repo>/<YYYY_MMDD>/\n' "$crafted_home"
-  printf 'Skills:    %s/skills/ (17 installed)\n' "$crafted_home"
+  printf 'Skills:    %s/skills/ (16 installed)\n' "$crafted_home"
 }
 
 skills-sync() {
@@ -342,8 +435,9 @@ repo-full() {
   [[ -z "$default_branch" ]] && default_branch="$(git remote show "$default_remote" 2>/dev/null | sed -n '/HEAD branch/s/.*: //p' | head -n 1)"
   [[ -z "$default_branch" ]] && default_branch="unknown"
 
+  # shellcheck disable=SC1083 # @{u} is git upstream ref syntax, not shell braces
   if git rev-parse '@{u}' >/dev/null 2>&1; then
-    read upstream_ahead upstream_behind <<< "$(git rev-list --left-right --count HEAD...@{u} 2>/dev/null)"
+    read -r upstream_ahead upstream_behind <<< "$(git rev-list --left-right --count HEAD...'@{u}' 2>/dev/null)"
   else
     upstream_ahead="-"
     upstream_behind="-"
@@ -353,11 +447,12 @@ repo-full() {
     local ref="$1"
     git rev-parse --verify "$ref" >/dev/null 2>&1 || return 0
     local ahead behind sha
-    read ahead behind <<< "$(git rev-list --left-right --count HEAD..."$ref" 2>/dev/null)"
+    read -r ahead behind <<< "$(git rev-list --left-right --count HEAD..."$ref" 2>/dev/null)"
     sha="$(git rev-parse --short "$ref" 2>/dev/null)"
     printf "%-24s ahead:%-4s behind:%-4s sha:%s\n" "$ref" "$ahead" "$behind" "$sha"
   }
 
+  # shellcheck disable=SC2016 # expressions in awk are intentional
   _repo_full_human_awk='
     function human(x) {
       split("B KB MB GB TB", u, " ");
@@ -485,12 +580,40 @@ vc-frontier-paths() {
   printf 'ZELLIJ_CONFIG_DIR=%s/zellij\n' "$root"
 }
 
+vc-dashboard() {
+  command -v zellij >/dev/null 2>&1 || {
+    echo "zellij is not installed or not on PATH." >&2
+    return 1
+  }
+
+  local layout repo_root
+  repo_root="${VIBECRAFT_ROOT:-$(_vetcoders_repo_root)}"
+  layout="$(_vetcoders_frontier_root 2>/dev/null)/zellij/layouts/mission-control.kdl"
+  [[ -f "$layout" ]] || layout="$repo_root/config/zellij/layouts/mission-control.kdl"
+  [[ -f "$layout" ]] || {
+    echo "Mission control layout not found. Run vc-frontier-install first." >&2
+    return 1
+  }
+
+  if [[ -d "$repo_root/.git" || -d "$repo_root/skills/vc-agents" ]]; then
+    (
+      cd "$repo_root" || exit 1
+      zellij --layout "$layout" --session vibecrafted-mc
+    )
+  else
+    zellij --layout "$layout" --session vibecrafted-mc
+  fi
+}
+
 vc-frontier-install() {
-  local repo_root script
-  repo_root="$(_vetcoders_repo_root)"
-  script="$repo_root/skills/vc-agents/scripts/install-frontier-config.sh"
+  local frontier_root repo_root script base
+  frontier_root="$(_vetcoders_frontier_root)" || return 1
+  repo_root="$(dirname "$frontier_root")"
+  base="$(_vetcoders_spawn_home "vc-agents")"
+  script="$base/scripts/install-frontier-config.sh"
+  
   [[ -f "$script" ]] || {
-    echo "Frontier installer not found in current repo checkout: $script" >&2
+    echo "Frontier installer not found: $script" >&2
     return 1
   }
   bash "$script" --source "$repo_root" "$@"

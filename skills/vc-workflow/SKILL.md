@@ -12,13 +12,20 @@ description: >
   Implement (subagents). Each phase feeds context to the next.
 ---
 
-# VibeCraft Workflow — ERi Pipeline
+# VibeCrafted Workflow — ERi Pipeline
 
 **Examine. Research. Implement.**
 
 Three-phase pipeline that chains structural code intelligence, ground truth research,
 and parallel agent delegation into a single disciplined workflow.
 Each phase accumulates context for the next — no blind implementation.
+
+## Repo Pipeline Position
+
+```
+scaffold → init → [WORKFLOW] → followup → marbles → dou → decorate → hydrate → release
+                  ^^^^^^^^^^
+```
 
 ## Pipeline Overview
 
@@ -62,23 +69,29 @@ Write structured examination output to
 # Examination: <slug>
 
 ## Repo Health
+
 - <3-5 bullets from repo-view>
 
 ## Scope
+
 - Target dirs: <list>
 - Why: <rationale>
 
 ## Critical Files
+
 | File | Consumers | Risk | Notes |
-|------|-----------|------|-------|
+| ---- | --------- | ---- | ----- |
 
 ## Symbols Found
+
 - <existing symbols relevant to task>
 
 ## Risk Map
+
 - <high-impact files and mitigation strategy>
 
 ## Decision
+
 - [ ] Research needed (unknown APIs/patterns)
 - [ ] Skip to Implement (well-understood domain)
 ```
@@ -118,20 +131,25 @@ Write to
 # Research: <slug>
 
 ## Questions (from Examination)
+
 1. <question derived from CONTEXT.md>
 
 ## Findings
+
 ### Q1: <question>
+
 - **Source**: <URL or Context7 lib>
 - **Answer**: <concise finding>
 - **Code example**: <if applicable>
 
 ## Architectural Decision
+
 - Chosen approach: <decision>
 - Why: <based on findings>
 - Alternatives rejected: <with reasons>
 
 ## Implementation Notes
+
 - <concrete guidance for agents>
 ```
 
@@ -160,7 +178,7 @@ Use loctree MCP tools as your primary exploration layer:
 Never edit code without mapping it first.
 ```
 
-3. **Living tree rule** — standard VibeCraft preamble
+3. **Living tree rule** — standard VibeCrafted preamble
 4. **Quality gate** — repo-specific test/lint commands
 
 ### Spawn Pattern
@@ -182,11 +200,11 @@ After agents complete:
 
 ## Quick Reference
 
-| Phase     | Tool                               | Output       |
-|-----------|------------------------------------|--------------|
-| Examine   | loctree MCP                        | plans/<ts>_<slug>_CONTEXT.md   |
-| Research  | brave-search + Context7 + WebFetch | plans/<ts>_<slug>_RESEARCH.md  |
-| Implement | vc-agents (portable scripts) | reports/*.md |
+| Phase     | Tool                               | Output                          |
+| --------- | ---------------------------------- | ------------------------------- |
+| Examine   | loctree MCP                        | plans/<ts>\_<slug>\_CONTEXT.md  |
+| Research  | brave-search + Context7 + WebFetch | plans/<ts>\_<slug>\_RESEARCH.md |
+| Implement | vc-agents (portable scripts)       | reports/\*.md                   |
 
 ## Phase Skipping
 

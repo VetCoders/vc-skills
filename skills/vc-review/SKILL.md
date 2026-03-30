@@ -63,7 +63,7 @@ prview --with-tests --with-lint --with-security
 ### Other modes
 
 | Command                      | Purpose                                          |
-|------------------------------|--------------------------------------------------|
+| ---------------------------- | ------------------------------------------------ |
 | `prview --ci`                | CI mode: all checks, no color, exit 1 on failure |
 | `prview --json --quiet`      | JSON output for automation / jq piping           |
 | `prview --update`            | Incremental: only regenerate changed artifacts   |
@@ -73,7 +73,7 @@ prview --with-tests --with-lint --with-security
 ### Flag Reference
 
 | Flag                   | What                                                  |
-|------------------------|-------------------------------------------------------|
+| ---------------------- | ----------------------------------------------------- |
 | `--quick`              | Skip tests/lint/bundle/heuristics; triage only        |
 | `--deep`               | All checks enabled                                    |
 | `--ci`                 | CI mode (strict exit)                                 |
@@ -99,6 +99,20 @@ prview --with-tests --with-lint --with-security
 
 Shell aliases exist (`prv`, `prvpr`, `prvjson`), but this skill should not use
 the quick aliases for review-quality output.
+
+---
+
+## ScreenScribe Integration
+
+vc-review can analyze screencast recordings alongside code diffs when
+ScreenScribe is available as a foundation tool. Use this for:
+
+- Runtime behavior review (visual confirmation of what the code does)
+- Bug demo analysis (narrated screen recordings -> structured findings)
+- UX review passes (screencast of user flow -> P-leveled UX issues)
+
+ScreenScribe is optional. If not installed, vc-review operates on code
+artifacts only.
 
 ---
 
@@ -167,7 +181,7 @@ Zasady:
 ### P-Level Scale
 
 | P-level | Definicja                                                          | Przykłady                                                              |
-|---------|--------------------------------------------------------------------|------------------------------------------------------------------------|
+| ------- | ------------------------------------------------------------------ | ---------------------------------------------------------------------- |
 | **P0**  | Blocker merge / security / data loss / failing blocking check      | Failing tsc, leaked credentials, missing artifacts                     |
 | **P1**  | Wysoki risk regresji w core flow, niekompatybilne zmiany kontraktu | Breaking API, duże zmiany bez testów, import cycles in critical module |
 | **P2**  | Średni risk: edge-cases, a11y, telemetria, częściowy brak testów   | Missing i18n keys, hardcoded URLs, no error handling on external call  |
@@ -354,7 +368,7 @@ Create `.prview-policy.yml` in repo root:
 
 ```yaml
 version: 1
-mode: warn        # shadow | warn | block
+mode: warn # shadow | warn | block
 default_severity: warn
 checks:
   cargo_audit: block
@@ -377,7 +391,7 @@ Modes:
 Auto-detected from repo contents. Override: `--profile <PROFILE>`.
 
 | Profile | Detection                   | Checks                                        |
-|---------|-----------------------------|-----------------------------------------------|
+| ------- | --------------------------- | --------------------------------------------- |
 | rust    | Cargo.toml                  | cargo test, clippy, cargo audit, cargo geiger |
 | js      | package.json + source files | vitest, eslint, tsc, pnpm build               |
 | python  | pyproject.toml              | pytest, ruff, mypy                            |
@@ -386,7 +400,7 @@ Auto-detected from repo contents. Override: `--profile <PROFILE>`.
 
 ---
 
-## VibeCraft Pipeline Integration
+## VibeCrafted Pipeline Integration
 
 ### As input to vc-followup
 
@@ -436,4 +450,4 @@ prview --json --quiet | jq '.checks[] | select(.status == "Failed")'
 
 ---
 
-*Created by M&K (c)2026 VetCoders*
+_Created by M&K (c)2026 VetCoders_

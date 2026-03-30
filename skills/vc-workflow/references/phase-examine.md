@@ -37,9 +37,9 @@ Decision heuristic:
 For every file likely to be modified:
 
 - Run `slice(file, consumers=true)` to get:
-    - Direct dependencies (what this file imports)
-    - Direct consumers (what imports this file)
-    - Transitive risk assessment
+  - Direct dependencies (what this file imports)
+  - Direct consumers (what imports this file)
+  - Transitive risk assessment
 - Record dependencies and consumers in CONTEXT.md
 
 ### Step 4: Risk Assessment
@@ -73,45 +73,55 @@ If repo-view flagged issues (dead exports, cycles, twins, hotspots):
 
 ```markdown
 # Examination: <slug>
+
 Date: <YYYY-MM-DD>
-Pipeline: .ai-agents/pipeline/<slug>/
+Pipeline: .vibecrafted/pipeline/<slug>/
 
 ## Repo Health
+
 - Files: N | LOC: N | Languages: Rust, Swift, ...
 - Dead exports: N flagged
 - Cycles: N detected
 - Health score: good/warning/critical
 
 ## Task Understanding
+
 - User request: <original request>
 - Interpreted scope: <what needs to change>
 
 ## Target Modules
+
 ### <module-1>
+
 - Path: <dir>
 - Files: N | LOC: N
 - Entry points: <files>
 - External consumers: <count>
 
 ## Critical Files (slice results)
-| File | LOC | Dependencies | Consumers | Risk |
-|------|-----|-------------|-----------|------|
-| path/to/file.rs | 450 | 3 | 12 | HIGH |
+
+| File            | LOC | Dependencies | Consumers | Risk |
+| --------------- | --- | ------------ | --------- | ---- |
+| path/to/file.rs | 450 | 3            | 12        | HIGH |
 
 ## Existing Symbols
+
 - `TypeA` — defined in path/file.rs:42 (14 consumers)
 - `fn helper_b` — defined in path/other.rs:100 (used by 3 files)
 
 ## Risk Map
-| File | Blast Radius | Mitigation |
-|------|-------------|------------|
+
+| File         | Blast Radius  | Mitigation            |
+| ------------ | ------------- | --------------------- |
 | contracts.rs | 24 transitive | Additive changes only |
 
 ## Open Questions (for Research phase)
+
 1. <question about unknown API/pattern>
 2. <question about best approach>
 
 ## Phase Decision
+
 - [ ] Research needed — unknown: <what>
 - [ ] Skip to Implement — well-understood domain
 ```

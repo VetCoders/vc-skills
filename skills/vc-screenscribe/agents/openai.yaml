@@ -1,4 +1,0 @@
-interface:
-  display_name: "VibeCraft ScreenScribe"
-  short_description: "Screencast analysis pipeline"
-  default_prompt: "Use $vc-screenscribe to analyze screencast recordings: transcribe, preprocess, analyze, and extract structured findings."

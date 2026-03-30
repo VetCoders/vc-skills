@@ -34,15 +34,16 @@ Grep/rg is for local detail only — after structural mapping.
 Each agent plan should include relevant sections from:
 
 1. **CONTEXT.md** (Examination):
-    - Critical files relevant to agent's scope
-    - Risk map for files agent will touch
-    - Existing symbols to reuse
+
+   - Critical files relevant to agent's scope
+   - Risk map for files agent will touch
+   - Existing symbols to reuse
 
 2. **RESEARCH.md** (Research):
-    - Implementation guidance section
-    - Code examples from authoritative sources
-    - Dependencies to add
-    - Pitfalls to avoid
+   - Implementation guidance section
+   - Code examples from authoritative sources
+   - Dependencies to add
+   - Pitfalls to avoid
 
 ### Plan Template (ERi-enhanced)
 
@@ -50,36 +51,44 @@ Each agent plan should include relevant sections from:
 # Task: <short title>
 
 ## Structural Intelligence (loctree MCP)
+
 [loctree preamble — always include]
 
 ## Pipeline Context
 
 ### From Examination (CONTEXT.md):
+
 - Critical files: <relevant subset>
 - Risk: <relevant risk items>
 - Existing patterns: <symbols to reuse>
 
 ### From Research (RESEARCH.md):
+
 - Chosen approach: <architectural decision>
 - Key API: <usage pattern from research>
 - Pitfalls: <what to avoid>
 
 ## Goal
+
 - <1-3 bullets>
 
 ## Scope
+
 - In scope: <files/areas>
 - Out of scope: <explicit boundaries>
 
 ## Acceptance
+
 - [ ] <objective, testable outcome>
 - [ ] <objective, testable outcome>
 - [ ] Refinement: review changed files with `slice(file)` to verify no broken consumers
 
 ## Test Gate
+
 - <repo-specific commands: make check, cargo clippy, etc.>
 
 ## Living Tree Note
+
 - Work on a living tree with Vibecrafting methodology — concurrent changes expected.
 - Adapt proactively, but never skip quality, security, or test gates.
 - If blocked, report exact blocker and run closest safe equivalent.
@@ -92,7 +101,7 @@ Each agent plan should include relevant sections from:
 Split implementation into independent, parallel-safe units:
 
 | Pattern             | Split By             | Example                                    |
-|---------------------|----------------------|--------------------------------------------|
+| ------------------- | -------------------- | ------------------------------------------ |
 | Feature layers      | core → app → tests   | Backend types, UI integration, E2E tests   |
 | Independent modules | module boundary      | auth changes, API changes separately       |
 | Read/Write          | research → implement | One agent researches, another implements   |
@@ -124,7 +133,7 @@ Repo-local `.vibecrafted/plans` and `.vibecrafted/reports` are convenience symli
 ## Spawn Commands
 
 Use the portable scripts from `vc-agents/scripts/`. These handle artifact
-generation, launch mode selection (visible Terminal or headless), and `zsh -ic`
+generation, launch mode selection (visible Terminal or headless), and `eval`
 environment setup automatically.
 
 ### Codex (default for implementation)

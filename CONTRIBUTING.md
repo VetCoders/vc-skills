@@ -1,10 +1,11 @@
-# Contributing to VibeCraft
+# Contributing to VibeCrafted
 
 Welcome! We build tools for AI agents to build tools.
 
 ## The Living Tree Rule
 
-VibeCraft operates on the principle that the codebase is alive. When contributing:
+VibeCrafted operates on the principle that the codebase is alive. When contributing:
+
 - Always assume concurrent changes are possible.
 - Re-read files before editing if time has passed.
 - Use the provided tools (`loctree`) to understand impact before making structural changes.
@@ -13,7 +14,7 @@ VibeCraft operates on the principle that the codebase is alive. When contributin
 
 1. Create a new directory in `./skills/`. Name it `vc-<your-skill-name>`.
 2. Provide a `SKILL.md` file that defines the skill's purpose, triggers, and execution strategy.
-3. Update any internal pathing to ensure your skill interacts correctly with the rest of the VibeCraft framework (using the `skills/` path).
+3. Update any internal pathing to ensure your skill interacts correctly with the rest of the VibeCrafted framework (using the `skills/` path).
 
 ## Pull Requests
 

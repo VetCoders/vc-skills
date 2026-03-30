@@ -1,0 +1,39 @@
+#!/usr/bin/env bash
+# VibeCrafted custom pre-push hook
+set -e
+
+echo "⚒  Running VibeCrafted pre-push hooks..."
+
+ALL_FILES=$(git ls-files)
+
+SH_FILES=()
+PY_FILES=()
+MD_YAML_FILES=()
+
+while IFS= read -r file; do
+    # Skip empty lines
+    [ -z "$file" ] && continue
+
+    case "$file" in
+        *.sh|*.bash|*.zsh) SH_FILES+=("$file") ;;
+        *.py) PY_FILES+=("$file") ;;
+        *.md|*.yaml|*.yml) MD_YAML_FILES+=("$file") ;;
+    esac
+done <<< "$ALL_FILES"
+
+if [ ${#SH_FILES[@]} -gt 0 ]; then
+    echo "▸ shellcheck (full)"
+    shellcheck -e SC1090,SC1091,SC2155,SC2034,SC2154 "${SH_FILES[@]}"
+fi
+
+if [ ${#PY_FILES[@]} -gt 0 ]; then
+    echo "▸ ruff check (full)"
+    ruff check "${PY_FILES[@]}"
+fi
+
+if [ ${#MD_YAML_FILES[@]} -gt 0 ]; then
+    echo "▸ prettier check (full)"
+    npx prettier --check "${MD_YAML_FILES[@]}"
+fi
+
+echo "✓ All pre-push checks passed. Ready to push!"

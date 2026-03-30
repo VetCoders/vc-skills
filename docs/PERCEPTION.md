@@ -1,6 +1,6 @@
 # PERCEPTION: How Agents See the Codebase
 
-In the VibeCraft framework, agents don't just "read code"—they *perceive* the architecture. We achieve this primarily through **loctree**.
+In the VibeCrafted framework, agents don't just "read code"—they _perceive_ the architecture. We achieve this primarily through **loctree**.
 
 ## Loctree integration
 
@@ -14,8 +14,8 @@ Loctree MCP provides structural code intelligence. Our agents start every deep a
 - `tree` - A directory structure with LOC counts for spatial orientation.
 - `follow` - Used to pursue structural signals, such as dead code, cycles, duplicate exports, and event pipelines.
 
-## The VibeCraft Principle
+## The VibeCrafted Principle
 
 Agents working within a "Living Tree" (a shared workspace) use these tools to proactively avoid collisions, understand side-effects, and make safe architectural decisions without demanding constant human micromanagement.
 
-When you install VibeCraft, you gain this augmented perception engine by default in your AI context workflows.
+When you install VibeCrafted, you gain this augmented perception engine by default in your AI context workflows.

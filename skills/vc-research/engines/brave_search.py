@@ -10,7 +10,6 @@ Created by M&K (c)2026 VetCoders
 import json
 import http.client
 import os
-import sys
 import urllib.parse
 from typing import Optional
 

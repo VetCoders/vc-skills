@@ -46,16 +46,16 @@ use `vc-agents`.
 
 ## Comparison: delegate vs agents
 
-| Capability      | vc-delegate                | vc-agents                   |
-|-----------------|------------------------------------|-----------------------------------|
-| **Execution**   | Claude Task tool (in-process)      | Portable scripts (out-of-process) |
-| **Safety**      | Sandboxed, no dangerous flags      | Requires `--dangerously-*` flags  |
-| **Agents**      | Claude subagents only              | Claude + Codex + any CLI agent    |
-| **Parallelism** | Multiple Task calls in one message | Multiple Terminal windows         |
-| **Persistence** | Within conversation context        | Independent processes             |
-| **Visibility**  | Results returned to conversation   | Must read report files            |
-| **Robustness**  | Limited by context window          | Full agent session per task       |
-| **Environment** | Inherits parent env                | Clean Terminal env                |
+| Capability      | vc-delegate                         | vc-agents                                    |
+| --------------- | ----------------------------------- | -------------------------------------------- |
+| **Execution**   | Claude Task tool (in-process)       | Portable scripts (out-of-process)            |
+| **Safety**      | Sandboxed, no dangerous flags       | Requires `--dangerously-*` flags             |
+| **Agents**      | Claude subagents only               | Claude + Codex + any CLI agent               |
+| **Parallelism** | Multiple Task calls in one message  | Multiple Terminal windows                    |
+| **Persistence** | Within conversation context         | Independent processes                        |
+| **Visibility**  | Results returned to conversation    | Must read report files                       |
+| **Robustness**  | Limited by context window           | Full agent session per task                  |
+| **Environment** | Inherits parent env                 | Clean Terminal env                           |
 | **Best for**    | Small bounded work, native fallback | Default choice; large or model-specific work |
 
 ## Choice Rule
@@ -90,28 +90,35 @@ Use the same plan template as `vc-agents`:
 # Task: <short title>
 
 Goal:
+
 - <1-3 bullets>
 
 Scope:
+
 - In scope: <files/areas>
 - Out of scope: <explicit>
 
 Constraints:
+
 - No --no-verify
 - Follow repo conventions
 
 Acceptance:
+
 - [ ] <objective outcome>
 - [ ] <objective outcome>
 - [x] refinement
 
 Test gate:
+
 - <command(s)>
 
 Context:
+
 - <from CONTEXT.md + RESEARCH.md>
 
 Living tree note:
+
 - You work on a living tree with Vibecrafting methodology, so concurrent changes are expected.
 - Adapt proactively and continue, but this is never permission to skip quality, security, or test gates.
 - Run required checks. If something is blocked, report the exact blocker and run the closest safe equivalent.
@@ -186,17 +193,21 @@ Format:
 
 ```markdown
 # Report: <task title>
+
 Agent: Claude Task (native)
 Date: <YYYY-MM-DD>
 Duration: <from Task output>
 
 ## Findings
+
 <agent output, structured>
 
 ## Gate Results
+
 <pass/fail per gate>
 
 ## Files Changed
+
 <list with +/- line counts>
 ```
 
@@ -212,7 +223,7 @@ After all agents return, the primary agent (you):
 ## Subagent Type Selection Guide
 
 | Task Type                     | Subagent Type     | Why                                  |
-|-------------------------------|-------------------|--------------------------------------|
+| ----------------------------- | ----------------- | ------------------------------------ |
 | Implementation (code changes) | `general-purpose` | Full tool access for read/write/edit |
 | Quick search / symbol lookup  | `Explore`         | Fast, focused, read-only             |
 | Run tests / linters / builds  | `Bash`            | Direct command execution             |
@@ -317,13 +328,11 @@ Switch to `vc-agents` when:
 - Agent needs to install dependencies or modify system state
 - Task will take >10 minutes of agent time
 
-## Integration with VibeCraft Pipeline
+## Integration with VibeCrafted Pipeline
 
 ```
-Phase 1 — Craft:     scaffold → init → workflow → followup
+scaffold → init → workflow → followup → marbles → dou → decorate → hydrate → release
                                   (uses vc-delegate or vc-agents)
-Phase 2 — Converge:  marbles ↻ (loop until P0=P1=P2=0)
-Phase 3 — Ship:      dou → decorate → hydrate → release
 ```
 
 The pipeline accepts both skills, but they are not equal defaults.
@@ -360,8 +369,8 @@ Why this exists alongside `vc-agents`:
 5. **Auditable** — all agent actions visible in conversation history
 6. **Interruptible** — user can stop any agent mid-execution
 
-> *"The same smart, same capable — just safer."*
+> _"The same smart, same capable — just safer."_
 
 ---
 
-*Vibecrafted with AI Agents by VetCoders (c)2026 VetCoders*
+_Vibecrafted with AI Agents by VetCoders (c)2026 VetCoders_

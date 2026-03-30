@@ -1,0 +1,54 @@
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          { "type": "command", "command": "~/.claude/hooks/memory-context-loader.sh" }
+        ]
+      }
+    ],
+    "PreCompact": [
+      {
+        "matcher": "manual",
+        "hooks": [
+          { "type": "command", "command": "~/.claude/hooks/memory-on-compact.sh" }
+        ]
+      },
+      {
+        "matcher": "auto",
+        "hooks": [
+          { "type": "command", "command": "~/.claude/hooks/memory-on-compact.sh" }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Grep",
+        "hooks": [
+          { "type": "command", "command": "~/.claude/hooks/loct-grep-augment.sh" }
+        ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          { "type": "command", "command": "~/.claude/hooks/loct-grep-augment.sh --bash-filter" }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "matcher": "(?i)(zapami[eę]taj|remember|kurwa.*zawsze|raz na zawsze)",
+        "hooks": [
+          { "type": "command", "command": "~/.claude/hooks/memory-on-explicit.sh" }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          { "type": "command", "command": "~/.claude/hooks/memory-on-ultrathink.sh" }
+        ]
+      }
+    ]
+  }
+}

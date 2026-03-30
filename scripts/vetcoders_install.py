@@ -15,19 +15,43 @@ Usage:
     python3 scripts/vetcoders_install.py uninstall [--dry-run]
     python3 scripts/vetcoders_install.py restore [--dry-run]
 """
+
 from __future__ import annotations
 
 import argparse
 import json
 import os
-import shlex
 import shutil
 import subprocess
 import sys
+from contextlib import contextmanager
 from dataclasses import asdict, dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Dict, List, Optional, Sequence, Set, Tuple
+
+try:
+    from installer_brand import (
+        FOOTER_BRANDING,
+        FRAMEWORK_STAMP,
+        PRODUCT_LINE,
+        TAGLINE,
+        VAPOR_HEADER,
+        separator as brand_separator,
+        version_line as brand_version_line,
+    )
+except (
+    ModuleNotFoundError
+):  # pragma: no cover - module import path depends on entrypoint
+    from scripts.installer_brand import (
+        FOOTER_BRANDING,
+        FRAMEWORK_STAMP,
+        PRODUCT_LINE,
+        TAGLINE,
+        VAPOR_HEADER,
+        separator as brand_separator,
+        version_line as brand_version_line,
+    )
 
 # ---------------------------------------------------------------------------
 # ANSI helpers
@@ -69,6 +93,53 @@ MISS = red("[missing]")
 WARN = yellow("[warn]")
 OPT = dim("[optional]")
 SKIP = dim("[skip]")
+
+# ---------------------------------------------------------------------------
+# Compact-mode output: TeeLogger + helpers
+# ---------------------------------------------------------------------------
+
+
+class TeeLogger:
+    """Captures print output to a log file while optionally suppressing stdout."""
+
+    def __init__(self, log_path: Path, quiet: bool = False):
+        self.log = open(log_path, "w")
+        self.quiet = quiet
+        self._real_stdout = sys.__stdout__
+
+    def write(self, text: str) -> int:
+        self.log.write(text)
+        if not self.quiet:
+            self._real_stdout.write(text)
+        return len(text)
+
+    def flush(self) -> None:
+        self.log.flush()
+        if not self.quiet:
+            self._real_stdout.flush()
+
+    def close(self) -> None:
+        self.log.close()
+
+
+@contextmanager
+def compact_logging(log_path: Path, quiet: bool = True):
+    """Context manager: redirects stdout to log, keeps real stdout for compact lines."""
+    log_path.parent.mkdir(parents=True, exist_ok=True)
+    tee = TeeLogger(log_path, quiet=quiet)
+    real_stdout = sys.stdout
+    sys.stdout = tee  # type: ignore[assignment]
+    try:
+        yield real_stdout  # caller prints compact lines to this
+    finally:
+        sys.stdout = real_stdout
+        tee.close()
+
+
+def _compact_line(out, icon: str, label: str, value: str) -> None:
+    """Print one compact status line to the real stdout."""
+    out.write(f"  {icon} {label:13s} {value}\n")
+
 
 # ---------------------------------------------------------------------------
 # Component manifest
@@ -120,6 +191,10 @@ class Foundation:
                 hints.append(f"npm i -g {pkg}")
             elif ch == "github":
                 hints.append(f"Download from {pkg}")
+            elif ch == "pip":
+                hints.append(f"pipx install {pkg}")
+            elif ch == "source":
+                hints.append(f"Download from {pkg}")
         return " | ".join(hints)
 
 
@@ -154,6 +229,17 @@ FOUNDATIONS: List[Foundation] = [
             "github": "https://github.com/VetCoders/prview/releases",
         },
         verify_cmd="prview --version",
+        required=False,
+    ),
+    Foundation(
+        name="screenscribe",
+        description="Screencast analysis — turns narrated recordings into structured engineering findings",
+        channels=["pip", "source"],
+        packages={
+            "pip": "screenscribe",
+            "source": "https://github.com/VetCoders/Screenscribe/releases",
+        },
+        verify_cmd="screenscribe --version",
         required=False,
     ),
     Foundation(
@@ -214,7 +300,9 @@ FOUNDATIONS: List[Foundation] = [
 ]
 
 RUNTIME_DEPS = ["python3", "git", "rsync"]
-OPTIONAL_DEPS = ["zsh"]  # helpers work in bash and zsh; core install works without either
+OPTIONAL_DEPS = [
+    "zsh"
+]  # helpers work in bash and zsh; core install works without either
 
 OLD_SKILL_PREFIX = "vetcoders-"
 OLD_HELPER_NAME = "vetcoders-skills.zsh"
@@ -225,11 +313,12 @@ def _is_writable(path: Path) -> bool:
     if not path.exists():
         return True
     try:
-        with open(path, 'a'):
+        with open(path, "a"):
             pass
         return True
     except OSError:
         return False
+
 
 AGENT_RUNTIMES = ["codex", "claude", "gemini"]
 SYMLINK_TARGETS = ["agents", "claude", "codex"]
@@ -247,6 +336,7 @@ class InstallState:
     """Persisted installation state."""
 
     version: str = "2.0"
+    framework_version: str = ""
     installed_at: str = ""
     updated_at: str = ""
     repo_commit: str = ""
@@ -311,6 +401,13 @@ def detect_cargo() -> Optional[str]:
     return shutil.which("cargo")
 
 
+def get_framework_version(repo_root: Path) -> str:
+    version_file = repo_root / "VERSION"
+    if version_file.exists():
+        return version_file.read_text().strip()
+    return "unknown"
+
+
 def get_repo_commit(repo_root: Path) -> str:
     try:
         return subprocess.check_output(
@@ -344,7 +441,7 @@ def discover_skills(repo_root: Path) -> List[Path]:
     skills_dir = repo_root / "skills"
     if not skills_dir.exists() or not skills_dir.is_dir():
         return skills
-        
+
     for entry in sorted(skills_dir.iterdir()):
         if not entry.is_dir():
             continue
@@ -397,24 +494,26 @@ def ask_yn(prompt: str, default: bool = True) -> bool:
 def _read_key() -> str:
     """Reads a single keypress or escape sequence from stdin (unbuffered)."""
     import select
+
     fd = sys.stdin.fileno()
     ch = os.read(fd, 1)
-    if ch == b'\x1b':
+    if ch == b"\x1b":
         r, _, _ = select.select([fd], [], [], 0.05)
         if r:
             ch += os.read(fd, 2)
-    return ch.decode('utf-8', errors='ignore')
+    return ch.decode("utf-8", errors="ignore")
 
 
 def _accumulate_digits(first: str) -> str:
     """Collect multi-digit number input with a short timeout between digits."""
     import select
+
     fd = sys.stdin.fileno()
     buf = first
     while True:
         r, _, _ = select.select([fd], [], [], 0.2)
         if r:
-            nxt = os.read(fd, 1).decode('utf-8', errors='ignore')
+            nxt = os.read(fd, 1).decode("utf-8", errors="ignore")
             if nxt.isdigit():
                 buf += nxt
             else:
@@ -438,7 +537,9 @@ def ask_choice(prompt: str, options: List[str], default: int = 0) -> int:
             marker = cyan(">") if i == default else " "
             print(f"  {marker} {i + 1}. {opt}")
         try:
-            answer = input(dim(f"  Choice [1-{len(options)}, default {default + 1}]: ")).strip()
+            answer = input(
+                dim(f"  Choice [1-{len(options)}, default {default + 1}]: ")
+            ).strip()
         except (EOFError, KeyboardInterrupt):
             print()
             return default
@@ -478,21 +579,21 @@ def ask_choice(prompt: str, options: List[str], default: int = 0) -> int:
         tty.setcbreak(fd)
         while True:
             char = _read_key()
-            if char in ('\n', '\r'):
+            if char in ("\n", "\r"):
                 break
-            elif char.isdigit() and char != '0':
+            elif char.isdigit() and char != "0":
                 num_str = _accumulate_digits(char) if len(options) >= 10 else char
                 idx = int(num_str) - 1
                 if 0 <= idx < len(options):
                     current_idx = idx
                     break
-            elif char == '\x1b[A': # Up
+            elif char == "\x1b[A":  # Up
                 current_idx = max(0, current_idx - 1)
                 render()
-            elif char == '\x1b[B': # Down
+            elif char == "\x1b[B":  # Down
                 current_idx = min(len(options) - 1, current_idx + 1)
                 render()
-            elif char == '\x03': # Ctrl+C
+            elif char == "\x03":  # Ctrl+C
                 raise KeyboardInterrupt
     except KeyboardInterrupt:
         sys.stdout.write("\n")
@@ -518,7 +619,11 @@ def ask_multi(prompt: str, options: List[str], defaults: List[bool]) -> List[boo
             marker = green("[x]") if selected[i] else dim("[ ]")
             print(f"  {marker} {i + 1}. {opt}")
         try:
-            print(dim("  (Type numbers space-separated. E.g. '1 2' to select exactly those, or '+3' / '-1' to toggle)"))
+            print(
+                dim(
+                    "  (Type numbers space-separated. E.g. '1 2' to select exactly those, or '+3' / '-1' to toggle)"
+                )
+            )
             answer = input(dim("  Selection: ")).strip()
         except (EOFError, KeyboardInterrupt):
             print()
@@ -534,9 +639,9 @@ def ask_multi(prompt: str, options: List[str], defaults: List[bool]) -> List[boo
                         selected[idx] = True
             else:
                 for tok in tokens:
-                    is_add = tok.startswith('+')
-                    is_sub = tok.startswith('-')
-                    clean_tok = tok.lstrip('+-')
+                    is_add = tok.startswith("+")
+                    is_sub = tok.startswith("-")
+                    clean_tok = tok.lstrip("+-")
                     try:
                         idx = int(clean_tok) - 1
                         if 0 <= idx < len(options):
@@ -558,7 +663,9 @@ def ask_multi(prompt: str, options: List[str], defaults: List[bool]) -> List[boo
     current_idx = 0
 
     print(bold(prompt))
-    print(dim("  (Use UP/DOWN to navigate, SPACE or number to toggle, ENTER to confirm)"))
+    print(
+        dim("  (Use UP/DOWN to navigate, SPACE or number to toggle, ENTER to confirm)")
+    )
 
     for _ in options:
         print()
@@ -579,25 +686,25 @@ def ask_multi(prompt: str, options: List[str], defaults: List[bool]) -> List[boo
         tty.setcbreak(fd)
         while True:
             char = _read_key()
-            if char in ('\n', '\r'):
+            if char in ("\n", "\r"):
                 break
-            elif char == ' ':
+            elif char == " ":
                 selected[current_idx] = not selected[current_idx]
                 render()
-            elif char.isdigit() and char != '0':
+            elif char.isdigit() and char != "0":
                 num_str = _accumulate_digits(char) if len(options) >= 10 else char
                 idx = int(num_str) - 1
                 if 0 <= idx < len(options):
                     selected[idx] = not selected[idx]
                     current_idx = idx
                     render()
-            elif char == '\x1b[A': # Up
+            elif char == "\x1b[A":  # Up
                 current_idx = max(0, current_idx - 1)
                 render()
-            elif char == '\x1b[B': # Down
+            elif char == "\x1b[B":  # Down
                 current_idx = min(len(options) - 1, current_idx + 1)
                 render()
-            elif char == '\x03': # Ctrl+C
+            elif char == "\x03":  # Ctrl+C
                 raise KeyboardInterrupt
     except KeyboardInterrupt:
         sys.stdout.write("\n")
@@ -645,8 +752,9 @@ def _restore_path_from_backup(src: Path, dst: Path) -> None:
         shutil.copy2(src, dst)
 
 
-def collect_orphaned_skills(store_path: Path, runtimes: List[str],
-                            current_bundle: Set[str]) -> List[Tuple[str, Path]]:
+def collect_orphaned_skills(
+    store_path: Path, runtimes: List[str], current_bundle: Set[str]
+) -> List[Tuple[str, Path]]:
     """Return vc-* entries that no longer exist in the current bundle."""
     orphans: List[Tuple[str, Path]] = []
 
@@ -676,9 +784,13 @@ def collect_orphaned_skills(store_path: Path, runtimes: List[str],
     return orphans
 
 
-def create_backup(store_path: Path, runtimes: List[str], bundle_names: List[str],
-                  orphaned_entries: Optional[List[Tuple[str, Path]]] = None,
-                  dry_run: bool = False) -> Optional[str]:
+def create_backup(
+    store_path: Path,
+    runtimes: List[str],
+    bundle_names: List[str],
+    orphaned_entries: Optional[List[Tuple[str, Path]]] = None,
+    dry_run: bool = False,
+) -> Optional[str]:
     """Snapshot existing state before install. Returns backup timestamp or None."""
     ts = datetime.now().strftime("%Y%m%d_%H%M%S")
     backup_dir = _backup_root(store_path) / ts
@@ -714,7 +826,11 @@ def create_backup(store_path: Path, runtimes: List[str], bundle_names: List[str]
 
     # Back up orphaned vc-* entries before pruning so restore can bring them back.
     for location, entry in orphaned_entries or []:
-        dst = backup_dir / ("store" if location == "store" else f"runtimes/{location}") / entry.name
+        dst = (
+            backup_dir
+            / ("store" if location == "store" else f"runtimes/{location}")
+            / entry.name
+        )
         if dry_run:
             print(f"  {dim('backup')} {entry} -> {dst}")
         else:
@@ -755,12 +871,16 @@ def create_backup(store_path: Path, runtimes: List[str], bundle_names: List[str]
 
 
 def _helper_target_path() -> Path:
-    config_dir = Path(os.environ.get("XDG_CONFIG_HOME", Path.home() / ".config")) / "vetcoders"
+    config_dir = (
+        Path(os.environ.get("XDG_CONFIG_HOME", Path.home() / ".config")) / "vetcoders"
+    )
     return config_dir / "vc-skills.sh"
 
 
 def _helper_legacy_path() -> Path:
-    config_dir = Path(os.environ.get("XDG_CONFIG_HOME", Path.home() / ".config")) / "zsh"
+    config_dir = (
+        Path(os.environ.get("XDG_CONFIG_HOME", Path.home() / ".config")) / "zsh"
+    )
     return config_dir / "vc-skills.zsh"
 
 
@@ -778,14 +898,28 @@ def _old_zshrc_source_line() -> str:
 # ---------------------------------------------------------------------------
 
 KNOWN_HELPER_FUNCTIONS = [
-    "codex-implement", "codex-plan", "codex-review", "codex-research",
-    "codex-prompt", "codex-observe",
-    "claude-implement", "claude-plan", "claude-review", "claude-research",
-    "claude-prompt", "claude-observe",
-    "gemini-implement", "gemini-plan", "gemini-review", "gemini-research",
-    "gemini-prompt", "gemini-observe",
+    "codex-implement",
+    "codex-plan",
+    "codex-review",
+    "codex-research",
+    "codex-prompt",
+    "codex-observe",
+    "claude-implement",
+    "claude-plan",
+    "claude-review",
+    "claude-research",
+    "claude-prompt",
+    "claude-observe",
+    "gemini-implement",
+    "gemini-plan",
+    "gemini-review",
+    "gemini-research",
+    "gemini-prompt",
+    "gemini-observe",
     "skills-sync",
-    "gemini-keychain-set", "gemini-keychain-get", "gemini-keychain-clear",
+    "gemini-keychain-set",
+    "gemini-keychain-get",
+    "gemini-keychain-clear",
 ]
 
 
@@ -831,12 +965,16 @@ def scan_helper_conflicts() -> Dict[Path, List[HelperConflict]]:
                 if stripped.startswith(f"{fn}()") or stripped.startswith(f"{fn} ()"):
                     if fpath not in conflicts:
                         conflicts[fpath] = []
-                    conflicts[fpath].append(HelperConflict(file=fpath, function=fn, line_num=i))
+                    conflicts[fpath].append(
+                        HelperConflict(file=fpath, function=fn, line_num=i)
+                    )
 
     return conflicts
 
 
-def report_helper_conflicts(conflicts: Dict[Path, List[HelperConflict]], interactive: bool) -> bool:
+def report_helper_conflicts(
+    conflicts: Dict[Path, List[HelperConflict]], interactive: bool
+) -> bool:
     """Report conflicts and ask user what to do. Returns True if should proceed with install."""
     if not conflicts:
         return True
@@ -854,10 +992,18 @@ def report_helper_conflicts(conflicts: Dict[Path, List[HelperConflict]], interac
             print(f"      {dim(f'line {c.line_num}:')} {c.function}()")
 
     print()
-    print(yellow("  These files already contain non-VetCoders content — installer will NOT edit them."))
+    print(
+        yellow(
+            "  These files already contain non-VetCoders content — installer will NOT edit them."
+        )
+    )
 
     if not interactive:
-        print(yellow("  Non-interactive mode: installing the canonical helper file alongside."))
+        print(
+            yellow(
+                "  Non-interactive mode: installing the canonical helper file alongside."
+            )
+        )
         print(yellow("  Clean up duplicates in the files above manually."))
         return True
 
@@ -888,7 +1034,9 @@ def report_helper_conflicts(conflicts: Dict[Path, List[HelperConflict]], interac
 # ---------------------------------------------------------------------------
 
 
-def rsync_skill(src: Path, dst: Path, dry_run: bool = False, mirror: bool = False) -> None:
+def rsync_skill(
+    src: Path, dst: Path, dry_run: bool = False, mirror: bool = False
+) -> None:
     """Rsync a single skill directory."""
     if not dry_run:
         dst.mkdir(parents=True, exist_ok=True)
@@ -898,15 +1046,23 @@ def rsync_skill(src: Path, dst: Path, dry_run: bool = False, mirror: bool = Fals
     if dry_run:
         cmd += ["--dry-run"]
     cmd += [str(src) + "/", str(dst) + "/"]
-    subprocess.run(cmd, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    subprocess.run(
+        cmd, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL
+    )
 
 
-def prune_orphaned_skills(store_path: Path, runtimes: List[str],
-                          current_bundle: Set[str], dry_run: bool = False,
-                          orphaned_entries: Optional[List[Tuple[str, Path]]] = None,
-                          interactive: bool = True) -> int:
+def prune_orphaned_skills(
+    store_path: Path,
+    runtimes: List[str],
+    current_bundle: Set[str],
+    dry_run: bool = False,
+    orphaned_entries: Optional[List[Tuple[str, Path]]] = None,
+    interactive: bool = True,
+) -> int:
     """Remove vc-* skills from store and runtime dirs that are no longer in the bundle."""
-    orphans = orphaned_entries or collect_orphaned_skills(store_path, runtimes, current_bundle)
+    orphans = orphaned_entries or collect_orphaned_skills(
+        store_path, runtimes, current_bundle
+    )
 
     if not orphans:
         return 0
@@ -941,8 +1097,12 @@ def prune_orphaned_skills(store_path: Path, runtimes: List[str],
     return removed
 
 
-def prune_legacy_skills(store_path: Path, runtimes: List[str],
-                        dry_run: bool = False, interactive: bool = True) -> int:
+def prune_legacy_skills(
+    store_path: Path,
+    runtimes: List[str],
+    dry_run: bool = False,
+    interactive: bool = True,
+) -> int:
     """Remove old vetcoders-* skills replaced by vc-* equivalents."""
     legacy: List[tuple] = []
 
@@ -956,10 +1116,16 @@ def prune_legacy_skills(store_path: Path, runtimes: List[str],
         if not rt_skills.exists():
             continue
         for entry in sorted(rt_skills.iterdir()):
-            if (entry.is_dir() or entry.is_symlink()) and entry.name.startswith(OLD_SKILL_PREFIX):
+            if (entry.is_dir() or entry.is_symlink()) and entry.name.startswith(
+                OLD_SKILL_PREFIX
+            ):
                 legacy.append((rt, entry))
 
-    old_helper = Path(os.environ.get("XDG_CONFIG_HOME", Path.home() / ".config")) / "zsh" / OLD_HELPER_NAME
+    old_helper = (
+        Path(os.environ.get("XDG_CONFIG_HOME", Path.home() / ".config"))
+        / "zsh"
+        / OLD_HELPER_NAME
+    )
     if old_helper.exists():
         legacy.append(("helper", old_helper))
 
@@ -968,7 +1134,9 @@ def prune_legacy_skills(store_path: Path, runtimes: List[str],
 
     print(bold("Old vetcoders-* entries detected:"))
     for location, entry in legacy:
-        kind = "symlink" if entry.is_symlink() else ("file" if entry.is_file() else "dir")
+        kind = (
+            "symlink" if entry.is_symlink() else ("file" if entry.is_file() else "dir")
+        )
         print(f"  {yellow(f'[{kind}]')} {location}/{entry.name}")
     print()
 
@@ -1000,11 +1168,13 @@ def prune_legacy_skills(store_path: Path, runtimes: List[str],
         if OLD_HELPER_NAME in content:
             if not _is_writable(zshrc):
                 print(f"  {WARN} {zshrc} is locked — cannot remove old source line")
-                print(f"       {dim('Remove manually: line referencing ' + OLD_HELPER_NAME)}")
+                print(
+                    f"       {dim('Remove manually: line referencing ' + OLD_HELPER_NAME)}"
+                )
             elif not dry_run:
                 lines = content.splitlines(keepends=True)
-                new_lines = [l for l in lines if OLD_HELPER_NAME not in l]
-                zshrc.write_text(''.join(new_lines))
+                new_lines = [ln for ln in lines if OLD_HELPER_NAME not in ln]
+                zshrc.write_text("".join(new_lines))
                 print(f"  {OK} Cleaned old source line from .zshrc")
             else:
                 print(f"  {dim('would clean old source line from .zshrc')}")
@@ -1026,6 +1196,44 @@ def create_symlink(target: Path, link: Path, dry_run: bool = False) -> None:
         else:
             link.unlink()
     link.symlink_to(target)
+
+
+def _configure_gemini_plans(dry_run: bool = False) -> None:
+    """Fix Gemini CLI plan.directory if it points into .vibecrafted.
+
+    Gemini resolves symlinks with realpath() and rejects plans directories
+    that resolve outside the project root.  Our .vibecrafted/plans symlink
+    points to ~/.vibecrafted/artifacts/…  which is always outside the repo.
+
+    Fix: reset plan.directory to the Gemini-native default so Gemini writes
+    plans into $PWD/.gemini/plans/ (its own space).  Our spawn system handles
+    artifact centralisation separately via spawn_link_repo_artifacts().
+    """
+    gemini_settings = Path.home() / ".gemini" / "settings.json"
+    if not gemini_settings.exists():
+        return
+
+    try:
+        data = json.loads(gemini_settings.read_text())
+    except (json.JSONDecodeError, OSError):
+        return
+
+    plan_dir = (data.get("general") or {}).get("plan", {}).get("directory", "")
+    if ".vibecrafted" not in plan_dir:
+        return
+
+    # Remove the override — let Gemini use its default (.gemini/plans/)
+    if dry_run:
+        print(f"  {dim('would reset')} gemini plan.directory (was {plan_dir!r})")
+        return
+
+    data["general"]["plan"].pop("directory", None)
+    # Clean up empty plan dict if only modelRouting or nothing left
+    if not data["general"]["plan"] or data["general"]["plan"] == {}:
+        data["general"].pop("plan", None)
+
+    gemini_settings.write_text(json.dumps(data, indent=2) + "\n")
+    print(f"  {OK} Gemini plan.directory reset (was {plan_dir!r} -> default)")
 
 
 def install_foundation_cargo(foundation: Foundation, dry_run: bool = False) -> bool:
@@ -1067,7 +1275,9 @@ KNOWN_ZSH_SESSION_NOISE = {
 
 def is_benign_zsh_session_noise(stderr: str) -> bool:
     """Return True when stderr only contains macOS shell session housekeeping."""
-    normalized = " ".join(line.strip().lower() for line in stderr.splitlines() if line.strip())
+    normalized = " ".join(
+        line.strip().lower() for line in stderr.splitlines() if line.strip()
+    )
     if not normalized:
         return False
 
@@ -1082,6 +1292,10 @@ def run_doctor(store_path: Path, state: InstallState) -> List[DoctorFinding]:
     """Run full installation health check."""
     findings: List[DoctorFinding] = []
 
+    # 0. Framework version
+    fw_ver = state.framework_version or "unknown"
+    findings.append(DoctorFinding("ok", "version", fw_ver))
+
     # 1. Store exists
     if store_path.exists():
         findings.append(DoctorFinding("ok", "store", f"{store_path} exists"))
@@ -1094,7 +1308,9 @@ def run_doctor(store_path: Path, state: InstallState) -> List[DoctorFinding]:
     if state_file.exists():
         findings.append(DoctorFinding("ok", "state", "Install manifest found"))
     else:
-        findings.append(DoctorFinding("warn", "state", "No install manifest — was installer used?"))
+        findings.append(
+            DoctorFinding("warn", "state", "No install manifest — was installer used?")
+        )
 
     # 3. Expected skills present
     for skill_name in state.skills:
@@ -1102,15 +1318,25 @@ def run_doctor(store_path: Path, state: InstallState) -> List[DoctorFinding]:
         if skill_path.is_dir() and (skill_path / "SKILL.md").exists():
             findings.append(DoctorFinding("ok", f"skill:{skill_name}", "present"))
         elif skill_path.exists():
-            findings.append(DoctorFinding("warn", f"skill:{skill_name}", "dir exists but no SKILL.md"))
+            findings.append(
+                DoctorFinding(
+                    "warn", f"skill:{skill_name}", "dir exists but no SKILL.md"
+                )
+            )
         else:
-            findings.append(DoctorFinding("fail", f"skill:{skill_name}", "missing from store"))
+            findings.append(
+                DoctorFinding("fail", f"skill:{skill_name}", "missing from store")
+            )
 
     # 4. Symlink views
     for runtime in state.runtimes:
         rt_skills = Path.home() / f".{runtime}" / "skills"
         if not rt_skills.exists():
-            findings.append(DoctorFinding("fail", f"runtime:{runtime}", f"{rt_skills} does not exist"))
+            findings.append(
+                DoctorFinding(
+                    "fail", f"runtime:{runtime}", f"{rt_skills} does not exist"
+                )
+            )
             continue
         for skill_name in state.skills:
             link = rt_skills / skill_name
@@ -1118,7 +1344,11 @@ def run_doctor(store_path: Path, state: InstallState) -> List[DoctorFinding]:
             if link.is_symlink():
                 target = link.resolve()
                 if target == canonical.resolve():
-                    findings.append(DoctorFinding("ok", f"symlink:{runtime}/{skill_name}", "correct"))
+                    findings.append(
+                        DoctorFinding(
+                            "ok", f"symlink:{runtime}/{skill_name}", "correct"
+                        )
+                    )
                 else:
                     findings.append(
                         DoctorFinding(
@@ -1136,7 +1366,9 @@ def run_doctor(store_path: Path, state: InstallState) -> List[DoctorFinding]:
                     )
                 )
             else:
-                findings.append(DoctorFinding("fail", f"symlink:{runtime}/{skill_name}", "missing"))
+                findings.append(
+                    DoctorFinding("fail", f"symlink:{runtime}/{skill_name}", "missing")
+                )
 
     # 5. Foundations
     for f in FOUNDATIONS:
@@ -1145,11 +1377,13 @@ def run_doctor(store_path: Path, state: InstallState) -> List[DoctorFinding]:
             findings.append(DoctorFinding("ok", f"foundation:{f.name}", f"-> {path}"))
         elif f.required:
             findings.append(
-                DoctorFinding("fail", f"foundation:{f.name}", f"missing — {f.install_hint()}")
+                DoctorFinding(
+                    "fail", f"foundation:{f.name}", f"missing — {f.install_hint()}"
+                )
             )
         else:
             findings.append(
-                DoctorFinding("warn", f"foundation:{f.name}", f"optional, not installed")
+                DoctorFinding("warn", f"foundation:{f.name}", "optional, not installed")
             )
 
     # 6. Shell helpers
@@ -1158,11 +1392,23 @@ def run_doctor(store_path: Path, state: InstallState) -> List[DoctorFinding]:
     if helper_file.exists():
         findings.append(DoctorFinding("ok", "shell-helpers", str(helper_file)))
     elif legacy_file.exists():
-        findings.append(DoctorFinding("warn", "shell-helpers", f"legacy location only: {legacy_file} — re-run install"))
+        findings.append(
+            DoctorFinding(
+                "warn",
+                "shell-helpers",
+                f"legacy location only: {legacy_file} — re-run install",
+            )
+        )
     elif state.shell_helpers:
-        findings.append(DoctorFinding("warn", "shell-helpers", "marked as installed but file missing"))
+        findings.append(
+            DoctorFinding(
+                "warn", "shell-helpers", "marked as installed but file missing"
+            )
+        )
     else:
-        findings.append(DoctorFinding("ok", "shell-helpers", "not installed (optional)"))
+        findings.append(
+            DoctorFinding("ok", "shell-helpers", "not installed (optional)")
+        )
 
     # 7. Shell smoke check: non-interactive zsh should stay quiet under TERM=dumb
     zsh_path = shutil.which("zsh")
@@ -1176,8 +1422,12 @@ def run_doctor(store_path: Path, state: InstallState) -> List[DoctorFinding]:
             text=True,
         )
         stderr = (smoke.stderr or "").strip()
-        if smoke.returncode == 0 and (not stderr or is_benign_zsh_session_noise(stderr)):
-            findings.append(DoctorFinding("ok", "shell:dumb-terminal", "zsh -ic stays quiet"))
+        if smoke.returncode == 0 and (
+            not stderr or is_benign_zsh_session_noise(stderr)
+        ):
+            findings.append(
+                DoctorFinding("ok", "shell:dumb-terminal", "zsh -ic stays quiet")
+            )
         elif smoke.returncode == 0:
             findings.append(
                 DoctorFinding(
@@ -1201,9 +1451,11 @@ def run_doctor(store_path: Path, state: InstallState) -> List[DoctorFinding]:
 def print_doctor(findings: List[DoctorFinding]) -> int:
     """Print doctor findings. Returns exit code (0 if no failures)."""
     if _IS_TTY:
-        print(f"\n{bold('\U0001d54d\U0001d55a\U0001d553\U0001d556\U0001d554\U0001d563\U0001d552\U0001d557\U0001d565 Doctor')}\n")
+        print(
+            f"\n{bold('\U0001d54d\U0001d55a\U0001d553\U0001d556\U0001d554\U0001d563\U0001d552\U0001d557\U0001d565 Doctor')}\n"
+        )
     else:
-        print(f"\n{bold('VibeCraft Doctor')}\n")
+        print(f"\n{bold('VibeCrafted Doctor')}\n")
 
     fails = 0
     warns = 0
@@ -1221,10 +1473,14 @@ def print_doctor(findings: List[DoctorFinding]) -> int:
             fails += 1
         print(f"  {icon} {f.component}: {f.message}")
 
-    print(f"\n  {green(str(oks))} ok  {yellow(str(warns))} warnings  {red(str(fails))} failures\n")
+    print(
+        f"\n  {green(str(oks))} ok  {yellow(str(warns))} warnings  {red(str(fails))} failures\n"
+    )
 
     if fails:
-        print(f"  {red('Installation has issues.')} Run {bold('vetcoders install')} to fix.\n")
+        print(
+            f"  {red('Installation has issues.')} Run {bold('vetcoders install')} to fix.\n"
+        )
         return 1
     elif warns:
         print(f"  {yellow('Installation healthy with minor warnings.')}\n")
@@ -1241,15 +1497,12 @@ def print_doctor(findings: List[DoctorFinding]) -> int:
 
 class GoBack(Exception):
     """Raised by the interactive wizard to re-visit a previous step."""
+
     pass
 
 
-def cmd_install(args: argparse.Namespace) -> int:
-    repo_root = Path(args.source).resolve()
-    if not repo_root.is_dir():
-        print(red(f"Error: repo root not found: {repo_root}"))
-        return 1
-
+def _cmd_install_verbose(args: argparse.Namespace, repo_root: Path) -> int:
+    """Original verbose install flow — used when --compact is NOT set."""
     interactive = _IS_TTY and not args.non_interactive
     dry_run = args.dry_run
     advanced = args.advanced
@@ -1259,13 +1512,16 @@ def cmd_install(args: argparse.Namespace) -> int:
     cli_skill_filter = args.skill_filter  # None = all, list = subset
 
     # --- Header ---
+    sep = brand_separator(33)
     print()
-    if _IS_TTY:
-        print(bold("  \U0001d5e9\U0001d5f6\U0001d5ef\U0001d5f2\U0001d5d6\U0001d5f3\U0001d5ee\U0001d5f3\U0001d601 \U0001d5d9\U0001d5f3\U0001d5ee\U0001d5fa\U0001d5f2\U0001d600\U0001d5fc\U0001d5f3\U0001d5f8 \U0001d5dc\U0001d5fb\U0001d600\U0001d601\U0001d5ee\U0001d5f9\U0001d5f9\U0001d5f2\U0001d5f3"))
-        print(dim("  \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500"))
-    else:
-        print(bold("VibeCraft Framework Installer"))
-    print(dim(f"  Source: {repo_root}"))
+    fw_ver = get_framework_version(repo_root)
+    print(f"  \u2692 {VAPOR_HEADER} \u2692")
+    print()
+    print(f"  {brand_version_line(fw_ver)}")
+    print(f"  {TAGLINE}")
+    print(f"  {PRODUCT_LINE}")
+    print(f"  {sep}")
+    print(f"  Source: {repo_root}")
     print()
 
     # --- Discover skills ---
@@ -1278,14 +1534,23 @@ def cmd_install(args: argparse.Namespace) -> int:
     skill_names = [s.name for s in skills]
 
     # --- Show bundle ---
-    print(bold("Bundle contents:"))
-    for cat_key in ("pipeline", "specialist"):
-        cat = SKILL_CATEGORIES[cat_key]
-        names = cats[cat_key]
-        if names:
-            print(f"  {cyan(cat['label'])} ({len(names)})")
-            for n in names:
-                print(f"    - {n}")
+    print(bold("Framework bundle:"))
+    print(f"  Pipeline skills   {len(cats['pipeline'])}")
+    if cats["specialist"]:
+        print(f"  Specialist skills {len(cats['specialist'])}")
+    if advanced:
+        print()
+        for cat_key in ("pipeline", "specialist"):
+            cat = SKILL_CATEGORIES[cat_key]
+            names = cats[cat_key]
+            if names:
+                print(f"  {cyan(cat['label'])} ({len(names)})")
+                for n in names:
+                    print(f"    - {n}")
+    else:
+        print(
+            f"  Use {cyan('--advanced')} to choose skills and runtimes interactively."
+        )
     print()
 
     # --- Interactive Wizard ---
@@ -1310,7 +1575,9 @@ def cmd_install(args: argparse.Namespace) -> int:
                     step += 1
                 elif advanced and interactive:
                     defaults = [s in selected_skills for s in skill_names]
-                    result = ask_multi("Select skills to install:", skill_names, defaults)
+                    result = ask_multi(
+                        "Select skills to install:", skill_names, defaults
+                    )
                     selected_skills = [n for n, sel in zip(skill_names, result) if sel]
                     if not selected_skills:
                         print(red("No skills selected."))
@@ -1322,7 +1589,7 @@ def cmd_install(args: argparse.Namespace) -> int:
 
             elif step == 1:
                 # System check (static output, just flows through unless error)
-                if not getattr(args, '_sys_checked', False):
+                if not getattr(args, "_sys_checked", False):
                     print(bold("System check:"))
                     sys_deps = detect_system_deps()
                     for cmd, path in sys_deps.items():
@@ -1335,22 +1602,34 @@ def cmd_install(args: argparse.Namespace) -> int:
                     if osascript:
                         print(f"  {OK} osascript -> {dim(osascript)}")
                     else:
-                        print(f"  {OPT} osascript {dim('(visible Terminal automation unavailable; non-visible fallback exists)')}")
+                        print(
+                            f"  {OPT} osascript {dim('(visible Terminal automation unavailable; non-visible fallback exists)')}"
+                        )
                     print()
 
-                    missing_critical = [cmd for cmd in ("python3", "git", "rsync") if not sys_deps.get(cmd)]
+                    missing_critical = [
+                        cmd
+                        for cmd in ("python3", "git", "rsync")
+                        if not sys_deps.get(cmd)
+                    ]
                     if missing_critical:
-                        print(red(f"Missing critical dependencies: {', '.join(missing_critical)}"))
+                        print(
+                            red(
+                                f"Missing critical dependencies: {', '.join(missing_critical)}"
+                            )
+                        )
                         print("Install them before continuing.")
                         return 1
                     if not sys_deps.get("zsh"):
-                        print(f"  {OPT} zsh {dim('(not found — helpers will use bash only)')}")
+                        print(
+                            f"  {OPT} zsh {dim('(not found — helpers will use bash only)')}"
+                        )
                     args._sys_checked = True
                 step += 1
 
             elif step == 2:
                 # Runtimes
-                if not getattr(args, '_rt_checked', False):
+                if not getattr(args, "_rt_checked", False):
                     print(bold("Agent runtimes:"))
                     available_runtimes = detect_agent_runtimes()
                     for rt, path in available_runtimes.items():
@@ -1362,24 +1641,57 @@ def cmd_install(args: argparse.Namespace) -> int:
                     args._rt_checked = True
 
                 if cli_tools:
-                    all_runtimes = [rt for rt in cli_tools if rt in SYMLINK_TARGET_CHOICES]
+                    all_runtimes = [
+                        rt for rt in cli_tools if rt in SYMLINK_TARGET_CHOICES
+                    ]
                     step += 1
                 elif interactive and not advanced:
-                    print(dim("  Note: gemini-cli in some versions duplicates the workflows, inheriting"))
-                    print(dim("  skills from the other agents. Gemini symlinks skipped by default."))
-                    create_all = ask_yn("Create the default skill views for agents, claude, and codex?", default=True)
+                    print(
+                        dim(
+                            "  Note: gemini-cli in some versions duplicates the workflows, inheriting"
+                        )
+                    )
+                    print(
+                        dim(
+                            "  skills from the other agents. Gemini symlinks skipped by default."
+                        )
+                    )
+                    create_all = ask_yn(
+                        "Create the standard skill views for agents, claude, and codex?",
+                        default=True,
+                    )
                     if not create_all:
                         defaults = [rt in all_runtimes for rt in SYMLINK_TARGET_CHOICES]
-                        result = ask_multi("Select runtimes for symlink views:", SYMLINK_TARGET_CHOICES, defaults)
-                        all_runtimes = [rt for rt, sel in zip(SYMLINK_TARGET_CHOICES, result) if sel]
+                        result = ask_multi(
+                            "Select runtimes for symlink views:",
+                            SYMLINK_TARGET_CHOICES,
+                            defaults,
+                        )
+                        all_runtimes = [
+                            rt for rt, sel in zip(SYMLINK_TARGET_CHOICES, result) if sel
+                        ]
                     print()
                     step += 1
                 elif advanced and interactive:
-                    print(dim("  Note: gemini-cli in some versions duplicates the workflows, inheriting"))
-                    print(dim("  skills from the other agents. Gemini symlinks skipped by default."))
+                    print(
+                        dim(
+                            "  Note: gemini-cli in some versions duplicates the workflows, inheriting"
+                        )
+                    )
+                    print(
+                        dim(
+                            "  skills from the other agents. Gemini symlinks skipped by default."
+                        )
+                    )
                     defaults = [rt in all_runtimes for rt in SYMLINK_TARGET_CHOICES]
-                    result = ask_multi("Select runtimes for symlink views:", SYMLINK_TARGET_CHOICES, defaults)
-                    all_runtimes = [rt for rt, sel in zip(SYMLINK_TARGET_CHOICES, result) if sel]
+                    result = ask_multi(
+                        "Select runtimes for symlink views:",
+                        SYMLINK_TARGET_CHOICES,
+                        defaults,
+                    )
+                    all_runtimes = [
+                        rt for rt, sel in zip(SYMLINK_TARGET_CHOICES, result) if sel
+                    ]
                     print()
                     step += 1
                 else:
@@ -1387,7 +1699,7 @@ def cmd_install(args: argparse.Namespace) -> int:
 
             elif step == 3:
                 # Foundations
-                if not getattr(args, '_fnd_checked', False):
+                if not getattr(args, "_fnd_checked", False):
                     print(bold("Runtime Foundations:"))
                     missing_foundations: List[Foundation] = []
                     for f in FOUNDATIONS:
@@ -1413,7 +1725,10 @@ def cmd_install(args: argparse.Namespace) -> int:
                     for f in missing_foundations:
                         if "crates" in f.channels:
                             label = "required" if f.required else "optional"
-                            if ask_yn(f"Install {f.name} with cargo? ({label})", default=f.required):
+                            if ask_yn(
+                                f"Install {f.name} with cargo? ({label})",
+                                default=f.required,
+                            ):
                                 success = install_foundation_cargo(f, dry_run=dry_run)
                                 installed_foundations[f.name] = {
                                     "channel": "crates",
@@ -1425,9 +1740,15 @@ def cmd_install(args: argparse.Namespace) -> int:
                                     print(f"  {MISS} {f.name} installation failed")
                     print()
                 elif missing_foundations and not has_cargo and interactive:
-                    if getattr(args, '_fnd_warn_done', False) == False:
-                        print(yellow("cargo not found — cannot auto-install foundations."))
-                        print(dim("Install cargo (rustup) first, or install foundations manually."))
+                    if not getattr(args, "_fnd_warn_done", False):
+                        print(
+                            yellow("cargo not found — cannot auto-install foundations.")
+                        )
+                        print(
+                            dim(
+                                "Install cargo (rustup) first, or install foundations manually."
+                            )
+                        )
                         args._fnd_warn_done = True
 
                 step += 1
@@ -1435,7 +1756,10 @@ def cmd_install(args: argparse.Namespace) -> int:
             elif step == 4:
                 # Shell helpers
                 if not cli_with_shell and interactive:
-                    install_shell = ask_yn("Enable the shell helper layer (bash + zsh)?", default=install_shell)
+                    install_shell = ask_yn(
+                        "Install the shell helper layer?",
+                        default=install_shell,
+                    )
                     print()
 
                 if install_shell:
@@ -1468,7 +1792,7 @@ def cmd_install(args: argparse.Namespace) -> int:
             elif step == 3:
                 # Going back from foundations
                 if cli_tools:
-                    step = 0 if (advanced and interactive) else 0 # actually 0
+                    step = 0 if (advanced and interactive) else 0  # actually 0
                 else:
                     step = 2
             elif step == 2:
@@ -1486,21 +1810,23 @@ def cmd_install(args: argparse.Namespace) -> int:
 
     print(bold("Plan:"))
     print(f"  Skills:    {len(selected_skills)} -> {cyan(str(store_path))}")
-    print(f"  Runtimes:  {', '.join(all_runtimes)} {dim('(symlink views)')}")
-    print(f"  Shell:     {'yes' if install_shell else 'no'}")
+    print(f"  Runtimes:  {', '.join(all_runtimes)} {dim('(skill views)')}")
+    print(f"  Shell:     {'enabled' if install_shell else 'skipped'}")
     if dry_run:
         print(f"  Mode:      {yellow('DRY RUN')}")
     print()
 
     if interactive:
-        if not ask_yn("Install this plan?", default=True):
-            print("Install cancelled.")
+        if not ask_yn("Start install?", default=True):
+            print("Install stopped. No changes were made.")
             return 0
         print()
 
     # --- Backup existing state ---
     print(bold("Saving current state..."))
-    orphaned_entries = collect_orphaned_skills(store_path, all_runtimes, set(selected_skills))
+    orphaned_entries = collect_orphaned_skills(
+        store_path, all_runtimes, set(selected_skills)
+    )
     backup_ts = create_backup(
         store_path,
         all_runtimes,
@@ -1551,12 +1877,16 @@ def cmd_install(args: argparse.Namespace) -> int:
     )
 
     # --- Prune legacy vetcoders-* skills ---
-    prune_legacy_skills(store_path, all_runtimes, dry_run=dry_run, interactive=interactive)
+    prune_legacy_skills(
+        store_path, all_runtimes, dry_run=dry_run, interactive=interactive
+    )
 
     # --- Execute: shell helpers ---
     if install_shell:
         print(bold("Installing shell helper..."))
-        shell_script = repo_root / "skills" / "vc-agents" / "scripts" / "install-shell.sh"
+        shell_script = (
+            repo_root / "skills" / "vc-agents" / "scripts" / "install-shell.sh"
+        )
         if shell_script.exists():
             cmd = ["bash", str(shell_script), "--source", str(repo_root)]
             if dry_run:
@@ -1566,11 +1896,18 @@ def cmd_install(args: argparse.Namespace) -> int:
             print(f"  {WARN} Shell installer not found: {shell_script}")
         print()
 
+    # --- Execute: vibecrafted launcher ---
+    _install_launcher(repo_root, dry_run)
+
+    # --- Fix Gemini plan.directory if it points into .vibecrafted ---
+    _configure_gemini_plans(dry_run)
+
     # --- Save state ---
     now = datetime.now(timezone.utc).isoformat()
     state = InstallState(
         installed_at=now,
         updated_at=now,
+        framework_version=get_framework_version(repo_root),
         repo_commit=get_repo_commit(repo_root),
         repo_url=get_repo_url(repo_root),
         skills=selected_skills,
@@ -1602,30 +1939,370 @@ def cmd_install(args: argparse.Namespace) -> int:
             print(f"  {OK} All checks passed")
     print()
 
-    # --- Done ---
-    if _IS_TTY:
-        control_plane_cmd = shlex.quote(str(repo_root))
+    # --- Done: compact one-screen summary ---
+    _print_unicode_summary(repo_root, store_path, skills)
+    return 0
+
+
+def _install_launcher(repo_root: Path, dry_run: bool) -> None:
+    """Install vibecrafted launcher to ~/.vibecrafted/bin/."""
+    launcher_src = repo_root / "scripts" / "vibecrafted"
+    launcher_bin_dir = (
+        Path(os.environ.get("VIBECRAFTED_HOME", Path.home() / ".vibecrafted")) / "bin"
+    )
+    launcher_dst = launcher_bin_dir / "vibecrafted"
+    if launcher_src.exists():
+        if not dry_run:
+            launcher_bin_dir.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(launcher_src, launcher_dst)
+            launcher_dst.chmod(0o755)
+        # Ensure ~/.vibecrafted/bin is in PATH via shell rc files
+        path_line = 'export PATH="${VIBECRAFTED_HOME:-$HOME/.vibecrafted}/bin:$PATH"'
+        for rcname in (".bashrc", ".zshrc"):
+            rcfile = Path.home() / rcname
+            if rcfile.exists():
+                content = rcfile.read_text()
+                if (
+                    "vibecrafted/bin" not in content
+                    and ".vibecrafted/bin" not in content
+                ):
+                    if not dry_run:
+                        with rcfile.open("a") as f:
+                            f.write(f"\n# VibeCrafted launcher\n{path_line}\n")
         print()
-        print(green(bold("  \u2713 Ready.")))
-        print()
-        print(dim("  Next:"))
-        print(dim(f"    \u25b8 make -C {control_plane_cmd} doctor      \u2500 verify health"))
-        print(dim(f"    \u25b8 make -C {control_plane_cmd} uninstall   \u2500 reverse everything"))
-        print(dim("    \u25b8 source ~/.bashrc   \u2500 or source ~/.zshrc \u2500 or open a new terminal"))
-    else:
-        control_plane_cmd = shlex.quote(str(repo_root))
-        print(green(bold("Ready.")))
-        print(dim(f"  make -C {control_plane_cmd} doctor — verify | make -C {control_plane_cmd} uninstall — reverse"))
+
+
+def _print_unicode_summary(
+    repo_root: Path, store_path: Path, skills: List[Path], out=None
+) -> None:
+    """Print the unicode summary box. If out is given, write there instead of stdout."""
+    _out = out or sys.stdout
+    fw_ver_display = get_framework_version(repo_root)
+    skill_count = len(skills)
+    agent_list = " \u00b7 ".join(
+        a
+        for a in ("claude", "codex", "gemini")
+        if (store_path / "vc-agents" / "scripts" / f"{a}_spawn.sh").exists()
+    )
+    shell_list = []
+    if (Path.home() / ".bashrc").exists():
+        shell_list.append("bash")
+    if (Path.home() / ".zshrc").exists():
+        shell_list.append("zsh")
+    shell_str = " + ".join(shell_list) if shell_list else "manual"
+    fnd_ok = [f.name for f in FOUNDATIONS if f.is_installed()]
+    fnd_str = " \u00b7 ".join(fnd_ok[:3]) if fnd_ok else "none"
+    if len(fnd_ok) > 3:
+        fnd_str += f" +{len(fnd_ok) - 3}"
+    store_display = str(store_path).replace(str(Path.home()), "~")
+
+    sep = brand_separator(37)
+
+    lines = [
+        f"\u2692 {VAPOR_HEADER} \u2692",
+        "",
+        brand_version_line(fw_ver_display),
+        TAGLINE,
+        PRODUCT_LINE,
+        sep,
+        "",
+        f"\u2713 Skills       {skill_count} installed",
+        f"\u2713 Agents       {agent_list}",
+        f"\u2713 Helpers      {shell_str}",
+        f"\u2713 Foundations   {fnd_str}",
+        f"\u2713 Store        {store_display}",
+        "",
+        sep,
+        "  Start        vibecrafted help",
+        "  Verify       vibecrafted doctor",
+        "  Reverse      vibecrafted uninstall",
+        "",
+        f"  {FOOTER_BRANDING}",
+        f"  {FRAMEWORK_STAMP}",
+    ]
+
+    _out.write("\n")
+    for line in lines:
+        _out.write(f"  {line}\n")
+    _out.write("\n")
 
     missing_fnd = [f for f in FOUNDATIONS if f.required and not f.is_installed()]
     if missing_fnd:
-        print()
-        print(yellow("Foundations still missing:"))
+        _out.write("\n")
+        _out.write("  Foundations still missing:\n")
         for f in missing_fnd:
-            print(f"  {f.name}: {f.install_hint()}")
+            _out.write(f"    - {f.name}: {f.install_hint()}\n")
+    _out.write("\n")
+    _out.flush()
+
+
+def _cmd_install_compact(args: argparse.Namespace, repo_root: Path) -> int:
+    """Compact install — one screen of output, details to log."""
+    dry_run = args.dry_run
+    mirror = args.mirror
+    cli_with_shell = args.with_shell
+    fw_ver = get_framework_version(repo_root)
+
+    shared_home = Path(os.environ.get("VIBECRAFTED_HOME", Path.home() / ".vibecrafted"))
+    store_path = shared_home / "skills"
+    log_path = shared_home / "install.log"
+
+    # --- Discover skills (before redirecting stdout) ---
+    skills = discover_skills(repo_root)
+    if not skills:
+        print(red("No skills found in repo."))
+        return 1
+
+    skill_names = [s.name for s in skills]
+    selected_skills = list(skill_names)
+    all_runtimes = list(SYMLINK_TARGETS)
+    install_shell = cli_with_shell
+    installed_foundations: Dict[str, Dict] = {}
+
+    # --- System check (critical deps — must fail visibly) ---
+    sys_deps = detect_system_deps()
+    missing_critical = [
+        cmd for cmd in ("python3", "git", "rsync") if not sys_deps.get(cmd)
+    ]
+    if missing_critical:
+        print(red(f"  Missing critical dependencies: {', '.join(missing_critical)}"))
+        print("  Install them before continuing.")
+        return 1
+
+    # --- All verbose output goes to log; compact lines go to real stdout ---
+    with compact_logging(log_path, quiet=True) as out:
+        # Log header
+        print(f"VibeCrafted Installer v{fw_ver} — compact mode")
+        print(f"Source: {repo_root}")
+        print(f"Timestamp: {datetime.now(timezone.utc).isoformat()}")
+        print()
+
+        # Log system deps
+        print("System check:")
+        for cmd, path in sys_deps.items():
+            print(f"  {cmd}: {path or 'MISSING'}")
+        print()
+
+        # Log agent runtimes
+        available_runtimes = detect_agent_runtimes()
+        print("Agent runtimes:")
+        for rt, path in available_runtimes.items():
+            print(f"  {rt}: {path or 'not installed'}")
+        print()
+
+        # Log foundations
+        print("Runtime Foundations:")
+        for f in FOUNDATIONS:
+            path = f.is_installed()
+            installed_foundations[f.name] = {
+                "channel": "pre-existing" if path else "not-installed",
+                "path": path or "",
+            }
+            print(
+                f"  {f.name}: {path or 'not installed'} {'(required)' if f.required else '(optional)'}"
+            )
+        print()
+
+        # Backup
+        print("Backup:")
+        orphaned_entries = collect_orphaned_skills(
+            store_path, all_runtimes, set(selected_skills)
+        )
+        backup_ts = create_backup(
+            store_path,
+            all_runtimes,
+            selected_skills,
+            orphaned_entries=orphaned_entries,
+            dry_run=dry_run,
+        )
+        if backup_ts:
+            print(f"  Saved: {_backup_root(store_path) / backup_ts}")
+        else:
+            print("  Fresh install, nothing to back up")
+        print()
+
+        # Install skills
+        print("Installing skills:")
+        if not dry_run:
+            store_path.mkdir(parents=True, exist_ok=True)
+        skills_dir = (
+            repo_root / "skills" if (repo_root / "skills").is_dir() else repo_root
+        )
+        for name in selected_skills:
+            src = skills_dir / name
+            dst = store_path / name
+            print(f"  -> {name}")
+            rsync_skill(src, dst, dry_run=dry_run, mirror=mirror)
+        print()
+
+        # Compact status lines on real stdout
+        _compact_line(
+            out, green("\u2713"), "Skills", f"{len(selected_skills)} installed"
+        )
+
+        # Symlink views
+        print("Linking agent views:")
+        for rt in all_runtimes:
+            rt_skills = Path.home() / f".{rt}" / "skills"
+            if not dry_run:
+                rt_skills.mkdir(parents=True, exist_ok=True)
+            print(f"  {rt} -> {rt_skills}")
+            for name in selected_skills:
+                canonical = store_path / name
+                link = rt_skills / name
+                create_symlink(canonical, link, dry_run=dry_run)
+        print()
+
+        # Compact line: agents
+        agent_names = [
+            rt for rt in ("claude", "codex", "gemini") if available_runtimes.get(rt)
+        ]
+        _compact_line(
+            out,
+            green("\u2713"),
+            "Agents",
+            " \u00b7 ".join(agent_names) if agent_names else "none detected",
+        )
+
+        # Prune (logged only)
+        prune_orphaned_skills(
+            store_path,
+            all_runtimes,
+            set(selected_skills),
+            dry_run=dry_run,
+            orphaned_entries=orphaned_entries,
+            interactive=False,
+        )
+        prune_legacy_skills(
+            store_path, all_runtimes, dry_run=dry_run, interactive=False
+        )
+
+        # Shell helpers
+        if install_shell:
+            print("Installing shell helper:")
+            shell_script = (
+                repo_root / "skills" / "vc-agents" / "scripts" / "install-shell.sh"
+            )
+            if shell_script.exists():
+                cmd = ["bash", str(shell_script), "--source", str(repo_root)]
+                if dry_run:
+                    cmd.append("--dry-run")
+                result = subprocess.run(cmd, capture_output=True, text=True)
+                # Log the shell installer output
+                if result.stdout:
+                    print(result.stdout)
+                if result.stderr:
+                    print(result.stderr)
+            else:
+                print(f"  Shell installer not found: {shell_script}")
+            print()
+
+        shell_list = []
+        if (Path.home() / ".bashrc").exists():
+            shell_list.append("bash")
+        if (Path.home() / ".zshrc").exists():
+            shell_list.append("zsh")
+        _compact_line(
+            out,
+            green("\u2713"),
+            "Helpers",
+            " + ".join(shell_list) if shell_list else "manual",
+        )
+
+        # Foundations compact line
+        fnd_ok = [f.name for f in FOUNDATIONS if f.is_installed()]
+        fnd_str = " \u00b7 ".join(fnd_ok[:3]) if fnd_ok else "none"
+        if len(fnd_ok) > 3:
+            fnd_str += f" +{len(fnd_ok) - 3}"
+        _compact_line(out, green("\u2713"), "Foundations", fnd_str)
+
+        # Store path
+        store_display = str(store_path).replace(str(Path.home()), "~")
+        _compact_line(out, green("\u2713"), "Store", store_display)
+
+        # Launcher
+        _install_launcher(repo_root, dry_run)
+
+        # Fix Gemini plan.directory if it points into .vibecrafted
+        _configure_gemini_plans(dry_run)
+
+        # Save state
+        now = datetime.now(timezone.utc).isoformat()
+        state = InstallState(
+            installed_at=now,
+            updated_at=now,
+            framework_version=fw_ver,
+            repo_commit=get_repo_commit(repo_root),
+            repo_url=get_repo_url(repo_root),
+            skills=selected_skills,
+            runtimes=all_runtimes,
+            foundations=installed_foundations,
+            shell_helpers=install_shell,
+            install_path=str(store_path),
+        )
+        if not dry_run:
+            state.save(store_path)
+            print(f"Manifest saved: {store_path / STATE_FILE}")
+        print()
+
+        # Doctor (logged)
+        if not dry_run:
+            print("Verification:")
+            findings = run_doctor(store_path, state)
+            issues = [f for f in findings if f.level != "ok"]
+            if issues:
+                for f in issues:
+                    print(f"  [{f.level}] {f.component}: {f.message}")
+                # Surface critical issues on compact output too
+                critical = [f for f in issues if f.level == "fail"]
+                if critical:
+                    out.write(f"\n  {red('Issues found')} — check {log_path}\n")
+            else:
+                print("  All checks passed")
+        print()
+
+    # --- Compact footer: header + commands (no repeated status lines) ---
+    fw_ver_display = get_framework_version(repo_root)
+    sep = brand_separator(37)
+    log_display = str(log_path).replace(str(Path.home()), "~")
+    missing_fnd = [f for f in FOUNDATIONS if f.required and not f.is_installed()]
+
+    print()
+    print(f"  \u2692 {VAPOR_HEADER} \u2692")
+    print()
+    print(f"  {brand_version_line(fw_ver_display)}")
+    print(f"  {TAGLINE}")
+    print(f"  {PRODUCT_LINE}")
+    print(f"  {sep}")
+    print("    Start        vibecrafted help")
+    print("    Verify       vibecrafted doctor")
+    print("    Reverse      vibecrafted uninstall")
+    print(f"    Log          {log_display}")
+    if missing_fnd:
+        print()
+        print("    Foundations  still missing")
+        for f in missing_fnd:
+            print(f"      - {f.name}: {f.install_hint()}")
+    print()
+    print(f"    {FOOTER_BRANDING}")
+    print(f"    {FRAMEWORK_STAMP}")
     print()
 
     return 0
+
+
+def cmd_install(args: argparse.Namespace) -> int:
+    repo_root = Path(args.source).resolve()
+    if not repo_root.is_dir():
+        print(red(f"Error: repo root not found: {repo_root}"))
+        return 1
+
+    compact = getattr(args, "compact", False)
+
+    if compact:
+        return _cmd_install_compact(args, repo_root)
+    else:
+        return _cmd_install_verbose(args, repo_root)
 
 
 # ---------------------------------------------------------------------------
@@ -1654,13 +2331,13 @@ def cmd_doctor(args: argparse.Namespace) -> int:
         bundle = set(_known_bundle_names())
         if store_path.exists():
             state.skills = [
-                d.name for d in sorted(store_path.iterdir())
+                d.name
+                for d in sorted(store_path.iterdir())
                 if d.is_dir() and (d / "SKILL.md").exists() and d.name in bundle
             ]
         # Only check runtimes that actually have a skills dir
         state.runtimes = [
-            rt for rt in SYMLINK_TARGET_CHOICES
-            if runtime_skills_dir(rt).exists()
+            rt for rt in SYMLINK_TARGET_CHOICES if runtime_skills_dir(rt).exists()
         ]
 
     findings = run_doctor(store_path, state)
@@ -1669,11 +2346,15 @@ def cmd_doctor(args: argparse.Namespace) -> int:
     # but ONLY for skills in our bundle — don't claim ownership of other tools
     if not has_manifest:
         bundle = set(_known_bundle_names())
-        findings.insert(0, DoctorFinding(
-            "warn", "manifest",
-            "No install manifest found — running in discovery mode. "
-            "Install with the Smart Installer to get full tracking.",
-        ))
+        findings.insert(
+            0,
+            DoctorFinding(
+                "warn",
+                "manifest",
+                "No install manifest found — running in discovery mode. "
+                "Install with the Smart Installer to get full tracking.",
+            ),
+        )
         for rt in state.runtimes:
             rt_skills = runtime_skills_dir(rt)
             if not rt_skills.exists():
@@ -1686,20 +2367,24 @@ def cmd_doctor(args: argparse.Namespace) -> int:
                 if not (entry / "SKILL.md").exists():
                     continue
                 if not entry.is_symlink():
-                    findings.append(DoctorFinding(
-                        "fail",
-                        f"stale-copy:{rt}/{entry.name}",
-                        f"is a local COPY, not a symlink to shared store — drift risk",
-                    ))
+                    findings.append(
+                        DoctorFinding(
+                            "fail",
+                            f"stale-copy:{rt}/{entry.name}",
+                            "is a local COPY, not a symlink to shared store — drift risk",
+                        )
+                    )
                 elif store_path.exists():
                     target = entry.resolve()
                     expected = (store_path / entry.name).resolve()
                     if target != expected and (store_path / entry.name).exists():
-                        findings.append(DoctorFinding(
-                            "warn",
-                            f"symlink:{rt}/{entry.name}",
-                            f"points to {target}, expected {expected}",
-                        ))
+                        findings.append(
+                            DoctorFinding(
+                                "warn",
+                                f"symlink:{rt}/{entry.name}",
+                                f"points to {target}, expected {expected}",
+                            )
+                        )
 
     # Orphan detection: vc-* entries in store/runtime dirs not in current bundle
     bundle = set(_known_bundle_names())
@@ -1709,11 +2394,13 @@ def cmd_doctor(args: argparse.Namespace) -> int:
                 continue
             if entry.name.startswith("vc-") and entry.name not in bundle:
                 if (entry / "SKILL.md").exists():
-                    findings.append(DoctorFinding(
-                        "warn",
-                        f"orphan:store/{entry.name}",
-                        "in store but no longer in bundle — run installer to clean up",
-                    ))
+                    findings.append(
+                        DoctorFinding(
+                            "warn",
+                            f"orphan:store/{entry.name}",
+                            "in store but no longer in bundle — run installer to clean up",
+                        )
+                    )
     if bundle:
         for rt in state.runtimes:
             rt_skills = runtime_skills_dir(rt)
@@ -1724,12 +2411,16 @@ def cmd_doctor(args: argparse.Namespace) -> int:
                     continue
                 if entry.name in bundle or entry.name in state.skills:
                     continue
-                if entry.is_symlink() or (entry.is_dir() and (entry / "SKILL.md").exists()):
-                    findings.append(DoctorFinding(
-                        "warn",
-                        f"orphan:{rt}/{entry.name}",
-                        "symlink/dir for skill no longer in bundle",
-                    ))
+                if entry.is_symlink() or (
+                    entry.is_dir() and (entry / "SKILL.md").exists()
+                ):
+                    findings.append(
+                        DoctorFinding(
+                            "warn",
+                            f"orphan:{rt}/{entry.name}",
+                            "symlink/dir for skill no longer in bundle",
+                        )
+                    )
 
     return print_doctor(findings)
 
@@ -1763,7 +2454,11 @@ def cmd_list(args: argparse.Namespace) -> int:
     print(f"{bold('Runtime Foundations')} {dim('(substrate beneath the suite)')}")
     for f in FOUNDATIONS:
         path = f.is_installed()
-        status = green("installed") if path else (red("missing") if f.required else dim("optional"))
+        status = (
+            green("installed")
+            if path
+            else (red("missing") if f.required else dim("optional"))
+        )
         print(f"  {f.name}: {status} — {f.description}")
         print(f"    Channels: {', '.join(f.channels)}")
     print()
@@ -1785,9 +2480,11 @@ def cmd_uninstall(args: argparse.Namespace) -> int:
 
     # Use manifest if available, otherwise use bundle names
     skill_names = state.skills if state.skills else [n for n in bundle]
-    runtimes = state.runtimes if state.runtimes else [
-        rt for rt in SYMLINK_TARGET_CHOICES if runtime_skills_dir(rt).exists()
-    ]
+    runtimes = (
+        state.runtimes
+        if state.runtimes
+        else [rt for rt in SYMLINK_TARGET_CHOICES if runtime_skills_dir(rt).exists()]
+    )
 
     print(f"\n{bold('VetCoders Uninstall')}\n")
 
@@ -1802,7 +2499,7 @@ def cmd_uninstall(args: argparse.Namespace) -> int:
     print()
 
     if _IS_TTY and not dry_run:
-        if not ask_yn("Remove the installed VibeCraft bundle?", default=False):
+        if not ask_yn("Remove the installed VibeCrafted bundle?", default=False):
             print("Uninstall cancelled.")
             return 0
         print()
@@ -1871,12 +2568,16 @@ def cmd_uninstall(args: argparse.Namespace) -> int:
             for sl in source_lines:
                 if sl in content:
                     if not _is_writable(rcfile):
-                        print(f"  {WARN} {rcfile} is locked — cannot remove source line")
+                        print(
+                            f"  {WARN} {rcfile} is locked — cannot remove source line"
+                        )
                         break
                     elif dry_run:
                         print(f"  {dim('remove source line from')} {rcfile}")
                     else:
-                        content = content.replace(f"\n# VetCoders shell helpers\n{sl}\n", "\n")
+                        content = content.replace(
+                            f"\n# VetCoders shell helpers\n{sl}\n", "\n"
+                        )
                         content = content.replace(sl, "")
                         changed = True
             if changed and not dry_run:
@@ -2032,41 +2733,78 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
 
     parser = argparse.ArgumentParser(
         prog="vc-install",
-        description="VetCoders Skills Installer v2 — manifest-driven, multi-channel, interactive.",
+        description="VibeCrafted installer — the founders' framework for shipping software with AI agents.",
     )
     sub = parser.add_subparsers(dest="command")
 
     # install
-    p_install = sub.add_parser("install", help="Install the VetCoders skill bundle")
-    p_install.add_argument("--source", default=default_source, help="Repo root (default: auto-detect)")
-    p_install.add_argument("--dry-run", "-n", action="store_true", help="Show what would be done")
-    p_install.add_argument("--non-interactive", action="store_true", help="Skip all prompts, use defaults")
-    p_install.add_argument("--advanced", action="store_true", help="Enable selective skill/runtime install")
-    p_install.add_argument("--with-shell", action="store_true", help="Install zsh shell helpers")
+    p_install = sub.add_parser(
+        "install", help="Install the VibeCrafted framework bundle"
+    )
     p_install.add_argument(
-        "--tool", dest="tools", action="append", choices=SYMLINK_TARGET_CHOICES,
+        "--source", default=default_source, help="Repo root (default: auto-detect)"
+    )
+    p_install.add_argument(
+        "--dry-run", "-n", action="store_true", help="Show what would be done"
+    )
+    p_install.add_argument(
+        "--non-interactive", action="store_true", help="Skip all prompts, use defaults"
+    )
+    p_install.add_argument(
+        "--advanced", action="store_true", help="Open the selective install wizard"
+    )
+    p_install.add_argument(
+        "--with-shell", action="store_true", help="Install the shell helper layer"
+    )
+    p_install.add_argument(
+        "--tool",
+        dest="tools",
+        action="append",
+        choices=SYMLINK_TARGET_CHOICES,
         help="Limit symlink views to these runtimes (repeatable, default: all)",
     )
     p_install.add_argument(
-        "--skill", dest="skill_filter", action="append",
+        "--skill",
+        dest="skill_filter",
+        action="append",
         help="Install only these skills (repeatable, default: full bundle)",
     )
-    p_install.add_argument("--mirror", action="store_true", help="Delete extra files in installed skill dirs (rsync --delete)")
+    p_install.add_argument(
+        "--mirror",
+        action="store_true",
+        help="Delete extra files in installed skill dirs (rsync --delete)",
+    )
+    p_install.add_argument(
+        "--compact",
+        action="store_true",
+        help="Compact output — one screen, details to log",
+    )
 
     # doctor
     sub.add_parser("doctor", help="Verify installation health")
 
     # list
-    p_list = sub.add_parser("list", help="Show available VetCoders skills and the runtime substrate beneath them")
-    p_list.add_argument("--source", default=default_source, help="Repo root (default: auto-detect)")
+    p_list = sub.add_parser(
+        "list",
+        help="Show available VibeCrafted skills and the runtime substrate beneath them",
+    )
+    p_list.add_argument(
+        "--source", default=default_source, help="Repo root (default: auto-detect)"
+    )
 
     # uninstall
-    p_uninstall = sub.add_parser("uninstall", help="Remove VetCoders skills, symlinks, and helpers")
-    p_uninstall.add_argument("--dry-run", "-n", action="store_true", help="Show what would be done")
+    p_uninstall = sub.add_parser(
+        "uninstall", help="Remove VibeCrafted skills, views, and helpers"
+    )
+    p_uninstall.add_argument(
+        "--dry-run", "-n", action="store_true", help="Show what would be done"
+    )
 
     # restore
     p_restore = sub.add_parser("restore", help="Restore pre-install state from backup")
-    p_restore.add_argument("--dry-run", "-n", action="store_true", help="Show what would be done")
+    p_restore.add_argument(
+        "--dry-run", "-n", action="store_true", help="Show what would be done"
+    )
 
     args = parser.parse_args(argv)
     if not args.command:

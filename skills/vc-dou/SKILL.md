@@ -42,6 +42,13 @@ and hybrid systems still need a representation surface:
 If a product can only be understood by opening the repo or talking to its creators,
 that is Definition of Undone.
 
+## Pipeline Position
+
+```
+scaffold → init → workflow → followup → marbles → [DOU] → decorate → hydrate → release
+                                                  ^^^^^
+```
+
 ## When To Use
 
 - Before any launch, marketplace submission, or PR announcement
@@ -50,15 +57,22 @@ that is Definition of Undone.
 - Periodic health check (recommended: every 2 weeks)
 - When the feeling of progress exceeds the reality of completion
 
+## ScreenScribe Input
+
+If `screenscribe` is available as a foundation tool, vc-dou can consume a
+screencast of the install path, onboarding flow, or first-run experience as
+audit evidence. Use this when you need product-surface truth from a real
+operator path, not just repo and web artifacts.
+
 ## The Undone Matrix
 
 Every project is scored on three axes:
 
-| Axis                     | Question                            | Tools                               |
-|--------------------------|-------------------------------------|-------------------------------------|
-| **Repo Health**          | Does the code work?                 | loctree, cargo/npm, CI              |
+| Axis                          | Question                            | Tools                                       |
+| ----------------------------- | ----------------------------------- | ------------------------------------------- |
+| **Repo Health**               | Does the code work?                 | loctree, cargo/npm, CI                      |
 | **Presence / Representation** | Can someone find and understand it? | WebFetch, brave-search, curl, manual review |
-| **Commercial Readiness** | Can someone adopt or buy it?        | Manual checklist + automated probes |
+| **Commercial Readiness**      | Can someone adopt or buy it?        | Manual checklist + automated probes         |
 
 Scoring: [OK] Production-ready | [PARTIAL] Exists but incomplete | [MISSING] Absent
 
@@ -192,11 +206,13 @@ Mark as [MISSING] Presence / Representation.
 Do NOT just mark it missing and move on. A product without a face is invisible.
 
 Generate `./presence/` with three files:
+
 - `index.html` — product name, one-line description, what it does, install command, key features (3-5), links (GitHub, docs, crates.io/npm/pypi)
 - `styles.css` — dark theme, monospace chrome, clean typography, material palette if defined in scaffold, otherwise neutral steel/stone
 - `app.js` — copy button for install command, smooth scroll, fade-up observer. Nothing more.
 
 Design rules:
+
 - Minimal but not poor. A business card that earns trust.
 - No frameworks, no build step. Raw HTML+CSS+JS.
 - Must look professional next to any navbar it might sit in.
@@ -259,42 +275,51 @@ GitHub Marketplace / crates.io / npm:
 
 ```markdown
 # Definition of Undone: <project/ecosystem>
+
 Date: <YYYY-MM-DD>
 Auditor: <agent identifier>
 
 ## Executive Summary
+
 <2-3 sentences: what's the gap between code and market?>
 
 ## Undone Matrix
-| Project | Repo | Web | Commercial | Critical Gap |
-|---------|------|-----|------------|-------------|
-| <name>  | [OK]/[PARTIAL]/[MISSING] | [OK]/[PARTIAL]/[MISSING] | [OK]/[PARTIAL]/[MISSING] | <one line> |
+
+| Project | Repo                     | Web                      | Commercial               | Critical Gap |
+| ------- | ------------------------ | ------------------------ | ------------------------ | ------------ |
+| <name>  | [OK]/[PARTIAL]/[MISSING] | [OK]/[PARTIAL]/[MISSING] | [OK]/[PARTIAL]/[MISSING] | <one line>   |
 
 ## Findings by Severity
 
 ### P0 — Ship Blockers
+
 <issues that prevent any stranger from discovering/using the product>
 
 ### P1 — Credibility Gaps
+
 <issues that make the product look unfinished or untrustworthy>
 
 ### P2 — Polish Items
+
 <nice-to-have improvements for professional appearance>
 
 ## The Funnel Test
+
 Discovery → Landing → Understanding → Trial → Adoption → Payment
 <for each product, mark where the funnel breaks>
 
 ## Hydration Priorities
+
 <ordered list of what to fix first, with estimated effort>
 
 ## Plague Score
+
 <0-100: how affected is this project by the Always-in-Production Plague?>
 0 = fully shipped and discoverable
 100 = technically brilliant, commercially invisible
 ```
 
-## Integration with VibeCraft Pipeline
+## Integration with VibeCrafted Pipeline
 
 ```
 Phase 1 — Craft:     scaffold → init → workflow → followup
@@ -332,7 +357,7 @@ Items 4-6 are the Definition of Undone.
 
 ---
 
-*"The antidote is not more tools. It is not another framework.*
-*It is a decision: choose what ships, and finish it. All of it. Not just the code."*
+_"The antidote is not more tools. It is not another framework._
+_It is a decision: choose what ships, and finish it. All of it. Not just the code."_
 
-*Vibecrafted with AI Agents by VetCoders (c)2026 VetCoders*
+_Vibecrafted with AI Agents by VetCoders (c)2026 VetCoders_

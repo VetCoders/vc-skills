@@ -1,6 +1,6 @@
 ---
 name: vc-init
-version: "2.2.0"
+version: 2.2.0
 description: >-
   This skill should be used when the user asks to "init", "initialize session",
   "give context to agent", "prepare agent", "bootstrap agent", "daj kontekst",
@@ -21,6 +21,13 @@ Bootstrap an agent session with three layers of context:
 - **Verify**: Whether what you see is actually true (run quality gates, confirm commands work)
 
 No layer is optional by default. Skip only when a tool is genuinely unavailable.
+
+## Pipeline Position
+
+```
+scaffold → [INIT] → workflow → followup → marbles → dou → decorate → hydrate → release
+           ^^^^^^
+```
 
 ## When To Use
 
@@ -120,6 +127,7 @@ what the team actually does.
 **This step is mandatory.** Do not skip it. Do not assume commands work.
 
 Locate the project's quality gate commands. Common sources:
+
 - `pyproject.toml` `[tool.pytest]`, `[tool.ruff]`, `[tool.mypy]`
 - `Makefile` / `justfile` / `package.json` scripts
 - `.vibecrafted/GUIDELINES.md` or other agent config files
@@ -141,6 +149,7 @@ bash scripts/check-portable.sh 2>&1 | tail -5
 ```
 
 Rules:
+
 - **Run the commands.** Do not write "run pytest" in a report without running it.
 - Record pass/fail and any unexpected output.
 - If a command fails, note it as a known issue — do not fix it during init.
@@ -212,27 +221,33 @@ Target: 200-600 words. Concise beats complete.
 # Repository Guidelines
 
 ## Product
+
 <What this is, who it's for, one paragraph max.>
 
 ## Architecture
+
 <Big-picture pipeline or data flow that requires reading multiple files to understand.
 Not a file listing — only structural relationships an agent needs to avoid mistakes.
 Include critical hub files with blast radius from loctree analysis.>
 
 ## Quality Gates (verified <date>)
+
 <Commands that were actually run and confirmed working during init.
 Mark each with pass/fail status. Never include unverified commands.>
 
 ## Conventions
+
 <Derived from code analysis and git history, not from assumptions.
 Language version, style tools, dataclass vs Pydantic, commit message patterns.
 Only what's non-obvious or project-specific.>
 
 ## Critical Files
+
 <Files with high import count or blast radius. Always run impact analysis before
 modifying these.>
 
 ## Known Issues
+
 <Quality gate failures, pre-existing lint/security findings, known gaps.
 Things an agent should know about but not try to fix during unrelated work.>
 ```
@@ -240,6 +255,7 @@ Things an agent should know about but not try to fix during unrelated work.>
 ### Guardrails
 
 **Do:**
+
 - Derive from code analysis and verified commands, not from docs alone
 - Include quality gate commands that you confirmed actually work in Step 3
 - Focus on big-picture architecture that requires reading multiple files
@@ -248,6 +264,7 @@ Things an agent should know about but not try to fix during unrelated work.>
 - Date the "verified" timestamp so staleness is visible
 
 **Do NOT:**
+
 - Repeat information easily discoverable by reading files
 - Include generic advice ("write tests", "use meaningful names", "handle errors")
 - Fabricate sections like "Common Development Tasks" or "Tips" unless grounded in evidence
@@ -289,18 +306,18 @@ Before creating new implementations, search for existing ones:
 
 ## Quick Reference
 
-| Step    | Tool                                           | What It Gives                  |
-|---------|------------------------------------------------|--------------------------------|
-| History | `aicx_store(hours=168, project=X)`             | Refreshed index of repo session history |
-| Refs    | `aicx_refs(hours=168, project=X, strict=true)` | Paths to stored context chunks |
-| Rank    | `aicx_rank(project=X, hours=168, top=5)`       | Highest-signal recent chunks   |
-| Search  | `aicx_search(query=..., project=X)`            | Topic-specific history lookup  |
-| Eyes    | `repo-view(project)`                           | Current structure + health     |
-| Focus   | `focus(directory)`                             | Module-level detail            |
-| Signals | `follow(scope)`                                | Dead code, cycles, twins       |
-| Configs | Read `.vibecrafted/GUIDELINES.md` + glob others  | Cross-tool instructions        |
-| Git     | `repo-full` (or `git log --oneline -15`)       | Full repo snapshot in one call |
-| Verify  | Run quality gate commands                      | Ground truth on test/lint/type |
+| Step    | Tool                                            | What It Gives                           |
+| ------- | ----------------------------------------------- | --------------------------------------- |
+| History | `aicx_store(hours=168, project=X)`              | Refreshed index of repo session history |
+| Refs    | `aicx_refs(hours=168, project=X, strict=true)`  | Paths to stored context chunks          |
+| Rank    | `aicx_rank(project=X, hours=168, top=5)`        | Highest-signal recent chunks            |
+| Search  | `aicx_search(query=..., project=X)`             | Topic-specific history lookup           |
+| Eyes    | `repo-view(project)`                            | Current structure + health              |
+| Focus   | `focus(directory)`                              | Module-level detail                     |
+| Signals | `follow(scope)`                                 | Dead code, cycles, twins                |
+| Configs | Read `.vibecrafted/GUIDELINES.md` + glob others | Cross-tool instructions                 |
+| Git     | `repo-full` (or `git log --oneline -15`)        | Full repo snapshot in one call          |
+| Verify  | Run quality gate commands                       | Ground truth on test/lint/type          |
 
 ## Fallback
 
@@ -325,4 +342,4 @@ Quality gate verification has **no fallback** — always attempt it.
 
 ---
 
-*Created by M&K (c)2026 VetCoders*
+_Created by M&K (c)2026 VetCoders_

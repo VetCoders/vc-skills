@@ -1,12 +1,17 @@
-import sys, tty, termios, select
+import sys
+import tty
+import termios
+import select
+
 
 def read_key():
     char = sys.stdin.read(1)
-    if char == '\x1b':
+    if char == "\x1b":
         r, _, _ = select.select([sys.stdin], [], [], 0.1)
         if r:
             char += sys.stdin.read(2)
     return char
+
 
 if sys.stdin.isatty():
     fd = sys.stdin.fileno()

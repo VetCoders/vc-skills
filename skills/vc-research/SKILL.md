@@ -45,6 +45,7 @@ skill and upgraded with triple-agent triangulation.
 - Any moment where guessing would be cheaper than being wrong
 
 Do NOT use for:
+
 - Questions answerable by reading one file in the repo
 - Problems where loctree slice + grep gives the answer in 30 seconds
 - Pure implementation tasks (use vc-workflow, usually through vc-agents; use vc-delegate only for small model-agnostic work)
@@ -70,26 +71,32 @@ Create one plan file. The plan is what every agent receives. It contains:
 # Research Plan: <title>
 
 ## Problem
+
 <the co-defined problem statement from Step 1>
 
 ## Questions
+
 1. <specific, answerable question>
 2. <specific, answerable question>
 3. ...
 
 ## Mandatory tools
+
 - loctree MCP (repo-view, slice, find, impact) — for any codebase-related questions
 - Brave Search or WebSearch — for external ground truth
 
 ## Encouraged tools (agent's choice)
+
 - Context7 (resolve-library-id → query-docs) — for library documentation
 - WebFetch — for specific URLs found via search
 - Codebase grep — for internal patterns (only after loctree mapping)
 
 ## Report format
+
 Write your findings to the report file as markdown with this structure:
 
 ### Q1: <question>
+
 **Sources**: <URLs, docs, file refs>
 **Finding**: <concise answer>
 **Confidence**: high / medium / low
@@ -98,12 +105,14 @@ Write your findings to the report file as markdown with this structure:
 ### Q2: ...
 
 ### Synthesis
+
 - Recommended approach: <your recommendation>
 - Alternatives considered: <with tradeoffs>
 - Open questions: <what you could not answer>
 - Implementation notes: <concrete guidance>
 
 ## Constraints
+
 - Append current year to search queries for freshness
 - Prefer primary sources (official docs, RFCs, source code) over blog posts
 - If two sources disagree, note the disagreement explicitly
@@ -119,7 +128,16 @@ gets ALL plans — they are independent researchers, not specialists.
 ### Step 3 — Spawn triple research swarm
 
 Runtime truth beats repo spec. Always use the helper surface that actually
-exists in the user's interactive shell, and always launch through `zsh -ic`.
+exists in the user's interactive shell, and always launch helper functions
+through `zsh -ic`.
+
+Why: VetCoders helpers are shell functions sourced by `~/.zshrc` (and
+`~/.bashrc`). Plain `eval` in a non-interactive shell does not guarantee those
+rc files were loaded, so helper calls can fail with `command not found`.
+This applies to all agent-to-agent helper launches, not just direct user
+terminal calls.
+
+If `zsh` is unavailable, use `bash -ic` as the fallback.
 
 Canonical path when `*-research` helpers exist:
 
@@ -127,7 +145,7 @@ Canonical path when `*-research` helpers exist:
 PLAN="$HOME/.vibecrafted/artifacts/<org>/<repo>/<YYYY_MMDD>/plans/<ts>_<slug>_research-plan.md"
 
 zsh -ic "claude-research $PLAN"
-zsh -ic "codex-research  $PLAN"
+zsh -ic "codex-research $PLAN"
 zsh -ic "gemini-research $PLAN"
 ```
 
@@ -141,12 +159,12 @@ Compatibility fallback when the shell exposes only `*-implement` helpers:
 
 ```bash
 zsh -ic "claude-implement $PLAN"
-zsh -ic "codex-implement  $PLAN"
+zsh -ic "codex-implement $PLAN"
 zsh -ic "gemini-implement $PLAN"
 ```
 
 Raw `*_spawn.sh` is last-resort plumbing only. Reach for it only when neither
-`*-research` nor `*-implement` helpers exist in `zsh -ic`.
+`*-research` nor `*-implement` helpers exist through `zsh -ic` or `bash -ic`.
 
 All three get the same plan. All three work independently. This is intentional —
 divergence between reports reveals blind spots.
@@ -154,6 +172,7 @@ divergence between reports reveals blind spots.
 ### Step 4 — Collect reports
 
 Reports land in:
+
 ```
 ~/.vibecrafted/artifacts/<org>/<repo>/<YYYY_MMDD>/reports/<ts>_research-plan_claude.md
 ~/.vibecrafted/artifacts/<org>/<repo>/<YYYY_MMDD>/reports/<ts>_research-plan_codex.md
@@ -172,13 +191,14 @@ zsh -ic 'gemini-observe --last'
 
 Read all three reports. For each research question, build a truth table:
 
-| Question | Claude | Codex | Gemini | Consensus |
-|----------|--------|-------|--------|-----------|
-| Q1       | X      | X     | X      | agreed    |
+| Question | Claude | Codex | Gemini | Consensus                          |
+| -------- | ------ | ----- | ------ | ---------------------------------- |
+| Q1       | X      | X     | X      | agreed                             |
 | Q2       | A      | A     | B      | 2:1 → A, investigate B's reasoning |
-| Q3       | X      | —     | X      | gap in Codex, cross-check |
+| Q3       | X      | —     | X      | gap in Codex, cross-check          |
 
 Rules for synthesis:
+
 - **3/3 agree** → high confidence, use as ground truth
 - **2/3 agree** → likely correct, but read the dissenting report carefully — it
   may have found an edge case the others missed
@@ -196,11 +216,13 @@ Write the final document to
 # Research: <title>
 
 ## Problem
+
 <from Step 1>
 
 ## Findings
 
 ### Q1: <question>
+
 **Answer**: <synthesized from 3 reports>
 **Confidence**: high / medium / low
 **Sources**: <merged, deduplicated>
@@ -209,16 +231,19 @@ Write the final document to
 ### Q2: ...
 
 ## Architecture Decision
+
 - **Chosen approach**: <decision>
 - **Why**: <based on triangulated evidence>
 - **Alternatives rejected**: <with reasons from multiple agents>
 
 ## Implementation Notes
+
 - <concrete guidance, merged from all three reports>
 - <API signatures verified across sources>
 - <edge cases noted by any agent>
 
 ## Remaining Gaps
+
 - <questions none of the three could answer>
 - <areas needing hands-on experimentation>
 ```
@@ -260,4 +285,4 @@ research │                         │
 
 ---
 
-*Created by M&K (c)2026 VetCoders*
+_Created by M&K (c)2026 VetCoders_

@@ -1,6 +1,11 @@
 ---
 description: "Cancel active Marbles"
-allowed-tools: ["Bash(test -f .claude/marbles.local.md:*)", "Bash(rm .claude/marbles.local.md)", "Read(.claude/marbles.local.md)"]
+allowed-tools:
+  [
+    "Bash(test -f .claude/marbles.local.md:*)",
+    "Bash(rm .claude/marbles.local.md)",
+    "Read(.claude/marbles.local.md)",
+  ]
 hide-from-slash-command-tool: "true"
 ---
 

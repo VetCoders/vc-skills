@@ -26,26 +26,31 @@ Use this. Don't skip steps. Users will find every skip.
 ## Publish (30 minutes)
 
 **If npm package:**
+
 - [ ] `npm publish`
 - [ ] Verify on npm registry: https://www.npmjs.com/package/@yourorg/yourpkg
 - [ ] Takes ~30s to appear. Wait and check.
 
 **If Rust crate:**
+
 - [ ] `cargo publish`
 - [ ] Verify on crates.io. Takes 1–5 minutes.
 
 **If Python package:**
+
 - [ ] Build: `python -m build`
 - [ ] Upload: `twine upload dist/*`
 - [ ] Verify on PyPI.
 
 **If Docker image:**
+
 - [ ] Build: `docker build -t yourorg/yourimage:v1.2.3 .`
 - [ ] Tag latest: `docker tag yourorg/yourimage:v1.2.3 yourorg/yourimage:latest`
 - [ ] Push: `docker push yourorg/yourimage:v1.2.3 && docker push yourorg/yourimage:latest`
 - [ ] Verify on registry.
 
 **If GitHub Release:**
+
 - [ ] Go to Releases tab.
 - [ ] Click "Draft a new release."
 - [ ] Select tag: v1.2.3

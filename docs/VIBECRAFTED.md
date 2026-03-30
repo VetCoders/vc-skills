@@ -1,10 +1,10 @@
-# The VibeCraft Manifesto
+# The VibeCrafted Manifesto
 
 We do not treat AI like magic.
 
 We treat it like a stochastic engine that can accelerate craft, multiply leverage, and still produce noise if left without structure.
 
-VibeCraft exists because fragile prompting is not a development methodology.
+VibeCrafted exists because fragile prompting is not a development methodology.
 Shipping requires shape.
 Shipping requires taste.
 Shipping requires pressure against chaos.
@@ -25,7 +25,7 @@ Product truth matters more than internal neatness.
 
 ## We believe real builders can come from anywhere
 
-VibeCraft was built by people outside the traditional priesthood of software.
+VibeCrafted was built by people outside the traditional priesthood of software.
 That is not an apology.
 That is evidence.
 
@@ -154,6 +154,7 @@ We prefer the smallest surface that proves truth.
 ## We reject false reassurance
 
 We reject:
+
 - green CI as proof of readiness
 - tiny diffs as proof of wisdom
 - backward compatibility by reflex
@@ -166,14 +167,14 @@ A system can be technically impressive and still commercially unfinished.
 It can be elegant and still unusable.
 It can compile and still be dead.
 
-## VibeCraft is not anti-science
+## VibeCrafted is not anti-science
 
 It was born from practice, but it stands on real ground.
 
 We do not choose between intuition and rigor.
 We use intuition to find shape and rigor to prove it.
 
-SHACE, Marbles, Loctree Mapping, and PSCD are original VibeCraft concepts.
+SHACE, Marbles, Loctree Mapping, and PSCD are original VibeCrafted concepts.
 They were discovered under pressure, not borrowed from papers.
 But they did not emerge in a vacuum.
 
@@ -203,7 +204,7 @@ Be radical when radical is cleaner.
 Be practical when practical wins.
 Finish the whole thing, not just the code.
 
-VibeCraft is for builders who are done pretending that chaos is a process.
+VibeCrafted is for builders who are done pretending that chaos is a process.
 We craft.
 We converge.
 We ship.
@@ -213,7 +214,7 @@ We ship.
 ## Influences
 
 1. **Kief Morris; Birgitta Böckeler (Thoughtworks / Martin Fowler, 2026).**
-   *Humans and Agents in Software Engineering Loops*, *Harness Engineering*, *Context Engineering for Coding Agents*.
+   _Humans and Agents in Software Engineering Loops_, _Harness Engineering_, _Context Engineering for Coding Agents_.
    Inspiration for the why-loop / how-loop framing, harness design, and human-guided agent workflows.
 
 2. **AST-T5 (2024); GraphCodeBERT (ICLR 2021).**
@@ -226,5 +227,5 @@ We ship.
 4. **CEGIS / counterexample-guided optimization literature (incl. AAAI 2025).**
    Inspiration for iterative refinement driven by failure signals, counterexamples, and convergence pressure.
 
-5. **VibeCraft / VetCoders.**
-   SHACE, Marbles, Loctree Mapping, and PSCD are original VibeCraft concepts built from practice, not borrowed labels.
+5. **VibeCrafted / VetCoders.**
+   SHACE, Marbles, Loctree Mapping, and PSCD are original VibeCrafted concepts built from practice, not borrowed labels.

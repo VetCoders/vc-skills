@@ -1,5 +1,5 @@
 {
-  "name": "VibeCraft Review",
+  "name": "VC Review",
   "description": "Code and PR review pipeline with findings. Use /vc-review to invoke.",
   "author": {
     "name": "VetCoders",

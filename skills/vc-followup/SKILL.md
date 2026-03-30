@@ -106,23 +106,28 @@ Run required checks. If something is blocked, report the exact blocker and run t
 # Task: <short title>
 
 Goal:
+
 - <1-3 bullets>
 
 Scope:
+
 - In scope: <areas>
 - Out of scope: <areas>
 
 Acceptance:
+
 - [ ] <objective outcome>
 - [ ] <objective outcome>
 - [x] refinement
 
 Test gate:
+
 - semgrep --config auto --error --quiet
 - cargo clippy -- -D warnings
 - <repo specific tests>
 
 Context:
+
 - <short context from CONTEXT.md + RESEARCH.md>
 ```
 
@@ -223,10 +228,8 @@ Run gates:
 ## Pipeline Position
 
 ```
-Phase 1 — Craft:     scaffold → init → workflow → [FOLLOWUP]
-                                                   ^^^^^^^^^^
-Phase 2 — Converge:  marbles ↻ (loop until P0=P1=P2=0)
-Phase 3 — Ship:      dou → decorate → hydrate → release
+scaffold → init → workflow → [FOLLOWUP] → marbles → dou → decorate → hydrate → release
+                             ^^^^^^^^^^
 ```
 
 Followup sits at the end of the Craft phase. Its findings determine whether

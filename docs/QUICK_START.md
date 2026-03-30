@@ -13,7 +13,7 @@ The bootstrap is non-destructive and stages its local control plane under `~/.vi
 Then the orchestrator becomes interactive. It tells you what it does before it does it.
 It asks before touching your shell config. Everything is reversible with `make -C ~/.vibecrafted/tools/vibecrafted-current uninstall`.
 
-After install, open a new terminal (or `source ~/.zshrc`).
+After install, open a new terminal (or `source "${XDG_CONFIG_HOME:-$HOME/.config}/vetcoders/vc-skills.sh"`).
 
 ## 2. Verify
 
@@ -46,6 +46,7 @@ Just do: add user authentication with JWT
 ```
 
 That's it. `vc-justdo` chains the entire pipeline:
+
 - **Craft** — examines the repo, researches the approach, implements
 - **Converge** — runs marbles loops until P0/P1/P2 are all zero
 - **Ship** — checks product surface, decorates, hydrates, releases to market
@@ -93,7 +94,7 @@ claude-observe --last
 
 ## 7. Keep iterating
 
-VibeCraft is not a one-shot tool. It's a loop:
+VibeCrafted is not a one-shot tool. It's a loop:
 
 ```
 Build something → Check what broke → Fix it → Check again → Ship when clean
@@ -114,7 +115,7 @@ The framework does this for you. You provide the vision. Agents provide the labo
 
 ```
 ~/.vibecrafted/
-  skills/        17 VibeCraft skills, readable by all your agents
+  skills/        17 VibeCrafted skills, readable by all your agents
   artifacts/     Plans, reports, transcripts — organized by project and date
   tools/         Staged control plane used by the bootstrap installer
   helpers/       Shell commands (codex-implement, claude-plan, etc.)
@@ -124,17 +125,18 @@ Symlinks in `~/.agents/skills/`, `~/.claude/skills/`, and `~/.codex/skills/` poi
 
 ## Vocabulary
 
-| You say | Framework does |
-|---------|---------------|
-| "Init session" | Reads history, maps repo, runs gates |
-| "Just do: ..." | Full pipeline end-to-end |
-| "Scaffold this" | Founder-first architecture and scoping plan |
-| "Release this" | Launch, deploy, and market-readiness mechanics |
-| "Follow-up check" | P0/P1/P2 triage of what's broken |
-| "Marbles" | Convergence loop until clean |
-| "DoU audit" | Gap analysis: code vs. shippable product |
-| "Decorate" | Visual polish using your existing design tokens |
-| "Hydrate" | Market packaging, SEO, distribution |
+| You say           | Framework does                                  |
+| ----------------- | ----------------------------------------------- |
+| "Init session"    | Reads history, maps repo, runs gates            |
+| "Just do: ..."    | Full pipeline end-to-end                        |
+| "Scaffold this"   | Founder-first architecture and scoping plan     |
+| "Release this"    | Launch, deploy, and market-readiness mechanics  |
+| "Follow-up check" | P0/P1/P2 triage of what's broken                |
+| "Marbles"         | Convergence loop until clean                    |
+| "DoU audit"       | Gap analysis: code vs. shippable product        |
+| "Decorate"        | Visual polish using your existing design tokens |
+| "Hydrate"         | Market packaging, SEO, distribution             |
 
 ---
-VibeCrafted by VetCoders | vibecrafted.io
+
+VibeCrafted by VetCoders | https://vetcoders.github.io/vibecrafted/

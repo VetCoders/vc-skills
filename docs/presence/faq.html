@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html class="subpage" lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta content="width=device-width, initial-scale=1.0" name="viewport">
+    <title>VibeCrafted FAQ | VetCoders</title>
+    <meta
+        content="Answers to the most common VibeCrafted questions: install path, shell helpers, skills vs agents, foundations, CI, and commercial posture."
+        name="description">
+    <meta content="https://vetcoders.github.io/vibecrafted/faq.html" property="og:url">
+    <meta content="VibeCrafted FAQ" property="og:title">
+    <meta content="Answered questions about install path, architecture, workflows, and commercial posture."
+        property="og:description">
+    <meta content="https://vetcoders.github.io/vibecrafted/presence/og-image.png" property="og:image">
+    <meta content="summary_large_image" name="twitter:card">
+    <meta content="VibeCrafted FAQ" name="twitter:title">
+    <meta content="Answered questions about install path, architecture, workflows, and commercial posture."
+        name="twitter:description">
+    <meta content="https://vetcoders.github.io/vibecrafted/presence/og-image.png" name="twitter:image">
+    <meta content="#0e0e11" name="theme-color">
+    <link href="https://vetcoders.github.io/vibecrafted/presence/faq.html" rel="canonical">
+    <link href="favicon.ico" rel="icon" sizes="32x32">
+    <link href="logo-64.png" rel="icon" sizes="64x64" type="image/png">
+    <link href="logo-128.png" rel="apple-touch-icon">
+    <link href="https://fonts.googleapis.com" rel="preconnect">
+    <link crossorigin href="https://fonts.gstatic.com" rel="preconnect">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&amp;family=Lora:ital,wght@0,400;0,500;0,600;1,400&amp;display=swap"
+        rel="stylesheet">
+    <link href="styles.css?v=20260329" rel="stylesheet">
+</head>
+
+<body>
+    <a class="skip-link" href="#main-content">Skip to content</a>
+
+    <div class="topbar">
+        <header class="nav-shell">
+            <a class="brand" href="../">
+                <span class="brand-wordmark">vibecrafted</span>
+                <img alt="" aria-hidden="true" class="brand-logo" height="24" src="./logo-32.png">
+            </a>
+            <nav aria-label="Primary" class="nav-links">
+                <a href="../">Overview</a>
+                <a href="quickstart.html">Quick Start</a>
+                <a href="https://github.com/VetCoders/vibecrafted">GitHub</a>
+            </nav>
+        </header>
+    </div>
+
+    <main class="shell" id="main-content">
+        <div class="docs-shell">
+            <section class="docs-hero fade-up">
+                <div class="section-label">Answered FAQ</div>
+                <h1 class="manifesto-title">The questions strangers ask first.</h1>
+                <p class="manifesto-lead">
+                    This page exists so the framework can explain itself without forcing people to reverse-engineer the
+                    repo,
+                    the shell helpers, or the license before they know whether the system fits.
+                </p>
+                <div class="manifesto-actions">
+                    <a class="btn-solid" href="quickstart.html">Read Quick Start</a>
+                    <a class="btn-outline" href="../">Back to Overview</a>
+                </div>
+            </section>
+
+            <section class="fade-up">
+                <div class="faq-layout">
+                    <article class="faq-group">
+                        <h2>Installation</h2>
+                        <details class="faq-item" open>
+                            <summary>Why does VibeCrafted install into <code>~/.vibecrafted/</code> instead of
+                                <code>~/.agents/</code>?</summary>
+                            <p><code>~/.vibecrafted/</code> is the central store and control plane. Agent-specific
+                                directories are only views or symlink targets. The real source of truth, artifacts, and
+                                helper state live in one place.</p>
+                        </details>
+                        <details class="faq-item">
+                            <summary>Can I install VibeCrafted without editing my shell config?</summary>
+                            <p>Yes. During the interactive path you can opt out of shell-helper installation. If you
+                                still want helpers in the current session, source
+                                <code>${XDG_CONFIG_HOME:-$HOME/.config}/vetcoders/vc-skills.sh</code> manually.</p>
+                        </details>
+                        <details class="faq-item">
+                            <summary>What does <code>make doctor</code> actually check?</summary>
+                            <p>The doctor verifies the central store, helper availability, symlink health, optional
+                                foundations such as loctree/aicx/prview, and whether your shell environment is quiet
+                                enough for agent tooling.</p>
+                        </details>
+                        <details class="faq-item">
+                            <summary>Which install path should I use in CI or automation?</summary>
+                            <p>Use <code>make install</code> for the direct non-interactive path, or call
+                                <code>python3 scripts/vetcoders_install.py install --source "$PWD" --non-interactive</code>
+                                when you want full CLI control.</p>
+                        </details>
+                    </article>
+
+                    <article class="faq-group">
+                        <h2>Skills, Agents, Foundations</h2>
+                        <details class="faq-item" open>
+                            <summary>What is the difference between a skill and an agent?</summary>
+                            <p>An agent is the runtime, such as Codex, Claude, or Gemini. A skill is the instruction set
+                                and workflow protocol that tells that runtime how to behave for a specific engineering
+                                phase.</p>
+                        </details>
+                        <details class="faq-item">
+                            <summary>Why not just use ChatGPT, Copilot, or a single giant prompt?</summary>
+                            <p>Because VibeCrafted is trying to solve system-shaping, not just chat convenience. It
+                                combines structural awareness, decision retrieval, convergence loops, and shipping
+                                audits so the model sees the repo and the product surface instead of improvising blind.
+                            </p>
+                        </details>
+                        <details class="faq-item">
+                            <summary>Can I use VibeCrafted without loctree or aicx?</summary>
+                            <p>Technically yes, but you lose structural perception and session continuity. The framework
+                                still runs, but the agent is operating with much weaker context.</p>
+                        </details>
+                        <details class="faq-item">
+                            <summary>What is the Marbles loop?</summary>
+                            <p>Marbles is the convergence engine. AI output is noisy, so the framework loops through
+                                implementation, followup, measurement, and fixes until the important classes of findings
+                                reach zero.</p>
+                        </details>
+                    </article>
+
+                    <article class="faq-group">
+                        <h2>Workflow and Operations</h2>
+                        <details class="faq-item" open>
+                            <summary>When should I use <code>vc-justdo</code> instead of manual phases?</summary>
+                            <p>Use <code>vc-justdo</code> when the task is clear and you want the agent to take
+                                ownership end-to-end. Use the phase skills separately when you want to supervise the
+                                architectural decisions more closely.</p>
+                        </details>
+                        <details class="faq-item">
+                            <summary>Can I run VibeCrafted in CI/CD?</summary>
+                            <p>Yes. The direct install path is non-interactive, and skills like review, followup, and
+                                release are explicitly shaped to work as repeatable quality or packaging gates.</p>
+                        </details>
+                        <details class="faq-item">
+                            <summary>What lives in <code>~/.vibecrafted/artifacts/</code>?</summary>
+                            <p>Plans, reports, transcripts, and metadata from major runs. The artifact store exists so
+                                agent work leaves durable evidence instead of disappearing into terminal scrollback.</p>
+                        </details>
+                        <details class="faq-item">
+                            <summary>What is Definition of Undone?</summary>
+                            <p>DoU is the audit that checks whether people can discover, understand, install, trust, and
+                                adopt the thing. It measures product-surface truth, not only repo health.</p>
+                        </details>
+                    </article>
+
+                    <article class="faq-group">
+                        <h2>Commercial posture</h2>
+                        <details class="faq-item" open>
+                            <summary>Is VibeCrafted open source?</summary>
+                            <p>The framework is distributed under Business Source License 1.1. The repo is visible and
+                                usable, but it is not pure permissive open source.</p>
+                        </details>
+                        <details class="faq-item">
+                            <summary>Can small teams use it in production?</summary>
+                            <p>Yes. The Additional Use Grant allows individual developers and teams smaller than five
+                                people to use the framework in production as long as they are not offering a competitive
+                                hosted or embedded product.</p>
+                        </details>
+                        <details class="faq-item">
+                            <summary>What if I need a broader commercial arrangement?</summary>
+                            <p>The license points to VetCoders for alternative licensing arrangements. Read the repo
+                                license for the exact terms and contact route before you commit to a broader rollout.
+                            </p>
+                        </details>
+                    </article>
+                </div>
+
+                <div class="docs-inline-links">
+                    <a href="quickstart.html">Quick Start</a>
+                    <a href="https://github.com/VetCoders/vibecrafted/blob/main/docs/FAQ-ANSWERED.md">Long-form Markdown
+                        FAQ</a>
+                    <a href="https://github.com/VetCoders/vibecrafted/blob/main/LICENSE">License</a>
+                </div>
+            </section>
+        </div>
+    </main>
+
+    <footer>
+        <div class="footer-brand">
+            <img src="./logo-32.png" alt="" class="footer-logo" width="24" height="24">
+            <span class="footer-title">VIBECRAFTED</span>
+        </div>
+        <p class="footer-tagline">Built under founder pressure. Proven in production.</p>
+        <nav class="footer-links" aria-label="Footer links">
+            <a href="../">Overview</a>
+            <a href="quickstart.html">Quick Start</a>
+            <a href="https://github.com/VetCoders/vibecrafted">GitHub</a>
+        </nav>
+        <p class="footer-copyright">&copy; 2025-2026 VetCoders. Built by Maciej Gad &amp; Monika Szymańska.</p>
+    </footer>
+
+    <script src="app.js?v=20260330"></script>
+</body>
+
+</html>

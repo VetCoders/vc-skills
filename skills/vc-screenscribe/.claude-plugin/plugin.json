@@ -1,8 +1,0 @@
-{
-  "name": "VibeCraft ScreenScribe",
-  "description": "Screencast analysis pipeline. Use /vc-screenscribe to invoke.",
-  "author": {
-    "name": "VetCoders",
-    "email": "hello@vetcoders.io"
-  }
-}

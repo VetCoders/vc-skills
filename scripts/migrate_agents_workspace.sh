@@ -58,6 +58,7 @@ newest_date_in_dir() {
 
   # Najpierw szukamy daty w plikach wewnątrz
   local newest_file
+  # shellcheck disable=SC2012
   newest_file="$(ls -t "$dir" 2>/dev/null | head -1)" || true
   if [[ -n "$newest_file" ]]; then
     local file_date

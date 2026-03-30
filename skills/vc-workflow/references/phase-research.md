@@ -61,7 +61,7 @@ Search existing code for prior art (only AFTER loctree mapping):
 Each open question from Examination maps to research queries:
 
 | Question Type                     | Research Approach                                          |
-|-----------------------------------|------------------------------------------------------------|
+| --------------------------------- | ---------------------------------------------------------- |
 | "How does API X work?"            | Context7 → Brave → WebFetch                                |
 | "Best pattern for Y?"             | Brave ("Y best practices <lang> <year>") → codebase grep   |
 | "Is library Z compatible?"        | Context7 (library docs) → Brave (compatibility reports)    |
@@ -87,13 +87,15 @@ Report depth level in RESEARCH.md header.
 
 ## RESEARCH.md Output Format
 
-```markdown
+````markdown
 # Research: <slug>
+
 Date: <YYYY-MM-DD>
 Depth: quick | standard | deep
 Artifact root: ~/.vibecrafted/artifacts/<org>/<repo>/<YYYY_MMDD>/
 
 ## Open Questions (from CONTEXT.md)
+
 1. <Q1>
 2. <Q2>
 
@@ -102,6 +104,7 @@ Artifact root: ~/.vibecrafted/artifacts/<org>/<repo>/<YYYY_MMDD>/
 ### Q1: <question>
 
 **Sources consulted:**
+
 - Context7: <libraryId> — <result summary>
 - Brave: "<query>" — <N results>
 - WebFetch: <URL> — <key finding>
@@ -110,9 +113,11 @@ Artifact root: ~/.vibecrafted/artifacts/<org>/<repo>/<YYYY_MMDD>/
 <concise, factual answer>
 
 **Code example:**
+
 ```<lang>
 // relevant example from authoritative source
 ```
+````
 
 **Confidence:** high | medium | low
 **Caveat:** <any limitations or version-specific notes>
@@ -129,8 +134,8 @@ Artifact root: ~/.vibecrafted/artifacts/<org>/<repo>/<YYYY_MMDD>/
 
 - **Context**: <from CONTEXT.md>
 - **Options considered**:
-    1. <option A> — <pros/cons>
-    2. <option B> — <pros/cons>
+  1. <option A> — <pros/cons>
+  2. <option B> — <pros/cons>
 - **Chosen**: <option> because <reasoning based on findings>
 - **Consequences**: <what this means for implementation>
 
@@ -185,3 +190,4 @@ Artifact root: ~/.vibecrafted/artifacts/<org>/<repo>/<YYYY_MMDD>/
 - Not recording sources (findings become unverifiable)
 - Spending >30 min on a single question (escalate or accept uncertainty)
 - Research without Examination context (asking wrong questions)
+```

@@ -38,6 +38,13 @@ need an external face that lets a stranger:
 
 Hydrate should scaffold that layer when it is missing.
 
+## Pipeline Position
+
+```
+scaffold → init → workflow → followup → marbles → dou → decorate → [HYDRATE] → release
+                                                                   ^^^^^^^^^
+```
+
 ## When To Use
 
 - After a `vc-dou` audit identifies packaging gaps
@@ -167,25 +174,24 @@ For Leptos (WASM) sites:
 ```html
 <!-- Generate for each public page -->
 <title>{Product} — {Tagline} | {Company}</title>
-<meta name="description" content="{Value prop in 155 chars}">
-<meta name="keywords" content="{5-8 relevant keywords}">
+<meta name="description" content="{Value prop in 155 chars}" />
+<meta name="keywords" content="{5-8 relevant keywords}" />
 
 <!-- Open Graph -->
-<meta property="og:title" content="{Title}">
-<meta property="og:description" content="{Description}">
-<meta property="og:image" content="{Social preview image URL}">
-<meta property="og:type" content="website">
+<meta property="og:title" content="{Title}" />
+<meta property="og:description" content="{Description}" />
+<meta property="og:image" content="{Social preview image URL}" />
+<meta property="og:type" content="website" />
 
 <!-- Twitter Card -->
-<meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:title" content="{Title}">
-<meta name="twitter:description" content="{Description}">
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content="{Title}" />
+<meta name="twitter:description" content="{Description}" />
 
 <!-- Security Headers (add to server config) -->
 Strict-Transport-Security: max-age=63072000; includeSubDomains
-X-Content-Type-Options: nosniff
-X-Frame-Options: DENY
-Content-Security-Policy: default-src 'self'
+X-Content-Type-Options: nosniff X-Frame-Options: DENY Content-Security-Policy:
+default-src 'self'
 ```
 
 **robots.txt + sitemap.xml:**
@@ -263,19 +269,24 @@ For Claude Code Skills Marketplace:
 {One-line description}
 
 ## What it does
+
 {2-3 sentences explaining the value}
 
 ## When to use
+
 {Bullet list of trigger scenarios}
 
 ## How it works
+
 {Brief technical explanation}
 
 ## Requirements
+
 - {Required tools/dependencies}
 - {Optional enhancements}
 
 ## Part of
+
 {Suite name} — {suite description}
 ```
 
@@ -404,7 +415,7 @@ Target: Plague Score reduction of at least 20 points.
 <things only a human can do: DNS, API keys, marketplace submit button>
 ```
 
-## Integration with VibeCraft Pipeline
+## Integration with VibeCrafted Pipeline
 
 ```
 Phase 1 — Craft:     scaffold → init → workflow → followup
@@ -464,7 +475,7 @@ Hydration is the antidote.
 
 ---
 
-*"Hydration means: consolidate, give each product a complete surface,*
-*make the path from stranger to user frictionless."*
+_"Hydration means: consolidate, give each product a complete surface,_
+_make the path from stranger to user frictionless."_
 
-*Vibecrafted with AI Agents by VetCoders (c)2026 VetCoders*
+_Vibecrafted with AI Agents by VetCoders (c)2026 VetCoders_

@@ -1,4 +1,4 @@
 interface:
-  display_name: "VibeCraft Init"
+  display_name: "VC Init"
   short_description: "Session bootstrap with history and structure"
   default_prompt: "Use $vc-init to bootstrap agent context: index history via AICX, map structure via loctree, and verify quality gates."

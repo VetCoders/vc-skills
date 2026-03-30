@@ -55,11 +55,11 @@ model-agnostic.
 Use `vc-agents` first whenever the prune goes beyond obvious generated
 artifacts.
 
-| Dimension | Best model | Why |
-| --- | --- | --- |
-| Runtime or publish-cone discovery, hidden reachability, config archaeology, stale glue | Claude | Best at patient investigation, logic tracing, and proving whether a surface is truly live or merely looks live. |
-| Exact deletions, manifest tightening, registration cleanup, bounded refactors | Codex | Best at precise, low-noise implementation and keeping the cleanup mechanically correct. |
-| Radical simplification, archive taxonomy, "cut the whole subsystem" reframing | Gemini | Best when the repo needs a stronger new shape, not just a safer local trim. |
+| Dimension                                                                              | Best model | Why                                                                                                             |
+| -------------------------------------------------------------------------------------- | ---------- | --------------------------------------------------------------------------------------------------------------- |
+| Runtime or publish-cone discovery, hidden reachability, config archaeology, stale glue | Claude     | Best at patient investigation, logic tracing, and proving whether a surface is truly live or merely looks live. |
+| Exact deletions, manifest tightening, registration cleanup, bounded refactors          | Codex      | Best at precise, low-noise implementation and keeping the cleanup mechanically correct.                         |
+| Radical simplification, archive taxonomy, "cut the whole subsystem" reframing          | Gemini     | Best when the repo needs a stronger new shape, not just a safer local trim.                                     |
 
 Rules:
 
@@ -88,14 +88,14 @@ If the user says "bez litosci", "radykalnie", or equivalent, use `radical`.
 
 ## The Pruning Classes
 
-| Class | Meaning | Action |
-| --- | --- | --- |
-| `KEEP-RUNTIME` | Participates directly or transitively in app or service runtime | Keep; refactor separately if ugly |
-| `KEEP-BUILD` | Required to build, package, sign, bundle, release, or ship | Keep; do not delete with runtime cuts |
-| `KEEP-QA` | Required to verify behavior, preview flows, smoke paths, or release confidence | Keep; move later only with replacement proof |
-| `KEEP-PUBLISH` | Required for published library/crate/package API, installability, docs examples, or release process | Keep; delete only with explicit publish-path proof |
-| `MOVE-ARCHIVE` | Historical but still intentionally worth preserving outside the hot repo surface | Move to archive branch, attic repo, or external archive |
-| `DELETE-NOW` | Generated, disposable, reproducible, whole-dead, or clearly unreachable | Delete directly |
+| Class          | Meaning                                                                                                | Action                                                   |
+| -------------- | ------------------------------------------------------------------------------------------------------ | -------------------------------------------------------- |
+| `KEEP-RUNTIME` | Participates directly or transitively in app or service runtime                                        | Keep; refactor separately if ugly                        |
+| `KEEP-BUILD`   | Required to build, package, sign, bundle, release, or ship                                             | Keep; do not delete with runtime cuts                    |
+| `KEEP-QA`      | Required to verify behavior, preview flows, smoke paths, or release confidence                         | Keep; move later only with replacement proof             |
+| `KEEP-PUBLISH` | Required for published library/crate/package API, installability, docs examples, or release process    | Keep; delete only with explicit publish-path proof       |
+| `MOVE-ARCHIVE` | Historical but still intentionally worth preserving outside the hot repo surface                       | Move to archive branch, attic repo, or external archive  |
+| `DELETE-NOW`   | Generated, disposable, reproducible, whole-dead, or clearly unreachable                                | Delete directly                                          |
 | `VERIFY-FIRST` | Suspicious and probably dead, but dynamic loading, registries, features, or configs may still reach it | Prove with structural evidence plus gates before removal |
 
 ## Workflow
@@ -455,7 +455,11 @@ Then include:
 - Gate results
 - Open risks and what still needs proof
 
-## Integration with VibeCraft Pipeline
+## Integration with VibeCrafted Pipeline
+
+```
+scaffold → init → workflow → followup → marbles → dou → decorate → hydrate → release
+```
 
 Use this flow for major cleanup:
 

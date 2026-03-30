@@ -1,4 +1,4 @@
 interface:
-  display_name: "VibeCraft Marbles"
+  display_name: "VC Marbles"
   short_description: "Iterative convergence loops"
   default_prompt: "Use $vc-marbles to run adaptive denoising loops until P0=P1=P2=0. Each loop: measure, target gaps, fix, denoise, score."

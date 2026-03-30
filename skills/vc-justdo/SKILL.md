@@ -221,13 +221,13 @@ Even in "just do" mode, these are non-negotiable:
 
 Use agents pragmatically:
 
-| Situation | Action |
-|-----------|--------|
-| One focused task, < 200 LOC | Do it yourself |
-| Two independent work streams | Spawn 2 agents via `vc-agents` |
-| Need a quick review of your own work | `vc-delegate` one reviewer |
-| Research needed for unknown API/lib | One research agent, keep working |
-| Everything is sequential | Do it yourself, agents add latency |
+| Situation                            | Action                             |
+| ------------------------------------ | ---------------------------------- |
+| One focused task, < 200 LOC          | Do it yourself                     |
+| Two independent work streams         | Spawn 2 agents via `vc-agents`     |
+| Need a quick review of your own work | `vc-delegate` one reviewer         |
+| Research needed for unknown API/lib  | One research agent, keep working   |
+| Everything is sequential             | Do it yourself, agents add latency |
 
 The overhead of spawning, context-passing, and synthesis is real.
 Only parallelize when it saves more time than it costs.
@@ -255,4 +255,4 @@ When they come back, the thing works.
 
 ---
 
-*"Not sloppy. Not ceremonial. Just done."*
+_"Not sloppy. Not ceremonial. Just done."_

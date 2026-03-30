@@ -2,9 +2,9 @@
 
 ## What This Is
 
-Frontier tools are optional operator enhancements that turn VibeCraft into a cockpit.
+Frontier tools are optional operator enhancements that turn VibeCrafted into a cockpit.
 They give you visible agent panes, smart shell prompts, searchable history, and reproducible tool versions.
-**None of them are required.** VibeCraft works the same without any of them installed.
+**None of them are required.** VibeCrafted works the same without any of them installed.
 
 ---
 
@@ -15,18 +15,18 @@ They give you visible agent panes, smart shell prompts, searchable history, and 
 brew install mise zellij starship atuin
 
 # 2. Trust the mise config (one-time per repo clone)
-cd <your-vibecraft-repo>
+cd <your-vibecrafted-repo>
 mise trust
 
 # 3. Install tool versions and verify
 mise install
 mise run doctor
 
-# 4. Source the VibeCraft shell (if not already in your .zshrc)
+# 4. Source the VibeCrafted shell (if not already in your .zshrc)
 #    The vetcoders.zsh sidecar auto-detects frontier tools on load.
 
 # 5. Launch the cockpit
-zellij --layout vibecraft
+zellij --layout vibecrafted
 ```
 
 After step 5 you have: a main pane + two agent panes, smart prompt with branch/runtime context, and fuzzy shell history. Agent spawns (`claude-implement`, etc.) auto-detect Zellij and open in panes instead of Terminal.app windows.
@@ -39,11 +39,11 @@ After step 5 you have: a main pane + two agent panes, smart prompt with branch/r
 
 ### Key concepts
 
-| Concept | How it works |
-|---------|-------------|
-| Tool versions | `mise.toml` pins Python 3.12 and Node LTS — every contributor gets the same versions |
-| Environment | `VIBECRAFTED_HOME` and other vars are set automatically when you `cd` into the repo |
-| Task runner | `mise run <task>` replaces ad-hoc scripts — `doctor`, `install`, `skills`, `list`, `frontier-config` |
+| Concept       | How it works                                                                                         |
+| ------------- | ---------------------------------------------------------------------------------------------------- |
+| Tool versions | `mise.toml` pins Python 3.12 and Node LTS — every contributor gets the same versions                 |
+| Environment   | `VIBECRAFTED_HOME` and other vars are set automatically when you `cd` into the repo                  |
+| Task runner   | `mise run <task>` replaces ad-hoc scripts — `doctor`, `install`, `skills`, `list`, `frontier-config` |
 
 ### Daily use
 
@@ -63,15 +63,15 @@ Mise and `make` coexist. The Makefile handles build/help/branded output. Mise ha
 
 ## Zellij
 
-**What it does:** Terminal multiplexer with named panes. VibeCraft uses it to give each spawned agent a visible, labeled workspace.
+**What it does:** Terminal multiplexer with named panes. VibeCrafted uses it to give each spawned agent a visible, labeled workspace.
 
 ### Starting a session
 
 ```bash
-zellij --layout vibecraft
+zellij --layout vibecrafted
 ```
 
-This loads `config/zellij/layouts/vibecraft.kdl` which creates:
+This loads `config/zellij/layouts/vibecrafted.kdl` which creates:
 
 ```
 ┌──────────────────────┬─────────────┐
@@ -92,11 +92,11 @@ When Zellij is not running, agents fall back to Terminal.app (macOS) or backgrou
 
 ### Navigation
 
-| Key | Action |
-|-----|--------|
-| `Ctrl+t` then arrow keys | Switch between panes |
-| `Ctrl+t` then `d` | Detach session (agents keep running) |
-| `zellij attach` | Reattach to a detached session |
+| Key                      | Action                               |
+| ------------------------ | ------------------------------------ |
+| `Ctrl+t` then arrow keys | Switch between panes                 |
+| `Ctrl+t` then `d`        | Detach session (agents keep running) |
+| `zellij attach`          | Reattach to a detached session       |
 
 ---
 
@@ -142,12 +142,12 @@ Like Starship, auto-detected by `vetcoders.zsh`. Config lives at `config/atuin/c
 
 ### Daily use
 
-| Key | Action |
-|-----|--------|
-| `Ctrl+r` | Fuzzy search through history |
-| `↑` | Browse recent commands (inline, 12 lines) |
+| Key      | Action                                    |
+| -------- | ----------------------------------------- |
+| `Ctrl+r` | Fuzzy search through history              |
+| `↑`      | Browse recent commands (inline, 12 lines) |
 
-### Key settings in the VibeCraft config
+### Key settings in the VibeCrafted config
 
 - **Fuzzy search** with workspace filtering (searches current project first)
 - **Preview** enabled — see full command before selecting (8 lines)
@@ -177,12 +177,13 @@ mise run frontier-config  # Same, via mise task runner
 
 ## None of This is Required
 
-VibeCraft works without any frontier tools. The skills, agent spawners, pipeline commands, and all framework functionality operate the same way with or without Zellij, Mise, Starship, or Atuin.
+VibeCrafted works without any frontier tools. The skills, agent spawners, pipeline commands, and all framework functionality operate the same way with or without Zellij, Mise, Starship, or Atuin.
 
 These are enhancements for operators who want the full cockpit experience:
+
 - **Mise** removes "works on my machine" tool version drift
 - **Zellij** makes agents visible instead of hidden in background processes
 - **Starship** puts context in your prompt so you stop running `git status`
 - **Atuin** means you never lose a command
 
-Install any combination. Install none. VibeCraft adapts.
+Install any combination. Install none. VibeCrafted adapts.

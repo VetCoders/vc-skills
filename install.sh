@@ -5,8 +5,11 @@ usage() {
   cat <<'EOF_USAGE'
 Usage: install.sh [--ref <branch>] [--archive-url <url> | --archive-file <path>] [--tools-dir <dir>] [make-target]
 
-Bootstrap a local VibeCraft source snapshot into ~/.vibecrafted/tools and then
-run a local make target from that staged copy.
+Bootstrap a local VibeCrafted source snapshot into ~/.vibecrafted/tools and then
+run a local staged install path from that copy.
+
+Interactive terminals always enter the installer TUI.
+Non-interactive runs bypass TUI and call the compact installer directly.
 
 Examples:
   curl -fsSLO <raw-install-url> && bash install.sh
@@ -23,6 +26,10 @@ die() {
 
 info() {
   printf '%s\n' "$*"
+}
+
+is_interactive_session() {
+  [[ -t 0 && -t 1 ]]
 }
 
 sanitize_ref() {
@@ -73,7 +80,7 @@ while [[ $# -gt 0 ]]; do
 done
 
 case "$target" in
-  install|vibecraft)
+  install|vibecrafted)
     target="vibecrafted"
     ;;
 esac
@@ -110,7 +117,7 @@ if [[ -n "$archive_file" ]]; then
   info "Unpacking local archive: $archive_file"
   tar -xzf "$archive_file" -C "$extract_root"
 else
-  info "Downloading VibeCraft snapshot: $archive_url"
+  info "Downloading VibeCrafted snapshot: $archive_url"
   curl -fsSL "$archive_url" | tar -xzf - -C "$extract_root"
 fi
 
@@ -141,6 +148,18 @@ info "Staged bootstrap source:"
 info "  $staged_dir"
 info "Current control plane:"
 info "  $current_link"
+
+if [[ "$target" == "vibecrafted" ]] && ! is_interactive_session; then
+  installer="$current_link/scripts/vetcoders_install.py"
+  [[ -f "$installer" ]] || die "Installer not found: $installer"
+  info "Non-interactive bootstrap detected:"
+  info "  bypassing TUI and running compact installer"
+  info "Launching installer:"
+  info "  python3 $installer install --source $current_link --with-shell --compact --non-interactive"
+  printf '\n'
+  exec python3 "$installer" install --source "$current_link" --with-shell --compact --non-interactive
+fi
+
 info "Launching local make target:"
 info "  make -C $current_link $target"
 printf '\n'

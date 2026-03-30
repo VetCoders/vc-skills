@@ -2,14 +2,14 @@
 
 ## Supported Versions
 
-| Version | Supported |
-|---------|-----------|
-| Latest on `main` | Yes |
-| Older commits | Best effort |
+| Version          | Supported   |
+| ---------------- | ----------- |
+| Latest on `main` | Yes         |
+| Older commits    | Best effort |
 
 ## Reporting a Vulnerability
 
-If you discover a security vulnerability in VibeCraft Skills, please report it
+If you discover a security vulnerability in VibeCrafted Skills, please report it
 responsibly.
 
 **Do not open a public issue.**

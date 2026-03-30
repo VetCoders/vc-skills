@@ -1,4 +1,4 @@
 interface:
-  display_name: "VibeCraft Delegate"
+  display_name: "VC Delegate"
   short_description: "Native in-session subagent delegation"
   default_prompt: "Use $vc-delegate to delegate small bounded tasks to Claude subagents via the Task tool without Terminal spawning."

@@ -14,11 +14,13 @@ Example: "The monolith is becoming unmaintainable. We need to extract the paymen
 ## Key Architectural Decisions
 
 ### Decision 1: [Name]
+
 **Choice:** [What we're doing]
 **Trade-off:** [What we're giving up]
 **Why:** [Why this is better than the alternative]
 
 ### Decision 2: [Name]
+
 **Choice:** [What we're doing]
 **Trade-off:** [What we're giving up]
 **Why:** [Why this is better than the alternative]
@@ -30,15 +32,18 @@ Example: "The monolith is becoming unmaintainable. We need to extract the paymen
 ### Phase 1: MVP (This Sprint/Cycle)
 
 **In scope:**
+
 - Feature/component A
 - Feature/component B
 - Test infrastructure
 
 **Out of scope:**
+
 - Feature X (nice to have, ships phase 2)
 - Optimization Y (not blocking MVP)
 
 **Explicitly out of scope:**
+
 - Legacy system rewrite (not happening)
 - Migrate to language Z (out of bounds)
 
@@ -48,11 +53,13 @@ Example: "The monolith is becoming unmaintainable. We need to extract the paymen
 
 Example:
 ```
+
 User → API Gateway → Auth Service → Payment Service → Stripe
-              ↓
-          Cache Layer
-              ↓
-          Database
+↓
+Cache Layer
+↓
+Database
+
 ```
 
 ## Task Breakdown
@@ -67,11 +74,13 @@ Each task is agent-ready. Agents will execute in parallel when dependencies allo
 
 Example:
 ```
+
 Task: Build authentication middleware
 Produces: /middleware/auth.ts, /tests/auth.test.ts
 Depends on: Infrastructure up, database schema
 Owner: Core backend agent
 Acceptance: Middleware rejects invalid tokens, passes valid tokens, tests at 85%+ coverage
+
 ```
 
 ## Test Gates
@@ -105,3 +114,4 @@ Document the reasoning. Future engineers will thank you.
 5. When all phase 1 tasks pass gates, move to phase 2
 
 No handwaving. Clear work. Clear criteria. That's how founders ship.
+```

@@ -129,22 +129,26 @@ After each loop, calculate:
 ## Loop N Convergence Report
 
 Entropy remaining:
+
 - P0 count: X (must be 0 to converge)
 - P1 count: X (must be 0 to converge)
 - P2 count: X (must be 0 to converge — full circle fill)
 
 Quality gates:
+
 - Build: pass/fail
 - Lint: pass/fail
 - Tests: X/Y passing
 - Security: pass/fail
 
 Coverage delta:
+
 - New code covered by tests: X%
 - Files touched this loop: N
 - Net LOC delta: +X / -Y
 
 Convergence score: X/100
+
 - 0-30: heavy noise, continue with large steps
 - 30-60: converging, continue with medium steps
 - 60-85: nearly converged, small polish steps
@@ -198,11 +202,13 @@ run a standing watchdog loop that periodically checks the branch, reads fresh
 agent artifacts, and writes a rolling status snapshot.
 
 Use this mode when:
+
 - external agents are already implementing in parallel
 - the main thread should stay available for synthesis and decisive cuts
 - the team wants a recurring pulse without manually babysitting every run
 
 Canonical cadence:
+
 - every `600` seconds by default
 - shorter only for short fire drills
 - longer only when gates are expensive and progress is slow
@@ -220,6 +226,7 @@ done
 ```
 
 Preferred outputs:
+
 - `~/.vibecrafted/artifacts/<org>/<repo>/<YYYY_MMDD>/reports/supervisor-latest.md`
 - `~/.vibecrafted/artifacts/<org>/<repo>/<YYYY_MMDD>/reports/supervisor-watch.log`
 
@@ -234,6 +241,7 @@ The timer provides cadence.
 `marbles` provides convergence logic, entropy scoring, and stop conditions.
 
 Supervisor mode must still:
+
 - track P0/P1/P2 trajectory
 - detect divergence
 - escalate when agents plateau
@@ -275,34 +283,41 @@ For each loop:
 
 ```markdown
 # Marbles Loop N: <slug>
+
 Date: <YYYY-MM-DD>
 Duration: <time>
 
 ## Entropy Before
+
 - P0: X | P1: X | P2: X
 - Convergence score: X/100
 
 ## Marbles Thrown (fixes applied)
+
 1. [P1] <finding> → <fix applied> → <result>
 2. [P2] <finding> → <fix applied> → <result>
 3. [P1] <finding> → <fix applied> → <result>
 
 ## Entropy After
+
 - P0: X | P1: X | P2: X
 - Convergence score: X/100
 
 ## Gate Results
+
 - Build: pass/fail
 - Lint: pass/fail
 - Tests: X/Y
 - Security: pass/fail
 
 ## Delta
+
 - Findings fixed: N
 - Findings introduced: N
 - Net entropy change: -N (negative = good)
 
 ## Decision
+
 - [ ] Continue → Loop N+1 (reason: <what remains>)
 - [ ] Converged → proceed to DoU
 - [ ] Diverging → stop and re-examine
@@ -312,24 +327,28 @@ Duration: <time>
 
 ```markdown
 # Marbles Convergence: <slug>
+
 Date: <YYYY-MM-DD>
 Total loops: N
 Total duration: <time>
 
 ## Trajectory
-| Loop | P0 | P1 | P2 | Score | Delta |
-|------|----|----|----|----|-------|
-| 1    | 2  | 5  | 8  | 15 | —     |
-| 2    | 0  | 3  | 6  | 40 | +25   |
-| 3    | 0  | 1  | 4  | 65 | +25   |
-| 4    | 0  | 0  | 2  | 85 | +20   |
-| 5    | 0  | 0  | 0  | 100| +15   |
+
+| Loop | P0  | P1  | P2  | Score | Delta |
+| ---- | --- | --- | --- | ----- | ----- |
+| 1    | 2   | 5   | 8   | 15    | —     |
+| 2    | 0   | 3   | 6   | 40    | +25   |
+| 3    | 0   | 1   | 4   | 65    | +25   |
+| 4    | 0   | 0   | 2   | 85    | +20   |
+| 5    | 0   | 0   | 0   | 100   | +15   |
 
 ## Convergence Curve
+
 Score: 15 → 40 → 65 → 85 → 100
-       ████████████████████████████████████████████████
+████████████████████████████████████████████████
 
 ## Final State
+
 - All P0: resolved
 - All P1: resolved
 - All P2: resolved
@@ -337,6 +356,7 @@ Score: 15 → 40 → 65 → 85 → 100
 - Circle: full
 
 ## Verdict
+
 DoU → DoD transition: COMPLETE
 Plague Score before: XX → after: XX
 Ready for: Phase 3 (dou → decorate → hydrate → release)
@@ -361,14 +381,11 @@ At this point, DoU transforms into DoD:
   ~~DoU~~ → **DoD**
 ```
 
-## Integration with VibeCraft Pipeline
+## Integration with VibeCrafted Pipeline
 
 ```
-Phase 1 — Craft:     scaffold → init → workflow → followup
-                                                     ↓
-Phase 2 — Converge:                              marbles ↻ (loop until P0=P1=P2=0)
-                                                     ↓
-Phase 3 — Ship:                                  dou → decorate → hydrate → release
+scaffold → init → workflow → followup → [MARBLES] ↻ → dou → decorate → hydrate → release
+                                         ^^^^^^^^^^^^^
 ```
 
 Marbles is the gate between building and shipping.
@@ -448,8 +465,8 @@ That's DoD. Not "good enough." Done.
 
 ---
 
-*"Code is noise until proven signal.*
-*Each loop removes entropy.*
-*Stop when the circle is full."*
+_"Code is noise until proven signal._
+_Each loop removes entropy._
+_Stop when the circle is full."_
 
-*Vibecrafted with AI Agents by VetCoders (c)2026 VetCoders*
+_Vibecrafted with AI Agents by VetCoders (c)2026 VetCoders_

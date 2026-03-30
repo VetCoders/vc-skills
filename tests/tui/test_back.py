@@ -15,6 +15,7 @@ Usage:
     python3 scripts/vetcoders_install.py uninstall [--dry-run]
     python3 scripts/vetcoders_install.py restore [--dry-run]
 """
+
 from __future__ import annotations
 
 import argparse
@@ -169,6 +170,7 @@ STATE_FILE = ".vc-install.json"
 class GoBack(Exception):
     pass
 
+
 @dataclass
 class InstallState:
     """Persisted installation state."""
@@ -316,8 +318,9 @@ def ask_yn(prompt: str, default: bool = True) -> bool:
 def _read_key() -> str:
     """Reads a single keypress or escape sequence from stdin."""
     import select
+
     char = sys.stdin.read(1)
-    if char == '\x1b':
+    if char == "\x1b":
         r, _, _ = select.select([sys.stdin], [], [], 0.05)
         if r:
             char += sys.stdin.read(2)
@@ -338,7 +341,9 @@ def ask_choice(prompt: str, options: List[str], default: int = 0) -> int:
             marker = cyan(">") if i == default else " "
             print(f"  {marker} {i + 1}. {opt}")
         try:
-            answer = input(dim(f"  Choice [1-{len(options)}, default {default + 1}]: ")).strip()
+            answer = input(
+                dim(f"  Choice [1-{len(options)}, default {default + 1}]: ")
+            ).strip()
         except (EOFError, KeyboardInterrupt):
             print()
             return default
@@ -355,50 +360,50 @@ def ask_choice(prompt: str, options: List[str], default: int = 0) -> int:
     # Interactive mode
     import termios
     import tty
-    
+
     current_idx = default
     print(bold(prompt))
     print(dim("  (Use UP/DOWN to navigate, ENTER to confirm, or type number)"))
-    
+
     for _ in options:
         print()
-        
+
     def render():
         sys.stdout.write(f"\033[{len(options)}A")
         for i, opt in enumerate(options):
             marker = cyan(">") if i == current_idx else " "
             sys.stdout.write(f"\033[2K\r  {marker} {i + 1}. {opt}\n")
         sys.stdout.flush()
-        
+
     render()
-    
+
     fd = sys.stdin.fileno()
     old_settings = termios.tcgetattr(fd)
     try:
         tty.setcbreak(fd)
         while True:
             char = _read_key()
-            if char in ('\n', '\r'):
+            if char in ("\n", "\r"):
                 break
-            elif char in '123456789':
+            elif char in "123456789":
                 idx = int(char) - 1
                 if 0 <= idx < len(options):
                     current_idx = idx
                     break
-            elif char == '\x1b[A': # Up
+            elif char == "\x1b[A":  # Up
                 current_idx = max(0, current_idx - 1)
                 render()
-            elif char == '\x1b[B': # Down
+            elif char == "\x1b[B":  # Down
                 current_idx = min(len(options) - 1, current_idx + 1)
                 render()
-            elif char == '\x03': # Ctrl+C
+            elif char == "\x03":  # Ctrl+C
                 raise KeyboardInterrupt
     except KeyboardInterrupt:
         sys.stdout.write("\n")
         return default
     finally:
         termios.tcsetattr(fd, termios.TCSADRAIN, old_settings)
-        
+
     return current_idx
 
 
@@ -417,7 +422,11 @@ def ask_multi(prompt: str, options: List[str], defaults: List[bool]) -> List[boo
             marker = green("[x]") if selected[i] else dim("[ ]")
             print(f"  {marker} {i + 1}. {opt}")
         try:
-            print(dim("  (Type numbers space-separated. E.g. '1 2' to select exactly those, or '+3' / '-1' to toggle)"))
+            print(
+                dim(
+                    "  (Type numbers space-separated. E.g. '1 2' to select exactly those, or '+3' / '-1' to toggle)"
+                )
+            )
             answer = input(dim("  Selection: ")).strip()
         except (EOFError, KeyboardInterrupt):
             print()
@@ -433,9 +442,9 @@ def ask_multi(prompt: str, options: List[str], defaults: List[bool]) -> List[boo
                         selected[idx] = True
             else:
                 for tok in tokens:
-                    is_add = tok.startswith('+')
-                    is_sub = tok.startswith('-')
-                    clean_tok = tok.lstrip('+-')
+                    is_add = tok.startswith("+")
+                    is_sub = tok.startswith("-")
+                    clean_tok = tok.lstrip("+-")
                     try:
                         idx = int(clean_tok) - 1
                         if 0 <= idx < len(options):
@@ -452,16 +461,18 @@ def ask_multi(prompt: str, options: List[str], defaults: List[bool]) -> List[boo
     # Interactive mode
     import termios
     import tty
-    
+
     selected = list(defaults)
     current_idx = 0
-    
+
     print(bold(prompt))
-    print(dim("  (Use UP/DOWN to navigate, SPACE or number to toggle, ENTER to confirm)"))
-    
+    print(
+        dim("  (Use UP/DOWN to navigate, SPACE or number to toggle, ENTER to confirm)")
+    )
+
     for _ in options:
         print()
-        
+
     def render():
         sys.stdout.write(f"\033[{len(options)}A")
         for i, opt in enumerate(options):
@@ -469,40 +480,40 @@ def ask_multi(prompt: str, options: List[str], defaults: List[bool]) -> List[boo
             cursor = cyan(">") if i == current_idx else " "
             sys.stdout.write(f"\033[2K\r  {cursor} {marker} {i + 1}. {opt}\n")
         sys.stdout.flush()
-        
+
     render()
-    
+
     fd = sys.stdin.fileno()
     old_settings = termios.tcgetattr(fd)
     try:
         tty.setcbreak(fd)
         while True:
             char = _read_key()
-            if char in ('\n', '\r'):
+            if char in ("\n", "\r"):
                 break
-            elif char == ' ':
+            elif char == " ":
                 selected[current_idx] = not selected[current_idx]
                 render()
-            elif char in '123456789':
+            elif char in "123456789":
                 idx = int(char) - 1
                 if 0 <= idx < len(options):
                     selected[idx] = not selected[idx]
                     current_idx = idx
                     render()
-            elif char == '\x1b[A': # Up
+            elif char == "\x1b[A":  # Up
                 current_idx = max(0, current_idx - 1)
                 render()
-            elif char == '\x1b[B': # Down
+            elif char == "\x1b[B":  # Down
                 current_idx = min(len(options) - 1, current_idx + 1)
                 render()
-            elif char == '\x03': # Ctrl+C
+            elif char == "\x03":  # Ctrl+C
                 raise KeyboardInterrupt
     except KeyboardInterrupt:
         sys.stdout.write("\n")
         return defaults
     finally:
         termios.tcsetattr(fd, termios.TCSADRAIN, old_settings)
-        
+
     return selected
 
 
@@ -517,8 +528,12 @@ def _backup_root(store_path: Path) -> Path:
     return store_path / BACKUP_DIR
 
 
-def create_backup(store_path: Path, runtimes: List[str], bundle_names: List[str],
-                  dry_run: bool = False) -> Optional[str]:
+def create_backup(
+    store_path: Path,
+    runtimes: List[str],
+    bundle_names: List[str],
+    dry_run: bool = False,
+) -> Optional[str]:
     """Snapshot existing state before install. Returns backup timestamp or None."""
     ts = datetime.now().strftime("%Y%m%d_%H%M%S")
     backup_dir = _backup_root(store_path) / ts
@@ -585,7 +600,9 @@ def create_backup(store_path: Path, runtimes: List[str], bundle_names: List[str]
 
 
 def _helper_target_path() -> Path:
-    config_dir = Path(os.environ.get("XDG_CONFIG_HOME", Path.home() / ".config")) / "zsh"
+    config_dir = (
+        Path(os.environ.get("XDG_CONFIG_HOME", Path.home() / ".config")) / "zsh"
+    )
     return config_dir / "vc-skills.zsh"
 
 
@@ -598,14 +615,28 @@ def _zshrc_source_line() -> str:
 # ---------------------------------------------------------------------------
 
 KNOWN_HELPER_FUNCTIONS = [
-    "codex-implement", "codex-plan", "codex-review", "codex-research",
-    "codex-prompt", "codex-observe",
-    "claude-implement", "claude-plan", "claude-review", "claude-research",
-    "claude-prompt", "claude-observe",
-    "gemini-implement", "gemini-plan", "gemini-review", "gemini-research",
-    "gemini-prompt", "gemini-observe",
+    "codex-implement",
+    "codex-plan",
+    "codex-review",
+    "codex-research",
+    "codex-prompt",
+    "codex-observe",
+    "claude-implement",
+    "claude-plan",
+    "claude-review",
+    "claude-research",
+    "claude-prompt",
+    "claude-observe",
+    "gemini-implement",
+    "gemini-plan",
+    "gemini-review",
+    "gemini-research",
+    "gemini-prompt",
+    "gemini-observe",
     "skills-sync",
-    "gemini-keychain-set", "gemini-keychain-get", "gemini-keychain-clear",
+    "gemini-keychain-set",
+    "gemini-keychain-get",
+    "gemini-keychain-clear",
 ]
 
 
@@ -622,7 +653,9 @@ def scan_helper_conflicts() -> Dict[Path, List[HelperConflict]]:
     conflicts: Dict[Path, List[HelperConflict]] = {}
 
     search_dirs = []
-    config_zsh = Path(os.environ.get("XDG_CONFIG_HOME", Path.home() / ".config")) / "zsh"
+    config_zsh = (
+        Path(os.environ.get("XDG_CONFIG_HOME", Path.home() / ".config")) / "zsh"
+    )
     if config_zsh.is_dir():
         search_dirs.append(config_zsh)
 
@@ -647,12 +680,16 @@ def scan_helper_conflicts() -> Dict[Path, List[HelperConflict]]:
                 if stripped.startswith(f"{fn}()") or stripped.startswith(f"{fn} ()"):
                     if fpath not in conflicts:
                         conflicts[fpath] = []
-                    conflicts[fpath].append(HelperConflict(file=fpath, function=fn, line_num=i))
+                    conflicts[fpath].append(
+                        HelperConflict(file=fpath, function=fn, line_num=i)
+                    )
 
     return conflicts
 
 
-def report_helper_conflicts(conflicts: Dict[Path, List[HelperConflict]], interactive: bool) -> bool:
+def report_helper_conflicts(
+    conflicts: Dict[Path, List[HelperConflict]], interactive: bool
+) -> bool:
     """Report conflicts and ask user what to do. Returns True if should proceed with install."""
     if not conflicts:
         return True
@@ -670,7 +707,11 @@ def report_helper_conflicts(conflicts: Dict[Path, List[HelperConflict]], interac
             print(f"      {dim(f'line {c.line_num}:')} {c.function}()")
 
     print()
-    print(yellow("  These files contain non-VetCoders content — installer will NOT edit them."))
+    print(
+        yellow(
+            "  These files contain non-VetCoders content — installer will NOT edit them."
+        )
+    )
 
     if not interactive:
         print(yellow("  Non-interactive mode: installing canonical helpers alongside."))
@@ -704,7 +745,9 @@ def report_helper_conflicts(conflicts: Dict[Path, List[HelperConflict]], interac
 # ---------------------------------------------------------------------------
 
 
-def rsync_skill(src: Path, dst: Path, dry_run: bool = False, mirror: bool = False) -> None:
+def rsync_skill(
+    src: Path, dst: Path, dry_run: bool = False, mirror: bool = False
+) -> None:
     """Rsync a single skill directory."""
     if not dry_run:
         dst.mkdir(parents=True, exist_ok=True)
@@ -714,7 +757,9 @@ def rsync_skill(src: Path, dst: Path, dry_run: bool = False, mirror: bool = Fals
     if dry_run:
         cmd += ["--dry-run"]
     cmd += [str(src) + "/", str(dst) + "/"]
-    subprocess.run(cmd, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    subprocess.run(
+        cmd, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL
+    )
 
 
 def create_symlink(target: Path, link: Path, dry_run: bool = False) -> None:
@@ -774,7 +819,9 @@ def run_doctor(store_path: Path, state: InstallState) -> List[DoctorFinding]:
     if state_file.exists():
         findings.append(DoctorFinding("ok", "state", "Install manifest found"))
     else:
-        findings.append(DoctorFinding("warn", "state", "No install manifest — was installer used?"))
+        findings.append(
+            DoctorFinding("warn", "state", "No install manifest — was installer used?")
+        )
 
     # 3. Expected skills present
     for skill_name in state.skills:
@@ -782,15 +829,25 @@ def run_doctor(store_path: Path, state: InstallState) -> List[DoctorFinding]:
         if skill_path.is_dir() and (skill_path / "SKILL.md").exists():
             findings.append(DoctorFinding("ok", f"skill:{skill_name}", "present"))
         elif skill_path.exists():
-            findings.append(DoctorFinding("warn", f"skill:{skill_name}", "dir exists but no SKILL.md"))
+            findings.append(
+                DoctorFinding(
+                    "warn", f"skill:{skill_name}", "dir exists but no SKILL.md"
+                )
+            )
         else:
-            findings.append(DoctorFinding("fail", f"skill:{skill_name}", "missing from store"))
+            findings.append(
+                DoctorFinding("fail", f"skill:{skill_name}", "missing from store")
+            )
 
     # 4. Symlink views
     for runtime in state.runtimes:
         rt_skills = Path.home() / f".{runtime}" / "skills"
         if not rt_skills.exists():
-            findings.append(DoctorFinding("fail", f"runtime:{runtime}", f"{rt_skills} does not exist"))
+            findings.append(
+                DoctorFinding(
+                    "fail", f"runtime:{runtime}", f"{rt_skills} does not exist"
+                )
+            )
             continue
         for skill_name in state.skills:
             link = rt_skills / skill_name
@@ -798,7 +855,11 @@ def run_doctor(store_path: Path, state: InstallState) -> List[DoctorFinding]:
             if link.is_symlink():
                 target = link.resolve()
                 if target == canonical.resolve():
-                    findings.append(DoctorFinding("ok", f"symlink:{runtime}/{skill_name}", "correct"))
+                    findings.append(
+                        DoctorFinding(
+                            "ok", f"symlink:{runtime}/{skill_name}", "correct"
+                        )
+                    )
                 else:
                     findings.append(
                         DoctorFinding(
@@ -816,7 +877,9 @@ def run_doctor(store_path: Path, state: InstallState) -> List[DoctorFinding]:
                     )
                 )
             else:
-                findings.append(DoctorFinding("fail", f"symlink:{runtime}/{skill_name}", "missing"))
+                findings.append(
+                    DoctorFinding("fail", f"symlink:{runtime}/{skill_name}", "missing")
+                )
 
     # 5. Foundations
     for f in FOUNDATIONS:
@@ -825,21 +888,33 @@ def run_doctor(store_path: Path, state: InstallState) -> List[DoctorFinding]:
             findings.append(DoctorFinding("ok", f"foundation:{f.name}", f"-> {path}"))
         elif f.required:
             findings.append(
-                DoctorFinding("fail", f"foundation:{f.name}", f"missing — {f.install_hint()}")
+                DoctorFinding(
+                    "fail", f"foundation:{f.name}", f"missing — {f.install_hint()}"
+                )
             )
         else:
             findings.append(
-                DoctorFinding("warn", f"foundation:{f.name}", f"optional, not installed")
+                DoctorFinding("warn", f"foundation:{f.name}", "optional, not installed")
             )
 
     # 6. Shell helpers
-    helper_file = Path(os.environ.get("XDG_CONFIG_HOME", Path.home() / ".config")) / "zsh" / "vc-skills.zsh"
+    helper_file = (
+        Path(os.environ.get("XDG_CONFIG_HOME", Path.home() / ".config"))
+        / "zsh"
+        / "vc-skills.zsh"
+    )
     if helper_file.exists():
         findings.append(DoctorFinding("ok", "shell-helpers", str(helper_file)))
     elif state.shell_helpers:
-        findings.append(DoctorFinding("warn", "shell-helpers", "marked as installed but file missing"))
+        findings.append(
+            DoctorFinding(
+                "warn", "shell-helpers", "marked as installed but file missing"
+            )
+        )
     else:
-        findings.append(DoctorFinding("ok", "shell-helpers", "not installed (optional)"))
+        findings.append(
+            DoctorFinding("ok", "shell-helpers", "not installed (optional)")
+        )
 
     return findings
 
@@ -864,10 +939,14 @@ def print_doctor(findings: List[DoctorFinding]) -> int:
             fails += 1
         print(f"  {icon} {f.component}: {f.message}")
 
-    print(f"\n  {green(str(oks))} ok  {yellow(str(warns))} warnings  {red(str(fails))} failures\n")
+    print(
+        f"\n  {green(str(oks))} ok  {yellow(str(warns))} warnings  {red(str(fails))} failures\n"
+    )
 
     if fails:
-        print(f"  {red('Installation has issues.')} Run {bold('vetcoders install')} to fix.\n")
+        print(
+            f"  {red('Installation has issues.')} Run {bold('vetcoders install')} to fix.\n"
+        )
         return 1
     elif warns:
         print(f"  {yellow('Installation healthy with minor warnings.')}\n")
@@ -959,7 +1038,9 @@ def cmd_install(args: argparse.Namespace) -> int:
     print()
 
     # Missing critical deps
-    missing_critical = [cmd for cmd in ("zsh", "python3", "git", "rsync") if not sys_deps.get(cmd)]
+    missing_critical = [
+        cmd for cmd in ("zsh", "python3", "git", "rsync") if not sys_deps.get(cmd)
+    ]
     if missing_critical:
         print(red(f"Missing critical dependencies: {', '.join(missing_critical)}"))
         print("Install them before continuing.")
@@ -981,19 +1062,40 @@ def cmd_install(args: argparse.Namespace) -> int:
         # CLI --tool flags take precedence
         all_runtimes = [rt for rt in cli_tools if rt in AGENT_RUNTIMES]
     elif interactive and not advanced:
-        print(dim("  Note: gemini-cli in some versions duplicates the workflows, inheriting"))
-        print(dim("  skills from the other agents. Gemini symlinks skipped by default."))
-        create_all = ask_yn("Create symlink views for default runtimes (codex, claude)?", default=True)
+        print(
+            dim(
+                "  Note: gemini-cli in some versions duplicates the workflows, inheriting"
+            )
+        )
+        print(
+            dim("  skills from the other agents. Gemini symlinks skipped by default.")
+        )
+        create_all = ask_yn(
+            "Create symlink views for default runtimes (codex, claude)?", default=True
+        )
         if not create_all:
-            defaults = [bool(available_runtimes.get(rt)) and rt != "gemini" for rt in AGENT_RUNTIMES]
-            result = ask_multi("Select runtimes for symlink views:", AGENT_RUNTIMES, defaults)
+            defaults = [
+                bool(available_runtimes.get(rt)) and rt != "gemini"
+                for rt in AGENT_RUNTIMES
+            ]
+            result = ask_multi(
+                "Select runtimes for symlink views:", AGENT_RUNTIMES, defaults
+            )
             all_runtimes = [rt for rt, sel in zip(AGENT_RUNTIMES, result) if sel]
         print()
     elif advanced and interactive:
-        print(dim("  Note: gemini-cli in some versions duplicates the workflows, inheriting"))
-        print(dim("  skills from the other agents. Gemini symlinks skipped by default."))
+        print(
+            dim(
+                "  Note: gemini-cli in some versions duplicates the workflows, inheriting"
+            )
+        )
+        print(
+            dim("  skills from the other agents. Gemini symlinks skipped by default.")
+        )
         defaults = [rt != "gemini" for rt in AGENT_RUNTIMES]
-        result = ask_multi("Select runtimes for symlink views:", AGENT_RUNTIMES, defaults)
+        result = ask_multi(
+            "Select runtimes for symlink views:", AGENT_RUNTIMES, defaults
+        )
         all_runtimes = [rt for rt, sel in zip(AGENT_RUNTIMES, result) if sel]
         print()
 
@@ -1052,7 +1154,10 @@ def cmd_install(args: argparse.Namespace) -> int:
     # --- Shell helpers ---
     install_shell = cli_with_shell  # --with-shell flag
     if not install_shell and interactive:
-        install_shell = ask_yn("Install zsh shell helpers (codex-implement, claude-plan, etc.)?", default=True)
+        install_shell = ask_yn(
+            "Install zsh shell helpers (codex-implement, claude-plan, etc.)?",
+            default=True,
+        )
         print()
 
     # --- Helper conflict check ---
@@ -1083,7 +1188,9 @@ def cmd_install(args: argparse.Namespace) -> int:
 
     # --- Backup existing state ---
     print(bold("Backing up existing state..."))
-    backup_ts = create_backup(store_path, all_runtimes, selected_skills, dry_run=dry_run)
+    backup_ts = create_backup(
+        store_path, all_runtimes, selected_skills, dry_run=dry_run
+    )
     if backup_ts:
         print(f"  {OK} Backup saved: {_backup_root(store_path) / backup_ts}")
     else:
@@ -1168,7 +1275,11 @@ def cmd_install(args: argparse.Namespace) -> int:
     print(green(bold("Install complete.")))
     print()
     print(dim("Next steps:"))
-    print(dim("  - Run 'python3 scripts/vetcoders_install.py doctor' anytime to re-verify"))
+    print(
+        dim(
+            "  - Run 'python3 scripts/vetcoders_install.py doctor' anytime to re-verify"
+        )
+    )
     print(dim("  - Start a new shell session to pick up helpers"))
 
     missing_fnd = [f for f in FOUNDATIONS if f.required and not f.is_installed()]
@@ -1208,13 +1319,13 @@ def cmd_doctor(args: argparse.Namespace) -> int:
         bundle = set(_known_bundle_names())
         if store_path.exists():
             state.skills = [
-                d.name for d in sorted(store_path.iterdir())
+                d.name
+                for d in sorted(store_path.iterdir())
                 if d.is_dir() and (d / "SKILL.md").exists() and d.name in bundle
             ]
         # Only check runtimes that actually have a skills dir
         state.runtimes = [
-            rt for rt in AGENT_RUNTIMES
-            if (Path.home() / f".{rt}" / "skills").exists()
+            rt for rt in AGENT_RUNTIMES if (Path.home() / f".{rt}" / "skills").exists()
         ]
 
     findings = run_doctor(store_path, state)
@@ -1223,11 +1334,15 @@ def cmd_doctor(args: argparse.Namespace) -> int:
     # but ONLY for skills in our bundle — don't claim ownership of other tools
     if not has_manifest:
         bundle = set(_known_bundle_names())
-        findings.insert(0, DoctorFinding(
-            "warn", "manifest",
-            "No install manifest found — running in discovery mode. "
-            "Install with the Smart Installer to get full tracking.",
-        ))
+        findings.insert(
+            0,
+            DoctorFinding(
+                "warn",
+                "manifest",
+                "No install manifest found — running in discovery mode. "
+                "Install with the Smart Installer to get full tracking.",
+            ),
+        )
         for rt in state.runtimes:
             rt_skills = Path.home() / f".{rt}" / "skills"
             if not rt_skills.exists():
@@ -1240,20 +1355,24 @@ def cmd_doctor(args: argparse.Namespace) -> int:
                 if not (entry / "SKILL.md").exists():
                     continue
                 if not entry.is_symlink():
-                    findings.append(DoctorFinding(
-                        "fail",
-                        f"stale-copy:{rt}/{entry.name}",
-                        f"is a local COPY, not a symlink to shared store — drift risk",
-                    ))
+                    findings.append(
+                        DoctorFinding(
+                            "fail",
+                            f"stale-copy:{rt}/{entry.name}",
+                            "is a local COPY, not a symlink to shared store — drift risk",
+                        )
+                    )
                 elif store_path.exists():
                     target = entry.resolve()
                     expected = (store_path / entry.name).resolve()
                     if target != expected and (store_path / entry.name).exists():
-                        findings.append(DoctorFinding(
-                            "warn",
-                            f"symlink:{rt}/{entry.name}",
-                            f"points to {target}, expected {expected}",
-                        ))
+                        findings.append(
+                            DoctorFinding(
+                                "warn",
+                                f"symlink:{rt}/{entry.name}",
+                                f"points to {target}, expected {expected}",
+                            )
+                        )
 
     return print_doctor(findings)
 
@@ -1287,7 +1406,11 @@ def cmd_list(args: argparse.Namespace) -> int:
     print(f"{bold('Runtime Foundations')} {dim('(substrate beneath the suite)')}")
     for f in FOUNDATIONS:
         path = f.is_installed()
-        status = green("installed") if path else (red("missing") if f.required else dim("optional"))
+        status = (
+            green("installed")
+            if path
+            else (red("missing") if f.required else dim("optional"))
+        )
         print(f"  {f.name}: {status} — {f.description}")
         print(f"    Channels: {', '.join(f.channels)}")
     print()
@@ -1309,9 +1432,13 @@ def cmd_uninstall(args: argparse.Namespace) -> int:
 
     # Use manifest if available, otherwise use bundle names
     skill_names = state.skills if state.skills else [n for n in bundle]
-    runtimes = state.runtimes if state.runtimes else [
-        rt for rt in AGENT_RUNTIMES if (Path.home() / f".{rt}" / "skills").exists()
-    ]
+    runtimes = (
+        state.runtimes
+        if state.runtimes
+        else [
+            rt for rt in AGENT_RUNTIMES if (Path.home() / f".{rt}" / "skills").exists()
+        ]
+    )
 
     print(f"\n{bold('VetCoders Uninstall')}\n")
 
@@ -1389,7 +1516,9 @@ def cmd_uninstall(args: argparse.Namespace) -> int:
                 if dry_run:
                     print(f"  {dim('remove source line from')} {zshrc}")
                 else:
-                    new_content = content.replace(f"\n# VetCoders shell helpers\n{source_line}\n", "\n")
+                    new_content = content.replace(
+                        f"\n# VetCoders shell helpers\n{source_line}\n", "\n"
+                    )
                     new_content = new_content.replace(source_line, "")
                     zshrc.write_text(new_content)
                     print(f"  {dim('-')} source line from {zshrc}")
@@ -1552,35 +1681,65 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
 
     # install
     p_install = sub.add_parser("install", help="Install the VetCoders skill bundle")
-    p_install.add_argument("--source", default=default_source, help="Repo root (default: auto-detect)")
-    p_install.add_argument("--dry-run", "-n", action="store_true", help="Show what would be done")
-    p_install.add_argument("--non-interactive", action="store_true", help="Skip all prompts, use defaults")
-    p_install.add_argument("--advanced", action="store_true", help="Enable selective skill/runtime install")
-    p_install.add_argument("--with-shell", action="store_true", help="Install zsh shell helpers")
     p_install.add_argument(
-        "--tool", dest="tools", action="append", choices=["codex", "claude", "gemini"],
+        "--source", default=default_source, help="Repo root (default: auto-detect)"
+    )
+    p_install.add_argument(
+        "--dry-run", "-n", action="store_true", help="Show what would be done"
+    )
+    p_install.add_argument(
+        "--non-interactive", action="store_true", help="Skip all prompts, use defaults"
+    )
+    p_install.add_argument(
+        "--advanced", action="store_true", help="Enable selective skill/runtime install"
+    )
+    p_install.add_argument(
+        "--with-shell", action="store_true", help="Install zsh shell helpers"
+    )
+    p_install.add_argument(
+        "--tool",
+        dest="tools",
+        action="append",
+        choices=["codex", "claude", "gemini"],
         help="Limit symlink views to these runtimes (repeatable, default: all)",
     )
     p_install.add_argument(
-        "--skill", dest="skill_filter", action="append",
+        "--skill",
+        dest="skill_filter",
+        action="append",
         help="Install only these skills (repeatable, default: full bundle)",
     )
-    p_install.add_argument("--mirror", action="store_true", help="Delete extra files in installed skill dirs (rsync --delete)")
+    p_install.add_argument(
+        "--mirror",
+        action="store_true",
+        help="Delete extra files in installed skill dirs (rsync --delete)",
+    )
 
     # doctor
     sub.add_parser("doctor", help="Verify installation health")
 
     # list
-    p_list = sub.add_parser("list", help="Show available VetCoders skills and the runtime substrate beneath them")
-    p_list.add_argument("--source", default=default_source, help="Repo root (default: auto-detect)")
+    p_list = sub.add_parser(
+        "list",
+        help="Show available VetCoders skills and the runtime substrate beneath them",
+    )
+    p_list.add_argument(
+        "--source", default=default_source, help="Repo root (default: auto-detect)"
+    )
 
     # uninstall
-    p_uninstall = sub.add_parser("uninstall", help="Remove VetCoders skills, symlinks, and helpers")
-    p_uninstall.add_argument("--dry-run", "-n", action="store_true", help="Show what would be done")
+    p_uninstall = sub.add_parser(
+        "uninstall", help="Remove VetCoders skills, symlinks, and helpers"
+    )
+    p_uninstall.add_argument(
+        "--dry-run", "-n", action="store_true", help="Show what would be done"
+    )
 
     # restore
     p_restore = sub.add_parser("restore", help="Restore pre-install state from backup")
-    p_restore.add_argument("--dry-run", "-n", action="store_true", help="Show what would be done")
+    p_restore.add_argument(
+        "--dry-run", "-n", action="store_true", help="Show what would be done"
+    )
 
     args = parser.parse_args(argv)
     if not args.command:

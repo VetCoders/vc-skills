@@ -26,7 +26,7 @@ compatibility:
     - js_repl
 ---
 
-# VibeCraft Partner
+# VibeCrafted Partner
 
 Two modes, one skill. The difference is who holds the steering wheel.
 
@@ -586,13 +586,18 @@ available pair.
 ### Resume the same sessions into implementation
 
 Resume helpers (`codex-resume`, `gemini-resume`) are environment-specific
-aliases. If they are not available in your environment, start a fresh
+aliases. If they are available, invoke them through `zsh -ic` so the
+interactive shell sources `~/.zshrc` and loads the helper definitions.
+Plain `eval` from a non-interactive shell is not enough and can fail with
+`command not found`. If `zsh` is unavailable, use `bash -ic`.
+
+If the resume helpers are not available in your environment, start a fresh
 implementation agent carrying the planner report + chosen synthesis as context.
 
 ```bash
 # If resume helpers are available:
-zsh -ic 'codex-resume <session-uuid> "<continuation prompt>"'
-zsh -ic 'gemini-resume <session-uuid> "<continuation prompt>"'
+zsh -ic "codex-resume <session-uuid> '<continuation prompt>'"
+zsh -ic "gemini-resume <session-uuid> '<continuation prompt>'"
 
 # If not, use portable scripts with the synthesis as the new plan:
 bash $VIBECRAFT_ROOT/skills/vc-agents/scripts/codex_spawn.sh "$PLAN" --mode implement

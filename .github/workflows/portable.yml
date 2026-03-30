@@ -9,7 +9,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ ubuntu-latest, macos-latest ]
+        os: [ubuntu-latest, macos-latest]
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
@@ -20,3 +20,22 @@ jobs:
           sudo apt-get install -y rsync
       - name: Run portable checks
         run: bash scripts/check-portable.sh
+
+  curl-bootstrap:
+    name: curl | bash bootstrap
+    needs: portable
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Serve install.sh locally and bootstrap
+        run: |
+          # Create a local archive from the checked-out source
+          archive="/tmp/vibecrafted-bootstrap.tar.gz"
+          tar -czf "$archive" --exclude='.git' -C "$GITHUB_WORKSPACE" .
+          bash install.sh --archive-file "$archive"
+      - name: Verify bootstrap result
+        run: |
+          test -L "$HOME/.vibecrafted/tools/vibecrafted-current"
+          test -f "$HOME/.vibecrafted/skills/vc-agents/scripts/codex_spawn.sh"
+          test -f "$HOME/.config/vetcoders/vc-skills.sh"
+          echo "Bootstrap OK"

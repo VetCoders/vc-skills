@@ -1,5 +1,5 @@
 {
-  "name": "VibeCraft Prune",
+  "name": "VC Prune",
   "description": "Prune repos to runtime or publish cone. Use /vc-prune to invoke.",
   "author": {
     "name": "VetCoders",

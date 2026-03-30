@@ -1,6 +1,6 @@
 # VetCoders Frontier Config
 
-Repo-owned shell presets for the Vibecraft operator surface.
+Repo-owned shell presets for the VibeCrafted operator surface.
 
 This layer is intentionally separate from personal shell identity:
 
