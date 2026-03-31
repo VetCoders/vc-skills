@@ -1076,26 +1076,6 @@
                     ctx.restore();
                 }
             }
-                    ctx.beginPath();
-                    if (shape === 'circle') ctx.arc(centerX, centerY, boardRadius * 1.05, 0, Math.PI * 2);
-                    else if (shape === 'square') ctx.rect(centerX - boardRadius * 1.05, centerY - boardRadius * 1.05, boardRadius * 2.1, boardRadius * 2.1);
-                    else if (shape === 'hexagon') {
-                        for (var i = 0; i < 6; i++) {
-                            var angle = (i * Math.PI) / 3;
-                            var hx = centerX + boardRadius * 1.1 * Math.cos(angle);
-                            var hy = centerY + boardRadius * 1.1 * Math.sin(angle);
-                            if (i === 0) ctx.moveTo(hx, hy); else ctx.lineTo(hx, hy);
-                        }
-                        ctx.closePath();
-                    }
-                    ctx.strokeStyle = 'rgba(184, 115, 51, 0.4)';
-                    ctx.lineWidth = 3;
-                    ctx.stroke();
-                    ctx.restore();
-                }
-
-                ctx.globalAlpha = 1;
-            }
 
             for (var i = 0; i < slots.length; i++) {
                 var slot = slots[i];

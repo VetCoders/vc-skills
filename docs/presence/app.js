@@ -506,16 +506,7 @@ function shuffleArr(a) {
         boardLayerCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
         boardLayerCtx.clearRect(0, 0, width, height);
 
-        boardLayerCtx.beginPath();
-        boardLayerCtx.arc(board.x, board.y, board.radius * 1.05, 0, Math.PI * 2);
-        var bg = boardLayerCtx.createRadialGradient(board.x, board.y, 0, board.x, board.y, board.radius * 1.05);
-        bg.addColorStop(0, 'rgba(30,30,28,0.6)');
-        bg.addColorStop(1, 'rgba(15,15,14,0.8)');
-        boardLayerCtx.fillStyle = bg;
-        boardLayerCtx.fill();
-        boardLayerCtx.strokeStyle = 'rgba(255,255,255,0.04)';
-        boardLayerCtx.lineWidth = 1;
-        boardLayerCtx.stroke();
+        // Procedural background removed to reveal CSS stone background
 
         slots.forEach(function (slot) {
             drawGroove(boardLayerCtx, slot.x, slot.y, marbleRadius);
