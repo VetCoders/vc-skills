@@ -1,5 +1,7 @@
 body.framework-page {
     min-height: 100svh;
+    background: linear-gradient(180deg, rgba(14, 14, 17, 1) 0%, rgba(10, 10, 12, 1) 100%);
+    background-attachment: scroll;
 }
 
 body.framework-page.framework-page--playground {
