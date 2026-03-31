@@ -149,6 +149,11 @@ body.framework-page.framework-page--playground {
     min-height: 0;
 }
 
+.framework-playground--standalone {
+    gap: 0;
+    grid-template-rows: minmax(0, 1fr);
+}
+
 .framework-playground__meta {
     display: block;
     min-width: 0;
@@ -173,12 +178,12 @@ body.framework-page.framework-page--playground {
 
 .framework-playground__body {
     min-height: 0;
-    height: 100%;
     display: grid;
     grid-template-columns: minmax(0, 1fr) clamp(248px, 18vw, 298px);
     grid-template-rows: auto minmax(0, 1fr);
     gap: clamp(1rem, 1.4vw, 1.8rem);
     align-items: stretch;
+    align-content: stretch;
     justify-content: center;
     padding: 0 0.35rem 0 0.65rem;
 }
@@ -189,8 +194,8 @@ body.framework-page.framework-page--playground {
     display: flex;
     flex-direction: column;
     min-width: 0;
-    height: 100%;
-    justify-content: stretch;
+    min-height: 0;
+    align-self: stretch;
 }
 
 .framework-playground__side-column {
@@ -243,7 +248,8 @@ body.framework-page.framework-page--playground {
 .framework-playground__stage {
     position: relative;
     width: 100%;
-    height: 100%;
+    flex: 1 1 auto;
+    height: auto;
     min-height: 0;
     border-radius: var(--radius-lg);
     border: 1px solid var(--card-border);
@@ -575,12 +581,7 @@ body.framework-page.framework-page--playground {
     min-height: 0;
 }
 
-.framework-page--playground .framework-playground__meta {
-    display: none;
-}
-
 .framework-page--playground .framework-playground__stage {
-    height: 100%;
     min-height: 0;
 }
 

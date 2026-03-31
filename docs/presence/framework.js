@@ -298,21 +298,26 @@
     }
 
     function buildShowcaseMarkup(layout) {
+        var metaSection = layout === 'standalone'
+            ? ''
+            : [
+                '  <div class="framework-playground__meta">',
+                '    <div class="framework-playground__meta-copy">',
+                '      <p class="framework-playground__kicker">Framework Playground</p>',
+                '      <h3 class="framework-playground__heading">Command the convergence board</h3>',
+                '      <p class="framework-playground__lede">Board-first teaching surface. Trace the frame, tune the grooves, invite specialists, then let Marbles run the convergence batches.</p>',
+                '    </div>',
+                '  </div>'
+            ].join('');
         return [
             '<div class="framework-playground framework-playground--' + layout + '">',
-            '  <div class="framework-playground__meta">',
-            '    <div class="framework-playground__meta-copy">',
-            '      <p class="framework-playground__kicker">Framework Playground</p>',
-            '      <h3 class="framework-playground__heading">Command the convergence board</h3>',
-            '      <p class="framework-playground__lede">Board-first teaching surface. Trace the frame, tune the grooves, invite specialists, then let Marbles run the convergence batches.</p>',
-            '    </div>',
-            '  </div>',
+            metaSection,
             '  <div class="framework-playground__body">',
             '    <p class="framework-playground__pressline">',
             '      <span class="framework-playground__press-kicker" data-framework-phase-eyebrow>Phase 0 · Setup</span>',
             '      <span class="framework-playground__press-copy" data-framework-phase-press>Define the board geometry.</span>',
             '    </p>',
-            '    <section class="framework-playground__board-column">',
+            '    <div class="framework-playground__board-column">',
             '      <div class="framework-playground__stage">',
             '        <canvas class="framework-playground__canvas" aria-hidden="true"></canvas>',
             '        <div class="framework-playground__overlay" aria-hidden="true">',
@@ -325,7 +330,7 @@
             '          <span class="framework-playground__prompt-command" data-framework-command>vc-scaffold</span>',
             '        </p>',
             '      </div>',
-            '    </section>',
+            '    </div>',
             '    <aside class="framework-playground__side-column">',
             '      <p class="framework-playground__side-kicker">Operators</p>',
             '      <p class="framework-playground__side-copy" data-framework-phase-hint></p>',
@@ -419,6 +424,26 @@
                 return 'vc-marbles --count ' + marbleRunCount;
             }
             return phaseCommand(phaseDef);
+        }
+
+        function currentAlertCopy() {
+            var phaseDef = PHASES[phase];
+            if (phaseDef.name === 'dou') {
+                return {
+                    title: 'DoU',
+                    detail: 'Blockers surfaced'
+                };
+            }
+            if (phaseDef.name === 'review') {
+                return {
+                    title: 'Review',
+                    detail: 'Weak fits exposed'
+                };
+            }
+            return {
+                title: phaseDef.label,
+                detail: phaseDef.title
+            };
         }
 
         function countVisibleSlots() {
@@ -1345,12 +1370,17 @@
                 ctx.fillRect(0, 0, width, height);
                 ctx.globalAlpha = 1;
                 if (errorFlash > 0.3) {
+                    var alertCopy = currentAlertCopy();
                     ctx.globalAlpha = errorFlash * 0.8;
-                    ctx.font = 'bold ' + (boardRadius * 0.3) + 'px sans-serif';
+                    ctx.font = '700 ' + (boardRadius * 0.24) + 'px "IBM Plex Mono", "JetBrains Mono", monospace';
                     ctx.fillStyle = '#e05544';
                     ctx.textAlign = 'center';
                     ctx.textBaseline = 'middle';
-                    ctx.fillText('P0', centerX, centerY);
+                    ctx.fillText(alertCopy.title, centerX, centerY - boardRadius * 0.02);
+                    ctx.globalAlpha = errorFlash * 0.95;
+                    ctx.font = '600 ' + (boardRadius * 0.07) + 'px "Poppins", sans-serif';
+                    ctx.fillStyle = 'rgba(255, 214, 208, 0.96)';
+                    ctx.fillText(alertCopy.detail, centerX, centerY + boardRadius * 0.14);
                     ctx.globalAlpha = 1;
                 }
             }
