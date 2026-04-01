@@ -158,7 +158,7 @@ def _compact_line(out, icon: str, label: str, value: str) -> None:
 SKILL_CATEGORIES = {
     "pipeline": {
         "label": "VetCoders Pipeline",
-        "description": "Core workflow skills: init, workflow, followup, marbles, dou, hydrate, ship",
+        "description": "Core workflow skills: init, workflow, followup, marbles, dou, hydrate, release",
         "prefix": "vc-",
     },
     "foundations": {

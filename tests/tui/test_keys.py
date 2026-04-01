@@ -146,3 +146,10 @@ def test_install_launcher_dedupes_zshrc_path_entries(
     assert zshrc_content.count(path_line) == 1
     assert zshrc_content.count("# VibeCrafted launcher") == 1
     assert (home / ".vibecrafted" / "bin" / "vibecrafted").exists()
+
+
+def test_pipeline_category_describes_release_not_removed_ship_skill() -> None:
+    description = vetcoders_install.SKILL_CATEGORIES["pipeline"]["description"]
+
+    assert "release" in description
+    assert "ship" not in description
