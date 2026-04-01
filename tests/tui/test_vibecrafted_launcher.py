@@ -96,3 +96,15 @@ def test_vc_help_wrapper_symlink_renders_main_help(tmp_path: Path) -> None:
 
     assert "VibeCrafted" in result.stdout
     assert "Front door:" in result.stdout
+
+
+def test_repo_launcher_is_directly_executable() -> None:
+    result = subprocess.run(
+        [str(LAUNCHER), "help"],
+        check=True,
+        cwd=REPO_ROOT,
+        capture_output=True,
+        text=True,
+    )
+
+    assert "VibeCrafted" in result.stdout
