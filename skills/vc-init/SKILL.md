@@ -49,7 +49,8 @@ Pull historical context from previous AI sessions for this project through AICX 
 - **`aicx_store(hours=168, project=<project>)`** — refresh the indexed session record for the repo
 - **`aicx_refs(hours=168, project=<project>, strict=true)`** — list stored context files
 - **`aicx_rank(project=<project>, hours=168, strict=true, top=5)`** — optionally prioritize the densest recent chunks
-- **Optional: `aicx_search(query=<task or subsystem>, project=<project>)`** — narrow the catalog to a specific feature, bug, or decision when recent history is noisy
+- **Optional: `aicx_search(query=<task or subsystem>, project=<project>)`** — narrow the catalog to a specific feature,
+  bug, or decision when recent history is noisy
 
 Read the most recent 1-2 context files, or the top-ranked 1-2 if those are
 more signal-dense, to understand:
@@ -321,9 +322,11 @@ Before creating new implementations, search for existing ones:
 
 ## Fallback
 
-If **AICX MCP** unavailable: fall back to `aicx` CLI if present, otherwise skip history steps and proceed with eyes + verify.
+If **AICX MCP** unavailable: fall back to `aicx` CLI if present, otherwise skip history steps and proceed with eyes +
+verify.
 If **loctree MCP** unavailable: fall back to `loct --for-ai` CLI, then `rg --files`.
-If **both** unavailable: read `.vibecrafted/GUIDELINES.md` + README.md + `git log -20`. Run quality gates. Announce gaps.
+If **both** unavailable: read `.vibecrafted/GUIDELINES.md` + README.md + `git log -20`. Run quality gates. Announce
+gaps.
 Quality gate verification has **no fallback** — always attempt it.
 
 ## Anti-Patterns

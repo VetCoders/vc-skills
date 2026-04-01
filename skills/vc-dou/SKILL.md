@@ -207,8 +207,10 @@ Do NOT just mark it missing and move on. A product without a face is invisible.
 
 Generate `./presence/` with three files:
 
-- `index.html` — product name, one-line description, what it does, install command, key features (3-5), links (GitHub, docs, crates.io/npm/pypi)
-- `styles.css` — dark theme, monospace chrome, clean typography, material palette if defined in scaffold, otherwise neutral steel/stone
+- `index.html` — product name, one-line description, what it does, install command, key features (3-5), links (GitHub,
+  docs, crates.io/npm/pypi)
+- `styles.css` — dark theme, monospace chrome, clean typography, material palette if defined in scaffold, otherwise
+  neutral steel/stone
 - `app.js` — copy button for install command, smooth scroll, fade-up observer. Nothing more.
 
 Design rules:

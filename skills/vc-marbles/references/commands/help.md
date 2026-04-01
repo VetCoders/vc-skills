@@ -8,28 +8,31 @@ Please explain the following to the user:
 
 ## What is Marbles?
 
-Marbles implements the Ralph Wiggum technique - an iterative development methodology based on continuous AI loops, pioneered by Geoffrey Huntley.
+Marbles implements the Ralph Wiggum technique - an iterative development methodology based on continuous AI loops,
+pioneered by Geoffrey Huntley.
 
 **Core concept:**
 
 ```bash
 while :; do
-  cat PROMPT.md | claude-code --continue
+  cat PROMPT.md | vc-marbles claude --continue
 done
 ```
 
-The same prompt is fed to Claude repeatedly. The "self-referential" aspect comes from Claude seeing its own previous work in the files and git history, not from feeding output back as input.
+The same prompt is fed to Agentrepeatedly. The "self-referential" aspect comes from Agentseeing its own previous
+work in the files and git history, not from feeding output back as input.
 
 **Each iteration:**
 
-1. Claude receives the SAME prompt
+1. Agentreceives the SAME prompt
 2. Works on the task, modifying files
 3. Tries to exit
 4. Stop hook intercepts and feeds the same prompt again
-5. Claude sees its previous work in the files
+5. Agentsees its previous work in the files
 6. Iteratively improves until completion
 
-The technique is described as "deterministically bad in an undeterministic world" - failures are predictable, enabling systematic improvement through prompt tuning.
+The technique is described as "deterministically bad in an undeterministic world" - failures are predictable, enabling
+systematic improvement through prompt tuning.
 
 ## Available Commands
 
@@ -82,7 +85,7 @@ Cancel an active Marbles (removes the loop state file).
 
 ### Completion Promises
 
-To signal completion, Claude must output a `<promise>` tag:
+To signal completion, Agentmust output a `<promise>` tag:
 
 ```
 <promise>TASK COMPLETE</promise>
@@ -92,7 +95,7 @@ The stop hook looks for this specific tag. Without it (or `--max-iterations`), M
 
 ### Self-Reference Mechanism
 
-The "loop" doesn't mean Claude talks to itself. It means:
+The "loop" doesn't mean Agenttalks to itself. It means:
 
 - Same prompt repeated
 - Claude's work persists in files

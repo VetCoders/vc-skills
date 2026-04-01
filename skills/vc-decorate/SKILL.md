@@ -181,7 +181,8 @@ scaffold → init → workflow → followup → marbles → dou → [DECORATE] �
                                                         ^^^^^^^^^^^
 ```
 
-Decorate sits after `dou`, ensuring the now-complete product surface is visually coherent before final packaging (`hydrate`) and shipping (`release`).
+Decorate sits after `dou`, ensuring the now-complete product surface is visually coherent before final packaging (
+`hydrate`) and shipping (`release`).
 
 ---
 
@@ -199,7 +200,8 @@ The user's actual visual language:
 
 Things that merely accumulated:
 
-- inconsistent border radii, mismatched spacing, conflicting button styles, random hover behaviors, or prototype artifacts.
+- inconsistent border radii, mismatched spacing, conflicting button styles, random hover behaviors, or prototype
+  artifacts.
 
 Decorate should preserve **identity** and reduce **drift**.
 

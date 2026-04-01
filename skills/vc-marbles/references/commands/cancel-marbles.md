@@ -13,7 +13,8 @@ hide-from-slash-command-tool: "true"
 
 To cancel the Marbles:
 
-1. Check if `.claude/marbles.local.md` exists using Bash: `test -f .claude/marbles.local.md && echo "EXISTS" || echo "NOT_FOUND"`
+1. Check if `.claude/marbles.local.md` exists using Bash:
+   `test -f .claude/marbles.local.md && echo "EXISTS" || echo "NOT_FOUND"`
 
 2. **If NOT_FOUND**: Say "No active Marbles found."
 

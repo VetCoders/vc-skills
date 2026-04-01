@@ -10,7 +10,8 @@ description: >
 
 # vc-release: Ship to Market
 
-This is where "done in the repo" meets "done in the world." You're moving code from your machine to people's machines. That's not abstract—it's financial, legal, and operational reality.
+This is where "done in the repo" meets "done in the world." You're moving code from your machine to people's machines.
+That's not abstract—it's financial, legal, and operational reality.
 
 ## Pipeline Position
 
@@ -186,11 +187,13 @@ This is where most people get lost. Let's be concrete.
 - Deploy automatically: CI/CD on every docs change.
 - Custom domain: ~$12/year, worth it for credibility.
 
-**Key metric: Can a stranger find your code, understand what it does, and use it in 5 minutes?** If no, you haven't shipped. You've just uploaded files.
+**Key metric: Can a stranger find your code, understand what it does, and use it in 5 minutes?** If no, you haven't
+shipped. You've just uploaded files.
 
 ## The Shipping Mindset
 
-Release is not the end. It's the beginning of learning from real users. But the mechanics above—tags, changelogs, legal clarity, deployment reality—separate projects that sustain from projects that die.
+Release is not the end. It's the beginning of learning from real users. But the mechanics above—tags, changelogs, legal
+clarity, deployment reality—separate projects that sustain from projects that die.
 
 Ship it clean. Ship it documented. Ship it with a plan for what comes next.
 

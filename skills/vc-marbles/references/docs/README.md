@@ -4,9 +4,12 @@ Implementation of the Ralph Wiggum technique for iterative, self-referential AI 
 
 ## What is Marbles?
 
-Marbles is a development methodology based on continuous AI agent loops. As Geoffrey Huntley describes it: **"Ralph is a Bash loop"** - a simple `while true` that repeatedly feeds an AI agent a prompt file, allowing it to iteratively improve its work until completion.
+Marbles is a development methodology based on continuous AI agent loops. As Geoffrey Huntley describes it: **"Ralph is a
+Bash loop"** - a simple `while true` that repeatedly feeds an AI agent a prompt file, allowing it to iteratively improve
+its work until completion.
 
-This technique is inspired by the Ralph Wiggum coding technique (named after the character from The Simpsons), embodying the philosophy of persistent iteration despite setbacks.
+This technique is inspired by the Ralph Wiggum coding technique (named after the character from The Simpsons), embodying
+the philosophy of persistent iteration despite setbacks.
 
 ### Core Concept
 
@@ -24,7 +27,8 @@ This plugin implements Marbles using a **Stop hook** that intercepts Claude's ex
 # 5. Repeat until completion
 ```
 
-The loop happens **inside your current session** - you don't need external bash loops. The Stop hook in `hooks/stop-hook.sh` creates the self-referential feedback loop by blocking normal session exit.
+The loop happens **inside your current session** - you don't need external bash loops. The Stop hook in
+`hooks/stop-hook.sh` creates the self-referential feedback loop by blocking normal session exit.
 
 This creates a **self-referential feedback loop** where:
 
@@ -141,7 +145,8 @@ Always use `--max-iterations` as a safety net to prevent infinite loops on impos
 #  - Suggest alternative approaches"
 ```
 
-**Note**: The `--completion-promise` uses exact string matching, so you cannot use it for multiple completion conditions (like "SUCCESS" vs "BLOCKED"). Always rely on `--max-iterations` as your primary safety mechanism.
+**Note**: The `--completion-promise` uses exact string matching, so you cannot use it for multiple completion
+conditions (like "SUCCESS" vs "BLOCKED"). Always rely on `--max-iterations` as your primary safety mechanism.
 
 ## Philosophy
 
@@ -189,7 +194,8 @@ Keep trying until success. The loop handles retry logic automatically.
 
 The stop hook uses a bash script that requires Git for Windows to run properly.
 
-**Issue**: On Windows, the `bash` command may resolve to WSL bash (often misconfigured) instead of Git Bash, causing the hook to fail with errors like:
+**Issue**: On Windows, the `bash` command may resolve to WSL bash (often misconfigured) instead of Git Bash, causing the
+hook to fail with errors like:
 
 - `wsl: Unknown key 'automount.crossDistro'`
 - `execvpe(/bin/bash) failed: No such file or directory`
@@ -197,12 +203,15 @@ The stop hook uses a bash script that requires Git for Windows to run properly.
 **Workaround**: Edit the cached plugin's `hooks/hooks.json` to use Git Bash explicitly:
 
 ```json
-"command": "\"C:/Program Files/Git/bin/bash.exe\" ${CLAUDE_PLUGIN_ROOT}/hooks/stop-hook.sh"
+{
+  "command": "\"C:/Program Files/Git/bin/bash.exe\" ${CLAUDE_PLUGIN_ROOT}/hooks/stop-hook.sh"
+}
 ```
 
 **Location**: `~/.claude/plugins/cache/claude-plugins-official/ralph-wiggum/<hash>/hooks/hooks.json`
 
-**Note**: Use `Git/bin/bash.exe` (the wrapper with proper PATH), not `Git/usr/bin/bash.exe` (raw MinGW bash without utilities in PATH).
+**Note**: Use `Git/bin/bash.exe` (the wrapper with proper PATH), not `Git/usr/bin/bash.exe` (raw MinGW bash without
+utilities in PATH).
 
 ## Learn More
 

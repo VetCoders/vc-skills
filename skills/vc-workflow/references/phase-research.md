@@ -134,8 +134,8 @@ Artifact root: ~/.vibecrafted/artifacts/<org>/<repo>/<YYYY_MMDD>/
 
 - **Context**: <from CONTEXT.md>
 - **Options considered**:
-  1. <option A> — <pros/cons>
-  2. <option B> — <pros/cons>
+  1. {option A} — {pros/cons}
+  2. {option B} — {pros/cons}
 - **Chosen**: <option> because <reasoning based on findings>
 - **Consequences**: <what this means for implementation>
 
@@ -145,7 +145,7 @@ Artifact root: ~/.vibecrafted/artifacts/<org>/<repo>/<YYYY_MMDD>/
 
 - <concrete guidance derived from research>
 - <API patterns to use>
-- <pitfalls to avoid>
+- {pitfalls to avoid}
 
 ### Dependencies to add:
 

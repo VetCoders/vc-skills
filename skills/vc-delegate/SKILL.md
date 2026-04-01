@@ -25,7 +25,8 @@ description: >
 Use this skill only when all of the following are true:
 
 - The task is small, bounded, or clearly low-risk for native delegation
-- The task does not need model-specific strengths such as Codex purity, Claude investigative nature, or Gemini creativity
+- The task does not need model-specific strengths such as Codex purity, Claude investigative nature, or Gemini
+  creativity
 - You want in-session visibility more than runtime robustness
 - Terminal/CLI agent runtime is unavailable, undesirable, or disproportionate
 
@@ -64,7 +65,8 @@ Use this decision rule everywhere in VetCoders skills:
 
 1. `vc-agents` is the default first choice.
 2. `vc-delegate` is allowed only when the task is small or does not need model-specific-only features.
-3. If you want Codex purity, Claude's investigative nature, Gemini creativity, durable artifacts, or external robustness, choose `vc-agents`.
+3. If you want Codex purity, Claude's investigative nature, Gemini creativity, durable artifacts, or external
+   robustness, choose `vc-agents`.
 
 ## Standard Workflow
 

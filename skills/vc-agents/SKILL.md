@@ -25,9 +25,12 @@ Trigger when the user asks to delegate work, especially phrases like:
 
 - Your context is precious and built through many sessions, so you should delegate precisely and minimize context bloat.
 - Spawning through the VibeCrafted method requires a strict execution pattern.
-- The command shape is canonical and obligatory without exceptions. If you hesitate to use it as provided, do not use this skill.
-- Agents are copies of yourself: same smart, same capable, just lighter and more agile because they do not carry your full context window.
-- Spawn exists so field teams can implement, research, review, and converge outside the main thread while still leaving durable artifacts in the canonical store.
+- The command shape is canonical and obligatory without exceptions. If you hesitate to use it as provided, do not use
+  this skill.
+- Agents are copies of yourself: same smart, same capable, just lighter and more agile because they do not carry your
+  full context window.
+- Spawn exists so field teams can implement, research, review, and converge outside the main thread while still leaving
+  durable artifacts in the canonical store.
 
 ## Why-matrix
 
@@ -40,7 +43,8 @@ Reach for native `vc-delegate` only when the task is small, bounded, and model-a
 | Claude | Investigative depth, stubborn logic tracing, and exhaustive research instincts. | Bug hunts, codebase forensics, audits, architecture research, and SoTA framework assessment.          | The work is mostly straightforward code surgery and does not need a full investigative pass.                              |
 | Gemini | Bold reframing, creative system redesign, and fearless simplification.          | Architecture leaps, radical cleanup ideas, product reframing, and high-variance creative exploration. | The task only needs predictable, surgical implementation and low-variance execution.                                      |
 
-If the task wants one of these strengths, external agents win by default because you can route work to the right mind instead of forcing a generic in-thread delegation path.
+If the task wants one of these strengths, external agents win by default because you can route work to the right mind
+instead of forcing a generic in-thread delegation path.
 
 ## Goal
 
@@ -62,8 +66,10 @@ Then collect their results in `~/.vibecrafted/artifacts/<org>/<repo>/<YYYY_MMDD>
 1. Clarify scope if needed.
    - If tasks are not explicit, propose a split into 2-5 items and get alignment.
 2. Prepare repo folders.
-   - Ensure `skills/vc-agents/scripts/common.sh` `spawn_prepare_paths()` has materialized `~/.vibecrafted/artifacts/<org>/<repo>/<YYYY_MMDD>/{plans,reports,tmp}/`.
-   - Repo-local `.vibecrafted/plans -> ~/.vibecrafted/artifacts/.../plans` and `.vibecrafted/reports -> ~/.vibecrafted/artifacts/.../reports` are convenience symlink paths only.
+   - Ensure `skills/vc-agents/scripts/common.sh` `spawn_prepare_paths()` has materialized
+     `~/.vibecrafted/artifacts/<org>/<repo>/<YYYY_MMDD>/{plans,reports,tmp}/`.
+   - Repo-local `.vibecrafted/plans -> ~/.vibecrafted/artifacts/.../plans` and
+     `.vibecrafted/reports -> ~/.vibecrafted/artifacts/.../reports` are convenience symlink paths only.
 3. Write one plan per subagent in the canonical `plans/` directory.
    - Keep it high level, decisive, and test-gated.
    - Provide reason and context.
@@ -160,7 +166,8 @@ Living tree note:
 
 The canonical launch path for agent-to-agent delegation is through the portable spawn scripts.
 
-If the environment has optional shell aliases (like `codex-implement`), those are just convenience wrappers around these exact same scripts. Always use the portable scripts to ensure maximum compatibility.
+If the environment has optional shell aliases (like `codex-implement`), those are just convenience wrappers around these
+exact same scripts. Always use the portable scripts to ensure maximum compatibility.
 
 ### Codex
 
@@ -187,7 +194,8 @@ If these tools are unavailable, stop pretending spawn is correctly configured an
 
 ## Output convention
 
-- Plans: `~/.vibecrafted/artifacts/<org>/<repo>/<YYYY_MMDD>/plans/<timestamp>_<slug>.md` or another stable per-task filename
+- Plans: `~/.vibecrafted/artifacts/<org>/<repo>/<YYYY_MMDD>/plans/<timestamp>_<slug>.md` or another stable per-task
+  filename
 - Reports: `~/.vibecrafted/artifacts/<org>/<repo>/<YYYY_MMDD>/reports/<timestamp>_<slug>_<agent>.md`
 - Transcripts: `~/.vibecrafted/artifacts/<org>/<repo>/<YYYY_MMDD>/reports/<timestamp>_<slug>_<agent>.transcript.log`
 - Metadata: `~/.vibecrafted/artifacts/<org>/<repo>/<YYYY_MMDD>/reports/<timestamp>_<slug>_<agent>.meta.json`

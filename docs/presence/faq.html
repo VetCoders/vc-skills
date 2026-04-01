@@ -59,7 +59,7 @@
                     the shell helpers, or the license before they know whether the system fits.
                 </p>
                 <p class="manifesto-quote">
-                    ⁿⁱᵉ 𝐩𝐨 𝐬ł𝐨𝐰𝐚𝐜𝐡, ˡᵉᶜᶻ ᶜᶻʸⁿᵃᶜʰ 𝐢𝐜𝐡 𝐨𝐬ą𝐝𝐳𝐚𝐣𝐜𝐢𝐞
+                    Created by itself through the vibecraftsmanship.
                 </p>
                 <div class="manifesto-actions">
                     <a class="btn-solid" href="quickstart.html">Read Quick Start</a>
@@ -73,7 +73,8 @@
                         <h2>Installation</h2>
                         <details class="faq-item" open>
                             <summary>Why does VibeCrafted install into <code>~/.vibecrafted/</code> instead of
-                                <code>~/.agents/</code>?</summary>
+                                <code>~/.agents/</code>?
+                            </summary>
                             <p><code>~/.vibecrafted/</code> is the central store and control plane. Agent-specific
                                 directories are only views or symlink targets. The real source of truth, artifacts, and
                                 helper state live in one place.</p>
@@ -82,7 +83,8 @@
                             <summary>Can I install VibeCrafted without editing my shell config?</summary>
                             <p>Yes. During the interactive path you can opt out of shell-helper installation. If you
                                 still want helpers in the current session, source
-                                <code>${XDG_CONFIG_HOME:-$HOME/.config}/vetcoders/vc-skills.sh</code> manually.</p>
+                                <code>${XDG_CONFIG_HOME:-$HOME/.config}/vetcoders/vc-skills.sh</code> manually.
+                            </p>
                         </details>
                         <details class="faq-item">
                             <summary>What does <code>make doctor</code> actually check?</summary>
@@ -94,7 +96,8 @@
                             <summary>Which install path should I use in CI or automation?</summary>
                             <p>Use <code>make install</code> for the direct non-interactive path, or call
                                 <code>python3 scripts/vetcoders_install.py install --source "$PWD" --non-interactive</code>
-                                when you want full CLI control.</p>
+                                when you want full CLI control.
+                            </p>
                         </details>
                     </article>
 

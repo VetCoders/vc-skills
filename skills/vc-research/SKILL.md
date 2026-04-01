@@ -48,7 +48,8 @@ Do NOT use for:
 
 - Questions answerable by reading one file in the repo
 - Problems where loctree slice + grep gives the answer in 30 seconds
-- Pure implementation tasks (use vc-workflow, usually through vc-agents; use vc-delegate only for small model-agnostic work)
+- Pure implementation tasks (use vc-workflow, usually through vc-agents; use vc-delegate only for small model-agnostic
+  work)
 
 ## The 6-Step Research Flow
 
@@ -137,7 +138,8 @@ bash $VIBECRAFT_ROOT/skills/vc-agents/scripts/codex_spawn.sh "$PLAN" --mode rese
 bash $VIBECRAFT_ROOT/skills/vc-agents/scripts/gemini_spawn.sh "$PLAN" --mode research
 ```
 
-If your environment has the shell aliases (e.g. `claude-research`), those are convenience wrappers that point to these exact scripts.
+If your environment has the shell aliases (e.g. `claude-research`), those are convenience wrappers that point to these
+exact scripts.
 
 All three get the same plan. All three work independently. This is intentional —
 divergence between reports reveals blind spots.

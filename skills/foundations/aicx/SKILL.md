@@ -38,7 +38,7 @@ work the same.
 ## Useful Flags
 
 | Flag                       | Effect                             |
-| -------------------------- | ---------------------------------- |
+|----------------------------|------------------------------------|
 | `--conversation`           | User/assistant only, no tool noise |
 | `--max-message-chars 8000` | Truncate long messages             |
 | `--user-only`              | Only user messages                 |
