@@ -21,13 +21,14 @@ jobs:
         run: make check
       - name: Install pytest
         run: python3 -m pip install pytest
-
       - name: Run installer tests
         run: make test
-
       - name: Check marketplace bundle drift
         run: make bundle-check
-
+      - name: Install uv
+        run: curl -LsSf https://astral.sh/uv/install.sh | sh
+      - name: Run tests
+        run: make test
       - name: Read version
         id: version
         run: |
