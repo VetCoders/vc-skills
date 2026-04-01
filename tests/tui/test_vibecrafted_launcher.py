@@ -99,6 +99,7 @@ def test_vc_help_wrapper_symlink_renders_main_help(tmp_path: Path) -> None:
 
 
 def test_repo_launcher_is_directly_executable() -> None:
+    expected_version = (REPO_ROOT / "VERSION").read_text(encoding="utf-8").strip()
     result = subprocess.run(
         [str(LAUNCHER), "help"],
         check=True,
@@ -108,3 +109,4 @@ def test_repo_launcher_is_directly_executable() -> None:
     )
 
     assert "VibeCrafted" in result.stdout
+    assert expected_version in result.stdout

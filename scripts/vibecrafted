@@ -30,9 +30,20 @@ _modes=(implement research review plan prompt observe)
 _skills=(decorate delegate dou followup hydrate justdo marbles partner prune release research review scaffold workflow)
 
 _version() {
-  local vf="$crafted_home/VERSION"
-  [[ -f "$vf" ]] || vf="$crafted_tools/VERSION"
-  [[ -f "$vf" ]] && cat "$vf" || echo "?"
+  local script_dir repo_root vf
+  script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+  repo_root="$(cd "$script_dir/.." && pwd)"
+
+  for vf in \
+    "$crafted_home/VERSION" \
+    "$crafted_tools/VERSION" \
+    "$repo_root/VERSION"; do
+    [[ -f "$vf" ]] || continue
+    cat "$vf"
+    return 0
+  done
+
+  echo "?"
 }
 
 _repo_root() {
