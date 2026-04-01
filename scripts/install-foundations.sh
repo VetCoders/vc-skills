@@ -39,6 +39,7 @@ die()  { printf '\033[31mError:\033[0m %s\n' "$*" >&2; exit 1; }
 info() { printf '\033[36m▸\033[0m %s\n' "$*"; }
 ok()   { printf '\033[32m✓\033[0m %s\n' "$*"; }
 warn() { printf '\033[33m!\033[0m %s\n' "$*"; }
+# shellcheck disable=SC2317 # invoked indirectly by callers
 skip() { printf '\033[2m- %s\033[0m\n' "$*"; }
 
 detect_os() {
@@ -121,6 +122,7 @@ install_loctree() {
 
   info "Downloading loctree v${LOCTREE_VERSION} for ${os}/${arch}..."
   tmpdir="$(mktemp -d)"
+  # shellcheck disable=SC2064 # intentional: expand $tmpdir now
   trap "rm -rf '$tmpdir'" RETURN
 
   local archive="$tmpdir/$asset"
@@ -201,6 +203,7 @@ install_from_cargo() {
   # Install to a temp dir, then copy binaries to PREFIX
   local cargo_root
   cargo_root="$(mktemp -d)"
+  # shellcheck disable=SC2064 # intentional: expand $cargo_root now
   trap "rm -rf '$cargo_root'" RETURN
 
   if cargo install "$crate" --root "$cargo_root" 2>&1; then
@@ -376,6 +379,7 @@ if (( exit_code == 0 )) && (( !CHECK_ONLY )); then
     *":$PREFIX:"*) ;;
     *)
       printf '\n\033[33mAdd to your shell profile:\033[0m\n'
+      # shellcheck disable=SC2016 # $PATH is literal output for the user
       printf '  export PATH="%s:$PATH"\n\n' "$PREFIX"
       ;;
   esac
