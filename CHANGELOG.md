@@ -3,6 +3,26 @@
 All notable changes to VibeCrafted are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/).
 
+## 1.2.1 — 2026-04-01
+
+### Added
+
+- `make foundations` — portable installer for loctree and ai-contexters binaries
+  - Downloads pre-built loctree v0.8.16 binaries (notarized/signed) for macOS, Linux, Windows
+  - Installs ai-contexters via GitHub release binary or `cargo install` fallback
+  - `make foundations-check` for dry-run preview
+  - `scripts/install-foundations.sh` works standalone or via Make
+- Python-native `shutil.copytree` fallback when `rsync` is not available
+  - `rsync` downgraded from critical to recommended dependency
+  - `make install` now succeeds on systems without rsync (fresh containers, Windows WSL)
+
+### Fixed
+
+- **Python 3.11 compatibility**: f-string backslash escapes in `vetcoders_install.py`
+  caused `SyntaxError` on Python < 3.12 (the `\U` unicode escapes inside f-string
+  expressions). Extracted to variables.
+- `rsync` no longer blocks installation — `make install` uses pure-Python copy as fallback
+
 ## 1.2.0 — 2026-03-29
 
 ### Added

@@ -299,7 +299,8 @@ FOUNDATIONS: List[Foundation] = [
     ),
 ]
 
-RUNTIME_DEPS = ["python3", "git", "rsync"]
+RUNTIME_DEPS = ["python3", "git"]
+RECOMMENDED_DEPS = ["rsync"]
 OPTIONAL_DEPS = [
     "zsh"
 ]  # helpers work in bash and zsh; core install works without either
@@ -377,6 +378,8 @@ def detect_system_deps() -> Dict[str, Optional[str]]:
     """Check which system dependencies are available."""
     result = {}
     for cmd in RUNTIME_DEPS:
+        result[cmd] = shutil.which(cmd)
+    for cmd in RECOMMENDED_DEPS:
         result[cmd] = shutil.which(cmd)
     return result
 
@@ -1111,21 +1114,41 @@ def report_helper_conflicts(
 # ---------------------------------------------------------------------------
 
 
+_RSYNC_EXCLUDES = {".DS_Store", ".loctree"}
+
+
+def _copytree_skill(src: Path, dst: Path, mirror: bool = False) -> None:
+    """Pure-Python fallback when rsync is not available."""
+    if mirror and dst.exists():
+        shutil.rmtree(dst)
+    dst.mkdir(parents=True, exist_ok=True)
+    for item in src.iterdir():
+        if item.name in _RSYNC_EXCLUDES:
+            continue
+        target = dst / item.name
+        if item.is_dir():
+            _copytree_skill(item, target, mirror=False)
+        else:
+            shutil.copy2(str(item), str(target))
+
+
 def rsync_skill(
     src: Path, dst: Path, dry_run: bool = False, mirror: bool = False
 ) -> None:
-    """Rsync a single skill directory."""
-    if not dry_run:
-        dst.mkdir(parents=True, exist_ok=True)
-    cmd = ["rsync", "-az", "--exclude", ".DS_Store", "--exclude", ".loctree"]
-    if mirror:
-        cmd.append("--delete")
+    """Sync a single skill directory. Uses rsync when available, shutil otherwise."""
     if dry_run:
-        cmd += ["--dry-run"]
-    cmd += [str(src) + "/", str(dst) + "/"]
-    subprocess.run(
-        cmd, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL
-    )
+        return
+    dst.mkdir(parents=True, exist_ok=True)
+    if shutil.which("rsync"):
+        cmd = ["rsync", "-az", "--exclude", ".DS_Store", "--exclude", ".loctree"]
+        if mirror:
+            cmd.append("--delete")
+        cmd += [str(src) + "/", str(dst) + "/"]
+        subprocess.run(
+            cmd, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL
+        )
+    else:
+        _copytree_skill(src, dst, mirror=mirror)
 
 
 def prune_orphaned_skills(
@@ -1554,12 +1577,12 @@ def run_doctor(store_path: Path, state: InstallState) -> List[DoctorFinding]:
 
 def print_doctor(findings: List[DoctorFinding]) -> int:
     """Print doctor findings. Returns exit code (0 if no failures)."""
-    if _IS_TTY:
-        print(
-            f"\n{bold('\U0001d54d\U0001d55a\U0001d553\U0001d556\U0001d554\U0001d563\U0001d552\U0001d557\U0001d565 Doctor')}\n"
-        )
-    else:
-        print(f"\n{bold('VibeCrafted Doctor')}\n")
+    _doctor_title = (
+        "\U0001d54d\U0001d55a\U0001d553\U0001d556\U0001d554\U0001d563\U0001d552\U0001d557\U0001d565 Doctor"
+        if _IS_TTY
+        else "VibeCrafted Doctor"
+    )
+    print(f"\n{bold(_doctor_title)}\n")
 
     fails = 0
     warns = 0
@@ -1590,7 +1613,8 @@ def print_doctor(findings: List[DoctorFinding]) -> int:
         print(f"  {yellow('Installation healthy with minor warnings.')}\n")
         return 0
     else:
-        print(f"  {green('\u2713 Installation healthy.')}\n")
+        _healthy = "\u2713 Installation healthy."
+        print(f"  {green(_healthy)}\n")
         return 0
 
 
@@ -1699,6 +1723,10 @@ def _cmd_install_verbose(args: argparse.Namespace, repo_root: Path) -> int:
                     for cmd, path in sys_deps.items():
                         if path:
                             print(f"  {OK} {cmd} -> {dim(path)}")
+                        elif cmd in RECOMMENDED_DEPS:
+                            print(
+                                f"  {WARN} {cmd} {dim('(recommended; Python fallback available)')}"
+                            )
                         else:
                             print(f"  {MISS} {cmd}")
 
@@ -1712,9 +1740,7 @@ def _cmd_install_verbose(args: argparse.Namespace, repo_root: Path) -> int:
                     print()
 
                     missing_critical = [
-                        cmd
-                        for cmd in ("python3", "git", "rsync")
-                        if not sys_deps.get(cmd)
+                        cmd for cmd in ("python3", "git") if not sys_deps.get(cmd)
                     ]
                     if missing_critical:
                         print(
@@ -2174,9 +2200,7 @@ def _cmd_install_compact(args: argparse.Namespace, repo_root: Path) -> int:
 
     # --- System check (critical deps — must fail visibly) ---
     sys_deps = detect_system_deps()
-    missing_critical = [
-        cmd for cmd in ("python3", "git", "rsync") if not sys_deps.get(cmd)
-    ]
+    missing_critical = [cmd for cmd in ("python3", "git") if not sys_deps.get(cmd)]
     if missing_critical:
         print(red(f"  Missing critical dependencies: {', '.join(missing_critical)}"))
         print("  Install them before continuing.")
