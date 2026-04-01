@@ -35,6 +35,10 @@ jobs:
           sudo apt-get install -y rsync
       - name: Run portable checks
         run: bash scripts/check-portable.sh
+      - name: Install uv
+        run: curl -LsSf https://astral.sh/uv/install.sh | sh
+      - name: Run tests
+        run: make test
 
   curl-bootstrap:
     name: curl | bash bootstrap
