@@ -60,6 +60,7 @@ convergence, packaging, and release.
 - homepage: https://vetcoders.github.io/vibecrafted/
 - repository: https://github.com/VetCoders/vibecrafted
 - documentation: https://vetcoders.github.io/vibecrafted/quickstart.html
+- faq: https://vetcoders.github.io/vibecrafted/faq.html
 - license: Business Source License 1.1 with Additional Use Grant for non-competitive small-team production use
 
 ---

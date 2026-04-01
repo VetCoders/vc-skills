@@ -5,8 +5,8 @@ set -euo pipefail
 _expand_home_path() {
   local raw="${1:-}"
   case "$raw" in
-    "~") printf '%s\n' "$HOME" ;;
-    "~/"*) printf '%s/%s\n' "$HOME" "${raw:2}" ;;
+    [~]) printf '%s\n' "$HOME" ;;
+    [~]/*) printf '%s/%s\n' "$HOME" "${raw:2}" ;;
     *) printf '%s\n' "$raw" ;;
   esac
 }
@@ -193,7 +193,7 @@ cmd_init() {
   esac
 
   skill_path="$(_resolve_skill_path "vc-init" "$agent")" || return 1
-  printf -v init_prompt 'Use [$vc-init](%s) on this repository and give me full operating context.' "$skill_path"
+  printf -v init_prompt "Use [\$vc-init](%s) on this repository and give me full operating context." "$skill_path"
 
   printf '%b⚒%b  Starting %b%s%b with vc-init...\n' "$_copper" "$_reset" "$_bold" "$agent" "$_reset"
   case "$agent" in
@@ -374,7 +374,7 @@ main() {
       }
       run_mode "$cmd" "$mode" "$@"
       ;;
-    init|decorate|delegate|dou|followup|hydrate|justdo|marbles|partner|prune|release|research|review|scaffold|workflow)
+    decorate|delegate|dou|followup|hydrate|justdo|marbles|partner|prune|release|research|review|scaffold|workflow)
       run_skill "$cmd" "$@"
       ;;
     *)

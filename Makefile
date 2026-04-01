@@ -6,7 +6,7 @@ SHELL_INSTALLER := skills/vc-agents/scripts/install-shell.sh
 SOURCE   := $(CURDIR)
 BRANCH   ?= main
 
-.PHONY: help vibecrafted check test install skills helpers setup-dev dry-run doctor list update uninstall restore migrate migrate-dry init-hooks bundle bundle-check
+.PHONY: help vibecrafted check test install skills helpers setup-dev dry-run doctor list update uninstall restore migrate migrate-dry init-hooks bundle bundle-check foundations foundations-check
 
 help:
 	@printf "\n"
@@ -18,6 +18,7 @@ help:
 	@printf "  \033[33m◆\033[0m  make install       \033[2mSkills + shell helpers (Direct)\033[0m\n"
 	@printf "  \033[33m◇\033[0m  make skills        \033[2mSkills only\033[0m\n"
 	@printf "  \033[33m◇\033[0m  make helpers       \033[2mShell helpers only\033[0m\n"
+	@printf "  \033[33m◇\033[0m  make foundations   \033[2mInstall loctree + aicx binaries\033[0m\n"
 	@printf "\n"
 	@printf "  \033[36m▸\033[0m  make setup-dev     \033[2mSelective interactive install\033[0m\n"
 	@printf "  \033[36m▸\033[0m  make dry-run       \033[2mPreview install actions\033[0m\n"
@@ -52,6 +53,12 @@ skills:
 
 helpers:
 	@bash $(SHELL_INSTALLER) --source "$(SOURCE)"
+
+foundations:
+	@bash scripts/install-foundations.sh
+
+foundations-check:
+	@bash scripts/install-foundations.sh --check
 
 setup-dev: init-hooks
 	@$(PYTHON) $(INSTALLER) install --source "$(SOURCE)" --advanced

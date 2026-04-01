@@ -14,6 +14,8 @@ def test_parse_listing_metadata_reads_current_registry_fields() -> None:
 
     assert metadata.homepage == "https://vetcoders.github.io/vibecrafted/"
     assert metadata.repository == "https://github.com/VetCoders/vibecrafted"
+    assert metadata.documentation.endswith("/quickstart.html")
+    assert metadata.faq.endswith("/faq.html")
     assert metadata.license.startswith("Business Source License 1.1")
     assert "codex" in metadata.keywords
 

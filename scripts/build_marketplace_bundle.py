@@ -45,7 +45,7 @@ def parse_listing_metadata(text: str) -> ListingMetadata:
 
     for raw_line in text.splitlines():
         line = raw_line.rstrip()
-        if line.strip() == "## Registry Metadata Draft":
+        if line.strip() in {"## Registry Metadata", "## Registry Metadata Draft"}:
             in_registry_section = True
             continue
         if not in_registry_section:
