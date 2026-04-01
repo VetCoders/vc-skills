@@ -391,6 +391,8 @@ def detect_system_deps() -> Dict[str, Optional[str]]:
         result[cmd] = shutil.which(cmd)
     for cmd in RECOMMENDED_DEPS:
         result[cmd] = shutil.which(cmd)
+    for cmd in OPTIONAL_DEPS:
+        result[cmd] = shutil.which(cmd)
     return result
 
 
@@ -899,12 +901,14 @@ def _old_zshrc_source_line() -> str:
     return '[[ -r "${XDG_CONFIG_HOME:-$HOME/.config}/zsh/vc-skills.zsh" ]] && source "${XDG_CONFIG_HOME:-$HOME/.config}/zsh/vc-skills.zsh"'
 
 
-def _helper_surface_label() -> str:
+def _helper_surface_label(*, zsh_available: Optional[bool] = None) -> str:
     helper_file = _helper_target_path()
     legacy_file = _helper_legacy_path()
+    if zsh_available is None:
+        zsh_available = shutil.which("zsh") is not None
 
     if helper_file.exists():
-        return "bash + zsh"
+        return "bash + zsh" if zsh_available else "bash only"
     if legacy_file.exists():
         return "legacy zsh"
     return "not installed"

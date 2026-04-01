@@ -98,7 +98,40 @@ def test_helper_surface_label_prefers_canonical_helper(
     canonical = home / ".config" / "vetcoders" / "vc-skills.sh"
     canonical.parent.mkdir(parents=True)
     canonical.write_text("# canonical\n", encoding="utf-8")
-    assert vetcoders_install._helper_surface_label() == "bash + zsh"
+    assert vetcoders_install._helper_surface_label(zsh_available=True) == "bash + zsh"
+
+
+def test_helper_surface_label_reports_bash_only_when_zsh_missing(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    home = tmp_path / "home"
+    monkeypatch.setenv("HOME", str(home))
+    monkeypatch.setenv("XDG_CONFIG_HOME", str(home / ".config"))
+
+    canonical = home / ".config" / "vetcoders" / "vc-skills.sh"
+    canonical.parent.mkdir(parents=True)
+    canonical.write_text("# canonical\n", encoding="utf-8")
+
+    assert vetcoders_install._helper_surface_label(zsh_available=False) == "bash only"
+
+
+def test_detect_system_deps_includes_optional_shells(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    paths = {
+        "python3": "/usr/bin/python3",
+        "git": "/usr/bin/git",
+        "rsync": "/usr/bin/rsync",
+        "zsh": "/bin/zsh",
+    }
+
+    monkeypatch.setattr(
+        vetcoders_install.shutil,
+        "which",
+        lambda cmd: paths.get(cmd),
+    )
+
+    assert vetcoders_install.detect_system_deps() == paths
 
 
 def test_strip_rc_entry_removes_duplicate_launcher_blocks() -> None:
