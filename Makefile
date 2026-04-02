@@ -47,6 +47,7 @@ vibecrafted: init-hooks
 
 install: init-hooks
 	@$(PYTHON) $(INSTALLER) install --source "$(SOURCE)" --with-shell --non-interactive
+	@bash skills/vc-agents/scripts/install-frontier-config.sh --source "$(SOURCE)" 2>/dev/null || true
 
 skills:
 	@$(PYTHON) $(INSTALLER) install --source "$(SOURCE)" --non-interactive

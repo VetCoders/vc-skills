@@ -302,9 +302,9 @@ cmd_init() {
 
   printf '%b⚒%b  Starting %b%s%b with vc-init...\n' "$_copper" "$_reset" "$_bold" "$agent" "$_reset"
   case "$agent" in
-    claude) claude -i "$init_prompt" ;;
-    codex) codex -i "$init_prompt" ;;
-    gemini) gemini -i "$init_prompt" ;;
+    claude) claude "$init_prompt" ;;
+    codex) codex "$init_prompt" ;;
+    gemini) gemini "$init_prompt" ;;
   esac
 }
 
@@ -414,10 +414,30 @@ run_skill() {
     return
   fi
 
+  if [[ "$agent" == "dashboard" ]]; then
+    cmd_dashboard "vc-${skill}" "$@"
+    return
+  fi
+
   _has_agent "$agent" || {
     printf '%b[error]%b Usage: vibecrafted %s <claude|codex|gemini> [args]\n' "$_red" "$_reset" "$skill" >&2
     return 1
   }
+
+  # Auto-wrap in zellij if outside a session and a layout exists
+  if [[ -z "${ZELLIJ:-}" ]] && command -v zellij >/dev/null 2>&1; then
+    local layouts_dir="${XDG_CONFIG_HOME:-$HOME/.config}/zellij/layouts"
+    local layout=""
+    if [[ -f "${layouts_dir}/vc-${skill}.kdl" ]]; then
+      layout="${layouts_dir}/vc-${skill}.kdl"
+    elif [[ -f "${layouts_dir}/vibecrafted.kdl" ]]; then
+      layout="${layouts_dir}/vibecrafted.kdl"
+    fi
+    if [[ -n "$layout" ]]; then
+      zellij --layout "$layout"
+      return
+    fi
+  fi
 
   _ensure_helpers_loaded || return 1
   _run_helper "${agent}-skill-${skill}" "$@"
@@ -443,6 +463,7 @@ run_wrapper() {
     return
   fi
   local skill="${wrapper#vc-}"
+  [[ "$skill" != "implement" ]] || skill="justdo"
   _has_skill "$skill" || {
     printf '%b[error]%b Unknown wrapper: %s\n' "$_red" "$_reset" "$wrapper" >&2
     return 1
@@ -503,6 +524,7 @@ main() {
       }
       run_mode "$cmd" "$mode" "$@"
       ;;
+    implement) run_skill "justdo" "$@" ;;
     decorate|delegate|dou|followup|hydrate|justdo|marbles|partner|prune|release|research|review|scaffold|workflow)
       run_skill "$cmd" "$@"
       ;;

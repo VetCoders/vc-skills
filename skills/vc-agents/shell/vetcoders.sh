@@ -376,6 +376,22 @@ _vetcoders_skill() {
   local tool="$1"
   local skill="$2"
   shift 2
+  # Route "dashboard" to zellij layout for this skill
+  if [[ "$tool" == "dashboard" ]]; then
+    vc-dashboard "vc-${skill}" "$@"
+    return
+  fi
+  # Auto-wrap in zellij if outside a session
+  if [[ -z "${ZELLIJ:-}" ]] && command -v zellij >/dev/null 2>&1; then
+    local _layouts="${XDG_CONFIG_HOME:-$HOME/.config}/zellij/layouts"
+    local _layout=""
+    [[ -f "${_layouts}/vc-${skill}.kdl" ]] && _layout="${_layouts}/vc-${skill}.kdl"
+    [[ -n "$_layout" ]] || { [[ -f "${_layouts}/vibecrafted.kdl" ]] && _layout="${_layouts}/vibecrafted.kdl"; }
+    if [[ -n "$_layout" ]]; then
+      zellij --layout "$_layout"
+      return
+    fi
+  fi
   local code="${skill:0:4}"
   local loop_nr="${VIBECRAFT_LOOP_NR:-0}"
   _vetcoders_parse_contract "$@" || return 1
@@ -416,6 +432,11 @@ gemini-hydrate() { _vetcoders_skill gemini hydrate "$@"; }
 _vetcoders_marbles() {
   local tool="$1"
   shift
+  # Route "dashboard" to zellij layout
+  if [[ "$tool" == "dashboard" ]]; then
+    vc-dashboard vc-marbles "$@"
+    return
+  fi
   local script
   script="$(_vetcoders_spawn_script "$tool" "marbles_spawn.sh")" || return 1
   _vetcoders_parse_contract "$@" || return 1
