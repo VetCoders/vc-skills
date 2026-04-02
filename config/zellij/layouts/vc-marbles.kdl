@@ -13,7 +13,7 @@ layout {
             plugin location="zellij:status-bar"
         }
     }
-    tab name="vc-marbles" focus=true {
+    tab name="𝚅𝚒𝚋𝚎𝚌𝚛𝚊𝚏𝚝𝚎𝚍. Marbles" focus=true {
         pane split_direction="horizontal" {
             // Operator consoles — top 60%
             pane split_direction="vertical" size="60%" {

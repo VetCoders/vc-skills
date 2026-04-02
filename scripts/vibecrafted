@@ -297,6 +297,17 @@ cmd_init() {
     gemini) command -v gemini >/dev/null 2>&1 || return 1 ;;
   esac
 
+  # Auto-wrap in zellij if outside a session
+  if [[ -z "${ZELLIJ:-}" ]] && command -v zellij >/dev/null 2>&1; then
+    local _layouts="${XDG_CONFIG_HOME:-$HOME/.config}/zellij/layouts"
+    local _layout=""
+    [[ -f "${_layouts}/vibecrafted.kdl" ]] && _layout="${_layouts}/vibecrafted.kdl"
+    if [[ -n "$_layout" ]]; then
+      zellij --layout "$_layout"
+      return
+    fi
+  fi
+
   skill_path="$(_resolve_skill_path "vc-init" "$agent")" || return 1
   printf -v init_prompt "Use [\$vc-init](%s) on this repository and give me full operating context." "$skill_path"
 

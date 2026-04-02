@@ -10,7 +10,7 @@ layout {
             plugin location="zellij:status-bar"
         }
     }
-    tab name="vc-workflow" split_direction="vertical" {
+    tab name="𝚅𝚒𝚋𝚎𝚌𝚛𝚊𝚏𝚝𝚎𝚍. Workflow" split_direction="vertical" {
         pane name="main" size="70%" focus=true command="zsh"
         pane split_direction="horizontal" {
             pane name="agent-1" command="zsh"

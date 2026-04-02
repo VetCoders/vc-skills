@@ -1,17 +1,26 @@
 // vibecrafted — general-purpose branded workspace
 // Launch: vibecrafted dashboard vibecrafted
+// Fallback layout for skills without a dedicated vc-*.kdl
 layout {
-    pane size=1 borderless=true {
-        plugin location="zellij:compact-bar"
-    }
-    pane split_direction="vertical" {
-        pane name="main" focus=true size="60%"
-        pane split_direction="horizontal" size="40%" {
-            pane name="agent-1"
-            pane name="agent-2"
+    default_tab_template {
+        pane size=1 borderless=true {
+            plugin location="zellij:compact-bar"
+        }
+        children
+        pane size=2 borderless=true {
+            plugin location="zellij:status-bar"
         }
     }
-    pane size=2 borderless=true {
-        plugin location="zellij:status-bar"
+    tab name="𝚅𝚒𝚋𝚎𝚌𝚛𝚊𝚏𝚝𝚎𝚍." focus=true {
+        pane split_direction="horizontal" {
+            pane split_direction="vertical" size="60%" {
+                pane name="agent" size="50%" focus=true
+                pane name="operator" size="50%"
+            }
+            pane split_direction="vertical" size="40%" {
+                pane name="monitor-1" size="50%"
+                pane name="monitor-2" size="50%"
+            }
+        }
     }
 }

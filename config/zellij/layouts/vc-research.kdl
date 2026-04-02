@@ -10,7 +10,7 @@ layout {
             plugin location="zellij:status-bar"
         }
     }
-    tab name="vc-research" {
+    tab name="𝚅𝚒𝚋𝚎𝚌𝚛𝚊𝚏𝚝𝚎𝚍. Research" {
         pane split_direction="vertical" {
             pane split_direction="horizontal" {
                 pane name="claude" command="zsh"
