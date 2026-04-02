@@ -57,11 +57,11 @@
                 <div class="section-label">FAQ</div>
                 <h1 class="manifesto-title">Pytania, które padają na początku.</h1>
                 <p class="manifesto-lead">
-                    Tutaj wyjaśniamy, jak działa VibeCrafted — bez zmuszania Cię do przekopywania repo, konfiguracji shella
-                    czy licencji.
+                    Tutaj wyjaśniamy, jak działa vibecrafted. Bez potrzeby zaglądania do repo, konfigurowania shella
+                    czy czytania licencji.
                 </p>
                 <p class="manifesto-quote">
-                    Framework, który stworzył sam siebie.
+                    Framework, który zbudował sam siebie.
                 </p>
                 <div class="manifesto-actions">
                     <a class="btn-solid" href="quickstart.html">Szybki start</a>
@@ -77,24 +77,24 @@
                             <summary>Dlaczego VibeCrafted instaluje się do <code>~/.vibecrafted/</code>, a nie do
                                 <code>~/.agents/</code>?
                             </summary>
-                            <p><code>~/.vibecrafted/</code> to miejsce, w którym działa cały system. Katalogi agentów tylko odwołują się do tego jednego wspólnego miejsca. To właśnie tam trafiają logika, artefakty i skrypty pomocnicze.</p>
+                            <p><code>~/.vibecrafted/</code> to centralne miejsce, z którego działa cały system. Katalogi agentów tylko wskazują na ten wspólny katalog. To właśnie tam trafiają logika, artefakty i skrypty pomocnicze.</p>
                         </details>
                         <details class="faq-item">
                             <summary>Czy mogę zainstalować VibeCrafted bez edycji konfiguracji shella?</summary>
-                            <p>Tak. W trybie interaktywnym możesz zrezygnować z instalacji helperów. Jeśli chcesz mieć
-                                je tylko w bieżącej sesji, załaduj ręcznie skrypt pomocniczy
+                            <p>Tak. W trybie interaktywnym możesz zrezygnować z instalacji helperów. Jeśli chcesz używać
+                                ich tylko w bieżącej sesji, uruchom ręcznie skrypt pomocniczy
                                 <code>${XDG_CONFIG_HOME:-$HOME/.config}/vetcoders/vc-skills.sh</code>.</p>
                         </details>
                         <details class="faq-item">
                             <summary>Co dokładnie sprawdza <code>vibecrafted doctor</code>?</summary>
-                            <p>Polecenie <code>doctor</code> sprawdza centralny magazyn, dostępność helperów, stan
+                            <p>Polecenie <code>doctor</code> sprawdza centralny katalog, dostępność helperów, poprawność
                                 odwołań agentów, opcjonalne zależności, takie jak loctree, aicx i prview, oraz to, czy
-                                środowisko nie przeszkadza narzędziom agentowym w stabilnej pracy.</p>
+                                środowisko nie utrudnia stabilnej pracy narzędzi agentowych.</p>
                         </details>
                         <details class="faq-item">
                             <summary>Którą ścieżkę instalacji wybrać w CI lub automatyzacji?</summary>
-                            <p>Użyj <code>make install</code>, jeśli chcesz prostą ścieżkę bez interakcji. Jeśli
-                                potrzebujesz pełnej kontroli z poziomu wiersza poleceń, uruchom
+                            <p>Użyj <code>make install</code>, jeśli chcesz prostego, nieinteraktywnego sposobu instalacji. Jeśli
+                                chcesz mieć pełną kontrolę z poziomu wiersza poleceń, uruchom
                                 <code>python3 scripts/vetcoders_install.py install --source "$PWD" --non-interactive</code>.
                             </p>
                         </details>
@@ -104,22 +104,22 @@
                         <h2>Skille, agenci, zależności</h2>
                         <details class="faq-item" open>
                             <summary>Jaka jest różnica między skillem a agentem?</summary>
-                            <p>Agent to runtime — na przykład Codex, Claude albo Gemini.
-                                Skill to zestaw instrukcji i zasad pracy, które mówią agentowi, jak ma działać na danym
+                            <p>Agent to runtime, na przykład Codex, Claude albo Gemini.
+                                Skill to zestaw instrukcji i zasad pracy, które określają, jak agent ma działać na danym
                                 etapie.</p>
                         </details>
                         <details class="faq-item">
                             <summary>Dlaczego nie po prostu ChatGPT, Copilot albo jeden wielki prompt?</summary>
-                            <p>Bo VibeCrafted nie służy tylko do rozmowy z modelem. Opiera pracę na strukturze kodu, pamięci decyzji i iteracji. Dzięki temu model widzi repo i realną powierzchnię produktu, zamiast improwizować po omacku.</p>
+                            <p>Bo vibecrafted. nie służy tylko do rozmowy z modelem. Opiera pracę na strukturze kodu, pamięci decyzji i iteracyjnym dopracowywaniu wyników. Dzięki temu model widzi repo i realną powierzchnię produktu, zamiast improwizować po omacku.</p>
                         </details>
                         <details class="faq-item">
                             <summary>Czy mogę używać VibeCrafted bez loctree albo aicx?</summary>
-                            <p>Technicznie tak, ale tracisz rozumienie struktury i ciągłość między sesjami. Framework dalej działa, tylko agent pracuje na dużo słabszym kontekście.</p>
+                            <p>Technicznie tak, ale tracisz rozumienie struktury repo i ciągłość między sesjami. Framework dalej działa, ale agent pracuje na dużo słabszym kontekście.</p>
                         </details>
                         <details class="faq-item">
                             <summary>Co to jest pętla Marbles?</summary>
-                            <p>Marbles to silnik konwergencji. Wynik AI bywa zaszumiony, więc framework zapętla
-                                implementację, sprawdzenie, pomiar i poprawki, aż najważniejsze problemy spadną do zera.
+                            <p>Marbles to mechanizm konwergencji. Wynik AI bywa zaszumiony, więc framework powtarza
+                                cykl implementacji, sprawdzenia, pomiaru i poprawek, aż najważniejsze problemy spadną do zera.
                             </p>
                         </details>
                     </article>
@@ -128,18 +128,18 @@
                         <h2>Praca z frameworkiem</h2>
                         <details class="faq-item" open>
                             <summary>Kiedy używać <code>vc-justdo</code> zamiast ręcznych faz?</summary>
-                            <p>Użyj <code>vc-justdo</code>, kiedy zadanie jest jasne i chcesz, żeby agent dowiózł je od
-                                początku do końca. Ręczne fazy wybierz wtedy, gdy chcesz bliżej pilnować kierunku i
+                            <p>Użyj <code>vc-justdo</code>, gdy zadanie jest jasne i chcesz, żeby agent dowiózł je od
+                                początku do końca. Ręczne fazy wybierz wtedy, gdy chcesz uważniej pilnować kierunku i
                                 decyzji architektonicznych.</p>
                         </details>
                         <details class="faq-item">
                             <summary>Co znajduje się w <code>~/.vibecrafted/artifacts/</code>?</summary>
-                            <p>To tutaj trafiają plany, raporty, transkrypty i metadane z większych uruchomień. Powstało po to, żeby praca agentów zostawiała trwały ślad, a nie znikała w historii terminala.</p>
+                            <p>To tutaj trafiają plany, raporty, transkrypty i metadane z większych przebiegów. To po to, żeby praca agentów zostawiała trwały ślad, a nie znikała w historii terminala.</p>
                         </details>
                         <details class="faq-item">
                             <summary>Czym jest Definition of Undone?</summary>
                             <p>DoU to audyt, który sprawdza, czy ktoś z zewnątrz może ten projekt znaleźć, zrozumieć,
-                                zainstalować i mu zaufać. Mierzy prawdę powierzchni produktu, a nie tylko stan repo.</p>
+                                zainstalować i uznać za godny zaufania. Patrzy na projekt z perspektywy odbiorcy, a nie tylko na stan repo.</p>
                         </details>
                     </article>
 
@@ -147,18 +147,17 @@
                         <h2>Licencja i użycie komercyjne</h2>
                         <details class="faq-item" open>
                             <summary>Czy VibeCrafted jest open source?</summary>
-                            <p>VibeCrafted jest udostępniany na licencji Business Source License 1.1. Repo jest
-                                publiczne i można z niego korzystać, ale nie jest to klasyczny open source na licencji
-                                permisyjnej.</p>
+                            <p>vibecrafted. jest udostępniany na licencji Business Source License 1.1. Repo jest
+                                publiczne i można z niego korzystać, ale nie jest to klasyczny open source na permisyjnej licencji.</p>
                         </details>
                         <details class="faq-item">
                             <summary>Czy małe zespoły mogą używać VibeCrafted produkcyjnie?</summary>
-                            <p>Tak. Ten grant pozwala pojedynczym deweloperom i zespołom mniejszym niż pięć osób używać frameworka w produkcji, o ile nie oferują konkurencyjnej usługi hostowanej ani rozwiązania osadzonego.</p>
+                            <p>Tak. Ten zapis pozwala pojedynczym deweloperom i zespołom mniejszym niż pięć osób używać frameworka produkcyjnie, o ile nie budują konkurencyjnej usługi działającej w modelu hostowanym ani nie oferują go jako części własnego produktu.</p>
                         </details>
                         <details class="faq-item">
                             <summary>Co jeśli potrzebuję szerszego modelu komercyjnego?</summary>
-                            <p>Jeśli potrzebujesz szerszych uprawnień komercyjnych, skontaktuj się z VetCoders.
-                                Przeczytaj warunki licencji i ustal właściwą ścieżkę.</p>
+                            <p>Jeśli potrzebujesz szerszych uprawnień komercyjnych, skontaktuj się z VetCoders i
+                                sprawdź, jaki model licencji będzie dla Ciebie odpowiedni.</p>
                         </details>
                     </article>
                 </div>
@@ -178,7 +177,7 @@
             <img src="../presence/logo-32.png" alt="" class="footer-logo" width="24" height="24">
             <span class="footer-title">VIBECRAFTED</span>
         </div>
-        <p class="footer-tagline">Stworzone po północy, pod presją. Odpalone na localhost.</p>
+        <p class="footer-tagline">Zrobione po północy. Odpalone na localhost.</p>
         <nav class="footer-links" aria-label="Footer links">
             <a href="index.html">Przegląd</a>
             <a href="quickstart.html">Szybki start</a>

@@ -56,13 +56,13 @@
         <div class="docs-shell">
             <section class="docs-hero fade-up">
                 <div class="section-label">Szybki start</div>
-                <h1 class="manifesto-title">Od zera do pierwszej pętli VibeCrafted.</h1>
+                <h1 class="manifesto-title">Od zera do pierwszej pętli w vibecrafted.</h1>
                 <p class="manifesto-lead">
                     Zainstaluj framework, sprawdź środowisko i uruchom pierwszy workflow w realnym repozytorium.
-                    Chodzi o szybki sygnał, nie o długie ustawianie środowiska.
+                    Chodzi o szybki start i pierwszy realny efekt, nie o długie ustawianie środowiska.
                 </p>
                 <p class="manifesto-quote">
-                    Framework, który stworzył sam siebie.
+                    Framework, który zbudował sam siebie.
                 </p>
                 <div class="manifesto-actions">
                     <a class="btn-solid" href="index.html">Wróć do przeglądu</a>
@@ -75,42 +75,42 @@
                     <article class="docs-card">
                         <p class="docs-kicker">Krok 1</p>
                         <h3>Zainstaluj VibeCrafted lokalnie</h3>
-                        <p>To polecenie tworzy kopię w <code>~/.vibecrafted/tools</code> i uruchamia system w tej wersji.</p>
+                        <p>To polecenie tworzy lokalną kopię w <code>~/.vibecrafted/tools</code> i uruchamia framework właśnie z niej.</p>
                         <div class="code-block">
                             <button class="copy-btn" type="button">Kopiuj</button>
                             <pre><code>curl -fsSLO https://raw.githubusercontent.com/VetCoders/vibecrafted/main/install.sh
 bash install.sh</code></pre>
                         </div>
-                        <p class="docs-note">Po instalacji otwórz nowy terminal albo ręcznie załaduj helpery w bieżącej sesji.</p>
+                        <p class="docs-note">Po instalacji otwórz nowy terminal albo ręcznie aktywuj helpery w bieżącej sesji.</p>
                     </article>
 
                     <article class="docs-card">
                         <p class="docs-kicker">Krok 2</p>
                         <h3>Sprawdź, czy wszystko jest gotowe</h3>
-                        <p>Uruchom <code>doctor</code> wcześnie. Szybko pokaże, czy środowisko jest gotowe do pracy i czy czegoś jeszcze nie brakuje.</p>
+                        <p>Odpal <code>doctor</code> od razu. Szybko pokaże, czy środowisko jest gotowe i czego jeszcze brakuje.</p>
                         <div class="code-block">
                             <button class="copy-btn" type="button">Kopiuj</button>
                             <pre><code>vibecrafted doctor</code></pre>
                         </div>
-                        <p class="docs-note">Jeśli coś świeci na żółto, doctor pokaże, czego brakuje, zamiast zostawiać Cię z domysłami.</p>
+                        <p class="docs-note">Jeśli coś świeci się na żółto, doctor pokaże konkretnie, czego brakuje, zamiast zostawiać Cię z domysłami.</p>
                     </article>
 
                     <article class="docs-card">
                         <p class="docs-kicker">Krok 3</p>
                         <h3>Wejdź w realne repo</h3>
-                        <p>Wejdź do repo, które naprawdę ma znaczenie, i pozwól agentowi załadować historię, strukturę i bramki jakości, zanim cokolwiek zmieni.</p>
+                        <p>Wejdź do repo, nad którym faktycznie pracujesz, i pozwól agentowi wczytać historię, strukturę i bramki jakości, zanim zacznie cokolwiek zmieniać w kodzie.</p>
                         <div class="code-block">
                             <button class="copy-btn" type="button">Kopiuj</button>
                             <pre><code>cd ~/twoj-projekt
 vc-init claude</code></pre>
                         </div>
-                        <p class="docs-note"><code>vc-init</code> czyta historię, mapuje strukturę i uruchamia bramki jakości, zanim zacznie się implementacja.</p>
+                        <p class="docs-note"><code>vc-init</code> wczytuje historię, mapuje strukturę i odpala bramki jakości, zanim zacznie się implementacja.</p>
                     </article>
 
                     <article class="docs-card">
                         <p class="docs-kicker">Krok 4</p>
                         <h3>Uruchom pierwsze realne zadanie</h3>
-                        <p>Gdy kontekst jest już zakotwiczony, możesz uruchomić pełną ścieżkę realizacji albo bardziej kontrolowany workflow, zależnie od tego, ile kontroli chcesz zachować.</p>
+                        <p>Gdy agent ma już osadzony kontekst, możesz uruchomić pełny workflow albo wybrać bardziej kontrolowany tryb pracy, zależnie od tego, ile kontroli chcesz zachować.</p>
                         <div class="code-block">
                             <button class="copy-btn" type="button">Kopiuj</button>
                             <pre><code>vc-justdo codex "Dodaj uwierzytelnianie użytkowników z JWT"</code></pre>
@@ -119,13 +119,13 @@ vc-init claude</code></pre>
                             <button class="copy-btn" type="button">Kopiuj</button>
                             <pre><code>vc-workflow claude "Zaplanuj i zaimplementuj moduł auth"</code></pre>
                         </div>
-                        <p class="docs-note">Użyj <code>vc-justdo</code>, gdy chcesz oddać agentowi pełną odpowiedzialność. Użyj <code>vc-workflow</code>, gdy chcesz przejść przez wyraźny układ ERI: Eksploruj → Rozpoznaj → Implementuj.</p>
+                        <p class="docs-note">Użyj <code>vc-justdo</code>, gdy chcesz oddać agentowi pełną odpowiedzialność. Użyj <code>vc-workflow</code>, gdy chcesz przejść przez układ ERI: Eksploruj → Rozpoznaj → Implementuj.</p>
                     </article>
 
                     <article class="docs-card">
                         <p class="docs-kicker">Krok 5</p>
                         <h3>Uruchom flotę, gdy jeden model nie wystarcza</h3>
-                        <p>Ta ścieżka służy do pracy równoległej i zostawia trwałe artefakty. Chodzi o realne porównanie wyników, nie o pokaz.</p>
+                        <p>Ten tryb służy do pracy równoległej i zostawia po sobie trwałe artefakty. Tu chodzi o rzetelne porównanie wyników w praktyce, nie o efektowną demonstrację.</p>
                         <div class="code-block">
                             <button class="copy-btn" type="button">Kopiuj</button>
                             <pre><code>vibecrafted codex implement .vibecrafted/plans/my-plan.md
@@ -137,7 +137,7 @@ vibecrafted gemini implement .vibecrafted/plans/my-plan.md</code></pre>
                     <article class="docs-card">
                         <p class="docs-kicker">Krok 6</p>
                         <h3>Domknij pętlę, zanim uznasz pracę za skończoną</h3>
-                        <p>W VibeCrafted „gotowe” nie oznacza tylko działającego kodu. Oznacza też to, czy ktoś rzeczywiście może z tego skorzystać.</p>
+                        <p>W vibecrafted. „gotowe” nie oznacza tylko kodu, który działa. Oznacza też: ktoś naprawdę może z tego skorzystać.</p>
                         <div class="code-block">
                             <button class="copy-btn" type="button">Kopiuj</button>
                             <pre><code>vc-dou claude
@@ -166,9 +166,9 @@ vc-release codex</code></pre>
                         <p class="resource-kicker">Po instalacji</p>
                         <h3>Co dostajesz po instalacji</h3>
                         <ul class="resource-list">
-                            <li>Centralny magazyn skilli w <code>~/.vibecrafted/skills/</code></li>
+                            <li>Centralny katalog skilli w <code>~/.vibecrafted/skills/</code></li>
                             <li>Artefakty pogrupowane według repozytorium i daty w <code>~/.vibecrafted/artifacts/</code></li>
-                            <li>Helpery shellowe do uruchamiania agentów, obserwacji sesji, Marbles, DoU, Hydrate i Release</li>
+                            <li>Helpery shellowe do uruchamiania agentów, podglądu sesji oraz pracy z Marbles, DoU, Hydrate i Release</li>
                             <li>Lokalną kopię frameworka w <code>~/.vibecrafted/tools/</code></li>
                         </ul>
                     </article>
@@ -188,7 +188,7 @@ vc-release codex</code></pre>
             <img src="../presence/logo-32.png" alt="" class="footer-logo" width="24" height="24">
             <span class="footer-title">VIBECRAFTED</span>
         </div>
-        <p class="footer-tagline">Stworzone po północy, pod presją. Odpalone na localhost.</p>
+        <p class="footer-tagline">Zrobione po północy, pod presją. Odpalone na localhost.</p>
         <nav class="footer-links" aria-label="Footer links">
             <a href="index.html">Przegląd</a>
             <a href="faq.html">FAQ</a>
