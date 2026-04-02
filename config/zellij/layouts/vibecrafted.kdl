@@ -1,3 +1,5 @@
+// vibecrafted — general-purpose branded workspace
+// Launch: vibecrafted dashboard vibecrafted
 layout {
     pane size=1 borderless=true {
         plugin location="zellij:compact-bar"
@@ -8,5 +10,8 @@ layout {
             pane name="agent-1"
             pane name="agent-2"
         }
+    }
+    pane size=2 borderless=true {
+        plugin location="zellij:status-bar"
     }
 }

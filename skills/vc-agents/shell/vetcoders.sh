@@ -449,13 +449,13 @@ _vetcoders_marbles() {
 
   # Auto-launch zellij if not inside a session and zellij is available
   if [[ -z "${ZELLIJ:-}" ]] && command -v zellij >/dev/null 2>&1; then
-    local layout_file="${XDG_CONFIG_HOME:-$HOME/.config}/zellij/layouts/marbles-session.kdl"
+    local layout_file="${XDG_CONFIG_HOME:-$HOME/.config}/zellij/layouts/vc-marbles.kdl"
     if [[ -f "$layout_file" ]]; then
       printf '\033[38;5;173m ⚒  Launching marbles workspace in zellij...\033[0m\n'
       # Re-invoke ourselves inside zellij
       local self_cmd="bash $(printf '%q' "$script") ${marbles_args[*]}"
-      zellij --layout marbles-session action new-pane -- bash -lc "$self_cmd" 2>/dev/null \
-        || zellij --layout marbles-session 2>/dev/null \
+      zellij --layout vc-marbles action new-pane -- bash -lc "$self_cmd" 2>/dev/null \
+        || zellij --layout vc-marbles 2>/dev/null \
         || bash "$script" "${marbles_args[@]}"
       return $?
     fi
@@ -660,7 +660,8 @@ Command deck:
   vibecrafted <skill> <agent>    Run a repo skill via the launcher
   vibecrafted resume <agent>     Resume a previous session
   vibecrafted workflow claude -p "Plan and implement auth"
-  vibecrafted marbles codex --count 4 --depth 4
+  vibecrafted marbles codex --count 3 --depth 3
+  vibecrafted dashboard --layout vc-marbles
   vibecrafted init claude        First-context entrypoint
 
 Uniform skill flags:
@@ -673,7 +674,7 @@ Uniform skill flags:
 Utilities:
   repo-full                      Full git context dump
   skills-sync                    Sync skills to agents
-  vc-dashboard                   Open Mission Control zellij dashboard
+  vc-dashboard [--layout name]   Zellij workspace (vc-marbles, vc-research, vc-workflow)
   vc-frontier-paths              Show frontier config paths
   vc-frontier-install            Install starship/atuin/zellij presets
   vc-help                        This help
@@ -877,10 +878,10 @@ vc-dashboard() {
   local config="" layout="" layouts_dir repo_root session_name
   repo_root="${VIBECRAFT_ROOT:-$(_vetcoders_repo_root)}"
 
-  # Parse --config <name-or-path>
+  # Parse --layout <name-or-path>  (--config kept for compat)
   while [[ $# -gt 0 ]]; do
     case "$1" in
-      --config) shift; config="${1:-}" ;;
+      --layout|--config) shift; config="${1:-}" ;;
       *) config="$1" ;;
     esac
     shift
@@ -891,7 +892,7 @@ vc-dashboard() {
   [[ -d "$layouts_dir" ]] || layouts_dir="$repo_root/config/zellij/layouts"
 
   if [[ -n "$config" ]]; then
-    # --config can be a full path or a layout name (with or without .kdl)
+    # Resolve: full path, exact name, or vc-* name (with or without .kdl)
     if [[ -f "$config" ]]; then
       layout="$config"
     elif [[ -f "${layouts_dir}/${config}.kdl" ]]; then
@@ -906,16 +907,13 @@ vc-dashboard() {
       return 1
     fi
   else
-    # Default: mission-control
-    layout="${layouts_dir}/mission-control.kdl"
+    # Default: vc-dashboard
+    layout="${layouts_dir}/vc-dashboard.kdl"
     [[ -f "$layout" ]] || {
-      echo "Mission control layout not found. Run vc-frontier-install first." >&2
+      echo "Dashboard layout not found. Run vc-frontier-install first." >&2
       return 1
     }
   fi
-
-  # Session name from layout filename
-  session_name="vc-$(basename "$layout" .kdl)"
 
   # Launch: new tab if inside zellij, new session otherwise
   if [[ -n "${ZELLIJ:-}" ]]; then

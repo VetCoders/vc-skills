@@ -14,8 +14,8 @@ try:
 except ModuleNotFoundError:  # pragma: no cover - import path depends on entrypoint
     from scripts.vetcoders_install import discover_skills
 
-OUTPUT_FILENAME = "vibecraft-framework.plugin"
-PLUGIN_NAME = "vibecraft-framework"
+OUTPUT_FILENAME = "vibecrafted-framework.plugin"
+PLUGIN_NAME = "vibecrafted-framework"
 FIXED_ZIP_DATE_TIME = (2026, 3, 30, 0, 0, 0)
 DEFAULT_FILE_MODE = 0o100644
 IGNORED_PATH_PARTS = {".DS_Store", "__pycache__", ".pytest_cache"}

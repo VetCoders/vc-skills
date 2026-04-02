@@ -1,0 +1,16 @@
+// vc-marbles — convergence workspace
+// Launch: vibecrafted dashboard vc-marbles
+layout {
+    pane size=1 borderless=true {
+        plugin location="zellij:compact-bar"
+    }
+    tab name="vc-marbles" focus=true {
+        pane split_direction="vertical" {
+            pane name="terminal" size="60%" focus=true
+            pane name="agent" size="40%"
+        }
+    }
+    pane size=2 borderless=true {
+        plugin location="zellij:status-bar"
+    }
+}

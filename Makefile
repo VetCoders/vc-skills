@@ -73,7 +73,7 @@ list:
 	@$(PYTHON) $(INSTALLER) list --source "$(SOURCE)"
 
 bundle:
-	@$(PYTHON) scripts/build_marketplace_bundle.py --output "$(SOURCE)/vibecraft-framework.plugin"
+	@$(PYTHON) scripts/build_marketplace_bundle.py --output "$(SOURCE)/vibecrafted-framework.plugin"
 
 bundle-check:
 	@$(PYTHON) scripts/build_marketplace_bundle.py --check

@@ -166,7 +166,7 @@ cmd_help() {
   printf '  %bvibecrafted%b <agent> <mode> [args]     implement/research/review/plan/prompt/observe\n' "$_cyan" "$_reset"
   printf '  %bvibecrafted status%b                    Today'"'"'s agent activity\n' "$_cyan" "$_reset"
   printf '  %bvibecrafted doctor%b                    Verify installation health\n' "$_cyan" "$_reset"
-  printf '  %bvibecrafted dashboard%b                 Open mission control\n' "$_cyan" "$_reset"
+  printf '  %bvibecrafted dashboard%b [--layout name]  Zellij workspace (vc-marbles, vc-research, vc-workflow)\n' "$_cyan" "$_reset"
   printf '  %bvibecrafted uninstall%b                 Reverse the install\n' "$_cyan" "$_reset"
   printf '\n'
   printf '%bExamples:%b\n' "$_bold" "$_reset"
@@ -239,7 +239,7 @@ cmd_help_full() {
   printf '  %bvibecrafted init%b [agent]              Interactive init session\n' "$_cyan" "$_reset"
   printf '  %bvibecrafted resume%b <agent> [flags]    Resume an existing agent session\n' "$_cyan" "$_reset"
   printf '  %bvibecrafted status%b                    Today'"'"'s agent activity\n' "$_cyan" "$_reset"
-  printf '  %bvibecrafted dashboard%b                 Mission control (Zellij)\n' "$_cyan" "$_reset"
+  printf '  %bvibecrafted dashboard%b [--layout name]  Zellij workspace (vc-marbles, vc-research, vc-workflow)\n' "$_cyan" "$_reset"
   printf '  %bvibecrafted doctor%b                    Installation health check\n' "$_cyan" "$_reset"
   printf '  %bvibecrafted version%b                   Print version\n' "$_cyan" "$_reset"
   printf '  %bvibecrafted uninstall%b                 Reverse the install\n' "$_cyan" "$_reset"
@@ -273,7 +273,8 @@ cmd_help_full() {
   printf '  vibecrafted init claude\n'
   printf '  vibecrafted workflow claude --prompt "Plan and implement auth"\n'
   printf '  vibecrafted workflow claude --file /path/to/brief.md\n'
-  printf '  vibecrafted marbles codex --count 4 --depth 4\n'
+  printf '  vibecrafted marbles codex --count 3 --depth 3\n'
+  printf '  vibecrafted dashboard --layout vc-marbles\n'
   printf '  vibecrafted justdo codex --prompt "Ship the feature"\n'
   printf '  vibecrafted dou claude\n'
   printf '  vibecrafted hydrate codex\n'

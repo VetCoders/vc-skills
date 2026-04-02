@@ -106,9 +106,10 @@ printf '  mode: %s\n' "$mode"
 install_one "$repo_root/config/starship.toml" "${XDG_CONFIG_HOME:-$HOME/.config}/starship.toml"
 install_one "$repo_root/config/atuin/config.toml" "${XDG_CONFIG_HOME:-$HOME/.config}/atuin/config.toml"
 install_one "$repo_root/config/zellij/config.kdl" "${XDG_CONFIG_HOME:-$HOME/.config}/zellij/config.kdl"
-install_one "$repo_root/config/zellij/layouts/research-grid.kdl" "${XDG_CONFIG_HOME:-$HOME/.config}/zellij/layouts/research-grid.kdl"
-install_one "$repo_root/config/zellij/layouts/implement-dual.kdl" "${XDG_CONFIG_HOME:-$HOME/.config}/zellij/layouts/implement-dual.kdl"
+install_one "$repo_root/config/zellij/layouts/vc-research.kdl" "${XDG_CONFIG_HOME:-$HOME/.config}/zellij/layouts/vc-research.kdl"
+install_one "$repo_root/config/zellij/layouts/vc-workflow.kdl" "${XDG_CONFIG_HOME:-$HOME/.config}/zellij/layouts/vc-workflow.kdl"
+install_one "$repo_root/config/zellij/layouts/vc-marbles.kdl" "${XDG_CONFIG_HOME:-$HOME/.config}/zellij/layouts/vc-marbles.kdl"
+install_one "$repo_root/config/zellij/layouts/vc-dashboard.kdl" "${XDG_CONFIG_HOME:-$HOME/.config}/zellij/layouts/vc-dashboard.kdl"
 install_one "$repo_root/config/zellij/layouts/vibecrafted.kdl" "${XDG_CONFIG_HOME:-$HOME/.config}/zellij/layouts/vibecrafted.kdl"
-install_one "$repo_root/config/zellij/layouts/mission-control.kdl" "${XDG_CONFIG_HOME:-$HOME/.config}/zellij/layouts/mission-control.kdl"
 
 printf 'Done.\n'

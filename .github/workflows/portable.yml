@@ -24,13 +24,11 @@ jobs:
       - name: Run shell checks
         run: make check
       - name: Install uv
-        run: curl -LsSf https://astral.sh/uv/install.sh | sh
-      - name: Install pytest
-        run: uv pip install pytest --break-system-packages
+        uses: astral-sh/setup-uv@v6
       - name: Run installer tests
-        run: uv run make test
+        run: make test
       - name: Check marketplace bundle drift
-        run: uv run make bundle-check
+        run: make bundle-check
       - name: Install rsync on Ubuntu
         if: runner.os == 'Linux'
         run: |
@@ -38,7 +36,7 @@ jobs:
       - name: Run portable checks
         run: bash scripts/check-portable.sh
       - name: Run tests
-        run: uv run make test
+        run: make test
 
   curl-bootstrap:
     name: curl | bash bootstrap

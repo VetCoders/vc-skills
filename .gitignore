@@ -16,6 +16,8 @@
 /.playwright-mcp
 *.out
 *.zip
+*.plugin
+*.sha256
 /.vibecrafted
 CLAUDE.md
 AGENTS.md
