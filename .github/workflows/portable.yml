@@ -9,28 +9,31 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, macos-latest]
-    runs-on: ${{ matrix.os }}
+        include:
+          - runner: dragon-macos
+            os: macOS
+          - runner: ops-linux
+            os: Linux
+    runs-on: ${{ matrix.runner }}
     steps:
       - uses: actions/checkout@v4
-      - name: Install shellcheck on Ubuntu
-        if: runner.os == 'Linux'
+      - name: Install shellcheck on Linux
+        if: matrix.os == 'Linux'
         run: |
           sudo apt-get update
           sudo apt-get install -y shellcheck
-      - name: Install shellcheck on macOS
-        if: runner.os == 'macOS'
-        run: brew install shellcheck
       - name: Run shell checks
         run: make check
       - name: Install uv
         uses: astral-sh/setup-uv@v6
       - name: Run installer tests
         run: make test
+      - name: Build marketplace bundle
+        run: make bundle
       - name: Check marketplace bundle drift
         run: make bundle-check
-      - name: Install rsync on Ubuntu
-        if: runner.os == 'Linux'
+      - name: Install rsync on Linux
+        if: matrix.os == 'Linux'
         run: |
           sudo apt-get install -y rsync
       - name: Run portable checks
@@ -41,12 +44,11 @@ jobs:
   curl-bootstrap:
     name: curl | bash bootstrap
     needs: portable
-    runs-on: ubuntu-latest
+    runs-on: ops-linux
     steps:
       - uses: actions/checkout@v4
       - name: Serve install.sh locally and bootstrap
         run: |
-          # Create a local archive from the checked-out source
           archive="/tmp/vibecrafted-bootstrap.tar.gz"
           tar -czf "$archive" --exclude='.git' -C "$GITHUB_WORKSPACE" .
           bash install.sh --archive-file "$archive"
