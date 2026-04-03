@@ -1125,7 +1125,7 @@ _vetcoders_marbles() {
   fi
 
   quoted_args="$(_vetcoders_shell_quote_join "${marbles_args[@]}")"
-  marbles_cmd="export VIBECRAFT_ZELLIJ_SPAWN_DIRECTION=right; bash $(printf '%q' "$script") ${quoted_args}"
+  marbles_cmd="bash $(printf '%q' "$script") ${quoted_args}"
   operator_session="${VIBECRAFT_OPERATOR_SESSION:-}"
   if [[ -z "$operator_session" ]] && _vetcoders_in_zellij; then
     operator_session="$(_vetcoders_current_zellij_session_name)"

@@ -36,11 +36,11 @@ The point was whether the thing could be made real.
 We respect clear thinking, real execution, and systems that survive contact with reality.
 Everything else is costume.
 
-## 𝚅𝚒𝚋𝚎𝚌𝚛𝚊𝚏𝚝𝚒𝚗𝚐 is a real engineering mode
+## 𝚅𝚒𝚋𝚎𝚌𝚛𝚊𝚏𝚝𝚜𝚖𝚊𝚗𝚜𝚑𝚒𝚙 is a real engineering mode
 
 What some people dismiss as “vibe coding” becomes powerful only when discipline enters the room.
 
-𝚅𝚒𝚋𝚎𝚌𝚛𝚊𝚏𝚝𝚒𝚗𝚐 is structured human-AI collaborative engineering [1].
+𝚅𝚒𝚋𝚎𝚌𝚛𝚊𝚏𝚝𝚜𝚖𝚊𝚗𝚜𝚑𝚒𝚙 is structured human-AI collaborative engineering [1].
 It is not blind prompting.
 It is not random generation with post-rationalized hope.
 It is a mixed-initiative process with constraints, checkpoints, and ruthless feedback loops [1].

@@ -155,27 +155,46 @@ def test_generated_launcher_preserves_operator_session_contract(tmp_path: Path) 
     assert payload == [operator_session, "right"]
 
 
-def test_spawn_prepare_paths_warns_when_run_id_falls_back(tmp_path: Path) -> None:
+def test_spawn_prepare_paths_generates_real_run_context_when_missing(
+    tmp_path: Path,
+) -> None:
     prompt_file = tmp_path / "prompt.md"
     prompt_file.write_text("# Prompt\n", encoding="utf-8")
 
     result = _bash(
         f'''
         set -euo pipefail
+        export HOME="{tmp_path / "home"}"
+        mkdir -p "$HOME"
         source "{COMMON_SH}"
         unset VIBECRAFT_RUN_ID
-        export VIBECRAFT_SKILL_CODE="fwup"
+        unset VIBECRAFT_RUN_LOCK
+        unset VIBECRAFT_SKILL_CODE
         export VIBECRAFT_LOOP_NR="0"
-        spawn_prepare_paths claude "{prompt_file}" "{tmp_path}"
-        printf '%s\\n' "$SPAWN_RUN_ID"
+        spawn_prepare_paths claude "{prompt_file}" "{tmp_path}" "followup"
+        printf 'RUN_ID=%s\\n' "$SPAWN_RUN_ID"
+        printf 'SKILL_CODE=%s\\n' "$SPAWN_SKILL_CODE"
+        printf 'RUN_LOCK=%s\\n' "$SPAWN_RUN_LOCK"
         '''
     )
 
-    assert result.stdout.strip().endswith("fwup-000")
-    assert (
-        "Warning: VIBECRAFT_RUN_ID missing; falling back to synthetic run_id fwup-000"
-        in result.stderr
+    payload = dict(
+        line.split("=", 1) for line in result.stdout.strip().splitlines() if "=" in line
     )
+    assert re.fullmatch(r"fwup-\d{6}", payload["RUN_ID"])
+    assert payload["SKILL_CODE"] == "fwup"
+    lock_path = Path(payload["RUN_LOCK"])
+    expected_lock = (
+        tmp_path
+        / "home"
+        / ".vibecrafted"
+        / "locks"
+        / tmp_path.name
+        / f"{payload['RUN_ID']}.lock"
+    )
+    assert lock_path == expected_lock
+    assert "skill=followup" in lock_path.read_text(encoding="utf-8")
+    assert result.stderr == ""
 
 
 def test_spawn_in_operator_session_targets_named_session(tmp_path: Path) -> None:

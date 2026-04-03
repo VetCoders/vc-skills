@@ -17,6 +17,7 @@
 *.out
 *.zip
 *.plugin
+!vibecrafted-framework.plugin
 *.sha256
 /.vibecrafted
 CLAUDE.md

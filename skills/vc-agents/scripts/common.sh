@@ -28,6 +28,56 @@ spawn_repo_root() {
   git rev-parse --show-toplevel 2>/dev/null || pwd
 }
 
+spawn_org_repo() {
+  local root="${1:-$(spawn_repo_root)}"
+  local fallback_to_basename="${2:-1}"
+  local org_repo=""
+  org_repo="$(cd "$root" && git remote get-url origin 2>/dev/null | sed -E 's|.*[:/]([^/]+)/([^/.]+)(\.git)?$|\1/\2|' || true)"
+  if [[ -n "$org_repo" ]]; then
+    printf '%s\n' "$org_repo"
+  elif [[ "$fallback_to_basename" == "1" ]]; then
+    printf '%s\n' "$(basename "$root")"
+  else
+    printf '\n'
+  fi
+}
+
+spawn_skill_prefix() {
+  local name="${1:-}"
+  case "$name" in
+    agents) printf 'agnt\n' ;;
+    decorate) printf 'deco\n' ;;
+    delegate) printf 'delg\n' ;;
+    dou) printf 'vdou\n' ;;
+    followup) printf 'fwup\n' ;;
+    hydrate) printf 'hydr\n' ;;
+    implement|prompt) printf 'impl\n' ;;
+    init) printf 'init\n' ;;
+    justdo) printf 'just\n' ;;
+    marbles) printf 'marb\n' ;;
+    partner) printf 'prtn\n' ;;
+    plan) printf 'plan\n' ;;
+    prune) printf 'prun\n' ;;
+    release) printf 'rels\n' ;;
+    research) printf 'rsch\n' ;;
+    review) printf 'rvew\n' ;;
+    scaffold) printf 'scaf\n' ;;
+    workflow) printf 'wflw\n' ;;
+    *)
+      if [[ -n "$name" ]]; then
+        printf '%.4s\n' "$name"
+      else
+        printf 'impl\n'
+      fi
+      ;;
+  esac
+}
+
+spawn_generate_run_id() {
+  local prefix="${1:-impl}"
+  printf '%s-%s\n' "$prefix" "$(date +%H%M%S)"
+}
+
 # Central artifact store: ~/.vibecrafted/artifacts/<org>/<repo>/<YYYY_MMDD>/
 # Override with VIBECRAFTED_HOME env var for custom location
 # Falls back to <repo>/.vibecrafted/ if git remote unavailable
@@ -36,7 +86,7 @@ VIBECRAFTED_HOME="${VIBECRAFTED_HOME:-$HOME/.vibecrafted}"
 spawn_store_dir() {
   local root="${1:-$(spawn_repo_root)}"
   local org_repo=""
-  org_repo="$(cd "$root" && git remote get-url origin 2>/dev/null | sed -E 's|.*[:/]([^/]+)/([^/.]+)(\.git)?$|\1/\2|' || true)"
+  org_repo="$(spawn_org_repo "$root" 0)"
   if [[ -n "$org_repo" ]]; then
     local date_dir
     date_dir="$(date +%Y_%m%d)"
@@ -244,10 +294,35 @@ with open(meta_path, "w", encoding="utf-8") as fh:
 PY
 }
 
+spawn_create_run_lock() {
+  local run_id="$1"
+  local agent="$2"
+  local skill="$3"
+  local root="$4"
+  local org_repo lock_dir lock_file
+
+  org_repo="$(spawn_org_repo "$root")"
+  lock_dir="$VIBECRAFTED_HOME/locks/$org_repo"
+  mkdir -p "$lock_dir"
+  lock_file="$lock_dir/${run_id}.lock"
+  cat > "$lock_file" <<LOCK
+run_id=$run_id
+agent=$agent
+skill=$skill
+root=$root
+started=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+status=running
+LOCK
+  printf '%s\n' "$lock_file"
+}
+
 spawn_prepare_paths() {
   local agent="$1"
   local prompt_file="$2"
   local root="${3:-}"
+  local mode="${4:-${VIBECRAFT_SKILL_NAME:-}}"
+  local skill_name="${VIBECRAFT_SKILL_NAME:-$mode}"
+  local lock_file=""
 
   if [[ -n "$root" ]]; then
     SPAWN_ROOT="$(spawn_abspath "$root")"
@@ -262,6 +337,9 @@ spawn_prepare_paths() {
   SPAWN_AGENT="$agent"
   SPAWN_PROMPT_ID="${SPAWN_SLUG}_${SPAWN_TS%%_*}"
   SPAWN_SKILL_CODE="${VIBECRAFT_SKILL_CODE:-}"
+  if [[ -z "$SPAWN_SKILL_CODE" && -n "$skill_name" ]]; then
+    SPAWN_SKILL_CODE="$(spawn_skill_prefix "$skill_name")"
+  fi
   SPAWN_LOOP_NR="${VIBECRAFT_LOOP_NR:-0}"
   case "$SPAWN_LOOP_NR" in
     ''|*[!0-9]*)
@@ -271,9 +349,16 @@ spawn_prepare_paths() {
   if [[ -n "${VIBECRAFT_RUN_ID:-}" ]]; then
     SPAWN_RUN_ID="$VIBECRAFT_RUN_ID"
   else
-    SPAWN_RUN_ID="$(printf '%s-%03d' "${SPAWN_SKILL_CODE:-impl}" "$SPAWN_LOOP_NR")"
-    printf 'Warning: VIBECRAFT_RUN_ID missing; falling back to synthetic run_id %s\n' "$SPAWN_RUN_ID" >&2
+    SPAWN_RUN_ID="$(spawn_generate_run_id "${SPAWN_SKILL_CODE:-impl}")"
   fi
+  lock_file="${VIBECRAFT_RUN_LOCK:-}"
+  if [[ -z "$lock_file" || ! -f "$lock_file" ]]; then
+    lock_file="$VIBECRAFTED_HOME/locks/$(spawn_org_repo "$SPAWN_ROOT")/${SPAWN_RUN_ID}.lock"
+  fi
+  if [[ ! -f "$lock_file" ]]; then
+    lock_file="$(spawn_create_run_lock "$SPAWN_RUN_ID" "$agent" "${skill_name:-${mode:-implement}}" "$SPAWN_ROOT")"
+  fi
+  SPAWN_RUN_LOCK="$lock_file"
 
   # Central store path (falls back to per-repo if no git remote)
   local store_base
@@ -289,7 +374,7 @@ spawn_prepare_paths() {
   SPAWN_LAUNCHER="$SPAWN_TMP_DIR/${SPAWN_TS}_${SPAWN_SLUG}_${agent}_launch.sh"
   mkdir -p "$store_base/plans" "$SPAWN_REPORT_DIR" "$SPAWN_TMP_DIR"
   spawn_link_repo_artifacts "$store_base" "$SPAWN_ROOT"
-  export SPAWN_ROOT SPAWN_PLAN SPAWN_SLUG SPAWN_TS SPAWN_AGENT SPAWN_PROMPT_ID SPAWN_RUN_ID SPAWN_SKILL_CODE SPAWN_LOOP_NR
+  export SPAWN_ROOT SPAWN_PLAN SPAWN_SLUG SPAWN_TS SPAWN_AGENT SPAWN_PROMPT_ID SPAWN_RUN_ID SPAWN_RUN_LOCK SPAWN_SKILL_CODE SPAWN_LOOP_NR
   export SPAWN_PLAN_DIR SPAWN_REPORT_DIR SPAWN_TMP_DIR SPAWN_BASE SPAWN_REPORT SPAWN_TRANSCRIPT SPAWN_META SPAWN_LAUNCHER
 }
 
@@ -457,7 +542,7 @@ spawn_generate_launcher() {
   [[ -n "$command" ]] || spawn_die "Missing command payload for launcher."
 
   local q_meta q_report q_transcript q_common q_cmd
-  local q_root q_agent q_prompt_id q_run_id q_loop_nr q_skill_code
+  local q_root q_agent q_prompt_id q_run_id q_run_lock q_loop_nr q_skill_code
   local q_operator_session q_spawn_direction
   q_meta="$(printf '%q' "$meta_path")"
   q_report="$(printf '%q' "$report_path")"
@@ -468,6 +553,7 @@ spawn_generate_launcher() {
   q_agent="$(printf '%q' "${SPAWN_AGENT:-}")"
   q_prompt_id="$(printf '%q' "${SPAWN_PROMPT_ID:-}")"
   q_run_id="$(printf '%q' "${SPAWN_RUN_ID:-}")"
+  q_run_lock="$(printf '%q' "${SPAWN_RUN_LOCK:-}")"
   q_loop_nr="$(printf '%q' "${SPAWN_LOOP_NR:-0}")"
   q_skill_code="$(printf '%q' "${SPAWN_SKILL_CODE:-}")"
   q_operator_session="$(printf '%q' "${VIBECRAFT_OPERATOR_SESSION:-}")"
@@ -486,8 +572,12 @@ export SPAWN_ROOT=$q_root
 export SPAWN_AGENT=$q_agent
 export SPAWN_PROMPT_ID=$q_prompt_id
 export SPAWN_RUN_ID=$q_run_id
+export SPAWN_RUN_LOCK=$q_run_lock
 export SPAWN_LOOP_NR=$q_loop_nr
 export SPAWN_SKILL_CODE=$q_skill_code
+export VIBECRAFT_RUN_ID=$q_run_id
+export VIBECRAFT_RUN_LOCK=$q_run_lock
+export VIBECRAFT_SKILL_CODE=$q_skill_code
 export VIBECRAFT_OPERATOR_SESSION=$q_operator_session
 export VIBECRAFT_ZELLIJ_SPAWN_DIRECTION=$q_spawn_direction
 
