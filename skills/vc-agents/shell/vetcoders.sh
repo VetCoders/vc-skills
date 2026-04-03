@@ -137,17 +137,16 @@ _vetcoders_ensure_run_context() {
   local root="${3:-$(_vetcoders_repo_root)}"
   local skill_name="${VIBECRAFT_SKILL_NAME:-$mode}"
   local skill_code="${VIBECRAFT_SKILL_CODE:-}"
-  local run_id="${VIBECRAFT_RUN_ID:-}"
+  local run_id=""
   local lock_file=""
 
   [[ -n "$skill_code" ]] || skill_code="$(_vetcoders_skill_prefix "$skill_name")"
   [[ -n "${VIBECRAFT_SKILL_NAME:-}" ]] || export VIBECRAFT_SKILL_NAME="$skill_name"
   export VIBECRAFT_SKILL_CODE="$skill_code"
 
-  if [[ -z "$run_id" ]]; then
-    run_id="$(_vetcoders_generate_run_id "$skill_code")"
-    export VIBECRAFT_RUN_ID="$run_id"
-  fi
+  # Always generate fresh run_id — never inherit stale env from prior runs
+  run_id="$(_vetcoders_generate_run_id "$skill_code")"
+  export VIBECRAFT_RUN_ID="$run_id"
 
   lock_file="$HOME/.vibecrafted/locks/$(_vetcoders_org_repo "$root")/${run_id}.lock"
   if [[ ! -f "$lock_file" ]]; then
@@ -276,16 +275,11 @@ _vetcoders_operator_layout_file() {
 }
 
 _vetcoders_operator_session_name() {
-  local root base run_id
+  # Session name = repo basename. Stable, reusable. run_id is for telemetry, not sessions.
+  local root base
   root="$(_vetcoders_repo_root)"
   base="$(basename "$root" | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9]/-/g; s/^-*//; s/-*$//')"
-  [[ -n "$base" ]] || base="vibecrafted"
-  run_id="${VIBECRAFT_RUN_ID:-}"
-  if [[ -n "$run_id" ]]; then
-    printf '%s-%s\n' "$base" "$run_id"
-  else
-    printf '%s\n' "$base"
-  fi
+  printf '%s\n' "${base:-vibecrafted}"
 }
 
 _vetcoders_in_target_session() {
@@ -323,6 +317,14 @@ _vetcoders_print_session_recovery_hint() {
   echo "Run: vc-start resume" >&2
 }
 
+_vetcoders_delete_dead_zellij_session() {
+  local session_name="$1"
+
+  command -v zellij >/dev/null 2>&1 || return 1
+  zellij delete-session "$session_name" >/dev/null 2>&1 || \
+    zellij delete-session --force "$session_name" >/dev/null 2>&1
+}
+
 _vetcoders_prepare_operator_runtime() {
   local runtime="${1:-$(_vetcoders_default_runtime)}"
   local session_name layout_file state command_text
@@ -332,7 +334,7 @@ _vetcoders_prepare_operator_runtime() {
     *) return 0 ;;
   esac
 
-  session_name="$(_vetcoders_operator_session_name)"
+  session_name="${VIBECRAFT_OPERATOR_SESSION:-$(_vetcoders_operator_session_name)}"
   if _vetcoders_in_target_session "$session_name"; then
     export VIBECRAFT_OPERATOR_SESSION="$session_name"
     return 0
@@ -349,11 +351,12 @@ _vetcoders_prepare_operator_runtime() {
       return 0
       ;;
     dead)
-      _vetcoders_print_session_recovery_hint "$session_name"
-      return 1
+      # Clean up dead session silently and recreate below
+      _vetcoders_delete_dead_zellij_session "$session_name" 2>/dev/null || true
       ;;
   esac
 
+  # Session doesn't exist (or was just cleaned up) — create via osascript
   command_text="zellij --session \"$session_name\" --new-session-with-layout \"$layout_file\""
   if _vetcoders_open_iterm_command "$command_text"; then
     :
@@ -460,17 +463,18 @@ _vetcoders_load_frontier_sidecars() {
   atuin_config="$(_vetcoders_frontier_file "atuin/config.toml" 2>/dev/null || true)"
   zellij_config="$(_vetcoders_frontier_file "zellij/config.kdl" 2>/dev/null || true)"
 
-  # Keep the interactive helper pinned to the frontier resolution order rather
-  # than whatever config an older shell session happened to export first.
-  if command -v starship >/dev/null 2>&1 && [[ -n "$starship_config" ]]; then
+  # Frontier tools (starship, atuin, zellij) are suggested for the runtime,
+  # not required. Never override a user's existing config — only set env vars
+  # when the user has no config of their own. Users opt in explicitly.
+  if command -v starship >/dev/null 2>&1 && [[ -n "$starship_config" && -z "${STARSHIP_CONFIG:-}" ]]; then
     export STARSHIP_CONFIG="$starship_config"
   fi
 
-  if command -v atuin >/dev/null 2>&1 && [[ -n "$atuin_config" ]]; then
+  if command -v atuin >/dev/null 2>&1 && [[ -n "$atuin_config" && -z "${ATUIN_CONFIG:-}" ]]; then
     export ATUIN_CONFIG="$atuin_config"
   fi
 
-  if command -v zellij >/dev/null 2>&1 && [[ -n "$zellij_config" ]]; then
+  if command -v zellij >/dev/null 2>&1 && [[ -n "$zellij_config" && -z "${ZELLIJ_CONFIG_DIR:-}" ]]; then
     zellij_config_dir="$(dirname "$zellij_config")"
     export ZELLIJ_CONFIG_DIR="$zellij_config_dir"
   fi
@@ -569,31 +573,28 @@ _vetcoders_atuin_probe_current_scope() {
 }
 
 _vetcoders_wrap_atuin() {
-  [[ -n "${_VETCODERS_ATUIN_BIN:-}" && -x "${_VETCODERS_ATUIN_BIN}" ]] || return 0
+  # Only wrap an explicit override target. This preserves normal Atuin init
+  # behavior in user shells while keeping the controlled fallback contract
+  # available for tests and opt-in environments.
+  [[ -n "${VIBECRAFT_ATUIN_BIN:-}" ]] || return 0
 
   atuin() {
     if _vetcoders_atuin_home_fallback_enabled && _vetcoders_atuin_search_can_fallback "$@"; then
-      local fallback_cwd output status
+      local probe_output fallback_cwd
+      if _vetcoders_atuin_search_is_interactive "$@"; then
+        probe_output="$(_vetcoders_atuin_probe_current_scope "$@")" || return $?
+      else
+        probe_output="$(_vetcoders_atuin_run "$@")" || return $?
+      fi
+      if [[ -n "$probe_output" ]]; then
+        printf '%s' "$probe_output"
+        return 0
+      fi
+
       fallback_cwd="$(_vetcoders_atuin_home_fallback_cwd)"
-
-      if [[ -n "$fallback_cwd" && -d "$fallback_cwd" ]] && ! _vetcoders_same_physical_dir "$PWD" "$fallback_cwd"; then
-        if _vetcoders_atuin_search_is_interactive "$@"; then
-          if [[ -z "$(_vetcoders_atuin_probe_current_scope "$@")" ]]; then
-            _vetcoders_atuin_run_with_home_scope "$fallback_cwd" "$@"
-            return $?
-          fi
-          _vetcoders_atuin_run "$@"
-          return $?
-        fi
-
-        output="$(_vetcoders_atuin_run "$@")"
-        status=$?
-        if (( status == 0 )) && [[ -z "$output" ]]; then
-          output="$(_vetcoders_atuin_run_with_home_scope "$fallback_cwd" "$@")"
-          status=$?
-        fi
-        printf '%s' "$output"
-        return "$status"
+      if [[ -n "$fallback_cwd" ]] && ! _vetcoders_same_physical_dir "${PWD:-.}" "$fallback_cwd"; then
+        _vetcoders_atuin_run_with_home_scope "$fallback_cwd" "$@"
+        return $?
       fi
     fi
 
@@ -624,7 +625,7 @@ _vetcoders_dashboard_layout_file() {
 _vetcoders_dashboard_session_name() {
   local layout_name slug base_session
   layout_name="$(_vetcoders_dashboard_layout_name "${1:-}")"
-  base_session="$(_vetcoders_operator_session_name)"
+  base_session="${VIBECRAFT_OPERATOR_SESSION:-$(_vetcoders_operator_session_name)}"
   if [[ -n "${VIBECRAFT_RUN_ID:-}" ]]; then
     printf '%s\n' "$base_session"
     return 0
@@ -677,8 +678,16 @@ _vetcoders_launch_dashboard() {
       zellij attach "$session_name"
       ;;
     dead)
-      _vetcoders_print_session_recovery_hint "$session_name"
-      return 1
+      if [[ -n "${VIBECRAFT_RUN_ID:-}" ]]; then
+        _vetcoders_delete_dead_zellij_session "$session_name" || {
+          _vetcoders_print_session_recovery_hint "$session_name"
+          return 1
+        }
+        zellij "$@" --session "$session_name" --new-session-with-layout "$layout_file"
+      else
+        _vetcoders_print_session_recovery_hint "$session_name"
+        return 1
+      fi
       ;;
     *)
       zellij "$@" --session "$session_name" --new-session-with-layout "$layout_file"
@@ -1018,6 +1027,8 @@ _vetcoders_skill() {
   local skill="$2"
   shift 2
   local loop_nr="${VIBECRAFT_LOOP_NR:-0}"
+  local inherited_run_id="${VIBECRAFT_RUN_ID:-}"
+  local inherited_run_lock="${VIBECRAFT_RUN_LOCK:-}"
   _vetcoders_parse_contract "$@" || return 1
   [[ -z "$_vetcoders_contract_count" ]] || {
     echo "--count is only supported by vibecrafted marbles." >&2
@@ -1033,9 +1044,25 @@ _vetcoders_skill() {
   }
   local prompt
   prompt="$(_vetcoders_compose_skill_prompt "$skill" "$_vetcoders_contract_prompt" "$_vetcoders_contract_file")" || return 1
+  local skill_code root run_id run_lock
+  skill_code="$(_vetcoders_skill_prefix "$skill")"
+  root="${_vetcoders_contract_root:-$(_vetcoders_repo_root)}"
+  run_id="$inherited_run_id"
+  [[ -n "$run_id" ]] || run_id="$(_vetcoders_generate_run_id "$skill_code")"
+  run_lock="$inherited_run_lock"
+  if [[ -z "$run_lock" || ! -f "$run_lock" ]]; then
+    run_lock="$(_vetcoders_create_run_lock "$run_id" "$tool" "$skill" "$root")" || return 1
+  fi
   local spawn_args=(--runtime "$(_vetcoders_effective_runtime)")
   [[ -n "$_vetcoders_contract_root" ]] && spawn_args+=(--root "$_vetcoders_contract_root")
-  VIBECRAFT_SKILL_CODE="$(_vetcoders_skill_prefix "$skill")" VIBECRAFT_LOOP_NR="$loop_nr" VIBECRAFT_SKILL_NAME="$skill" _vetcoders_prompt_text "$tool" implement "$prompt" "${spawn_args[@]}"
+  (
+    export VIBECRAFT_RUN_ID="$run_id"
+    export VIBECRAFT_RUN_LOCK="$run_lock"
+    export VIBECRAFT_SKILL_CODE="$skill_code"
+    export VIBECRAFT_LOOP_NR="$loop_nr"
+    export VIBECRAFT_SKILL_NAME="$skill"
+    _vetcoders_prompt_text "$tool" implement "$prompt" "${spawn_args[@]}"
+  )
 }
 
 _vetcoders_skill_entry() {
@@ -1056,7 +1083,7 @@ gemini-hydrate() { _vetcoders_skill gemini hydrate "$@"; }
 _vetcoders_marbles() {
   local tool="$1"
   shift
-  local script marbles_cmd quoted_args
+  local script marbles_cmd quoted_args operator_session
   script="$(_vetcoders_spawn_script "$tool" "marbles_spawn.sh")" || return 1
   _vetcoders_parse_contract "$@" || return 1
   [[ -z "$_vetcoders_contract_session" ]] || {
@@ -1089,9 +1116,17 @@ _vetcoders_marbles() {
 
   quoted_args="$(_vetcoders_shell_quote_join "${marbles_args[@]}")"
   marbles_cmd="export VIBECRAFT_ZELLIJ_SPAWN_DIRECTION=right; bash $(printf '%q' "$script") ${quoted_args}"
+  operator_session="${VIBECRAFT_OPERATOR_SESSION:-}"
+  if [[ -z "$operator_session" ]] && _vetcoders_in_zellij; then
+    operator_session="$(_vetcoders_current_zellij_session_name)"
+  fi
+  if [[ -z "$operator_session" ]]; then
+    operator_session="$(_vetcoders_operator_session_name)"
+  fi
 
   # Inside zellij: run marbles orchestrator in a pane below, keep operator free
-  if _vetcoders_in_target_session "$(_vetcoders_operator_session_name)" && command -v zellij >/dev/null 2>&1; then
+  if _vetcoders_in_target_session "$operator_session" && command -v zellij >/dev/null 2>&1; then
+    export VIBECRAFT_OPERATOR_SESSION="$operator_session"
     zellij action new-pane \
       --direction down \
       --height 40% \

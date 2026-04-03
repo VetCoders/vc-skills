@@ -625,16 +625,40 @@ spawn_in_target_zellij_session() {
   [[ "$(spawn_current_zellij_session_name)" == "$target_session" ]]
 }
 
+spawn_pane_direction() {
+  # Grid policy: 4 per row, 8 per tab, 9th opens new tab.
+  # Uses SPAWN_LOOP_NR (marbles) or VIBECRAFT_PANE_SEQ (manual).
+  local seq="${SPAWN_LOOP_NR:-${VIBECRAFT_PANE_SEQ:-0}}"
+  local max_per_row=4
+  local max_per_tab=8
+
+  if (( seq >= max_per_tab )); then
+    printf 'new-tab\n'
+  elif (( seq > 0 && seq % max_per_row == 0 )); then
+    printf 'down\n'
+  else
+    printf 'right\n'
+  fi
+}
+
 spawn_in_zellij_pane() {
   local launcher="$1"
   local pane_name="${2:-agent}"
-  local direction="${VIBECRAFT_ZELLIJ_SPAWN_DIRECTION:-right}"
+  local direction="${VIBECRAFT_ZELLIJ_SPAWN_DIRECTION:-$(spawn_pane_direction)}"
+
   if spawn_in_target_zellij_session && command -v zellij >/dev/null 2>&1; then
-    zellij action new-pane \
-      --direction "$direction" \
-      --name "$pane_name" \
-      --cwd "${SPAWN_ROOT:-$(pwd)}" \
-      -- /bin/zsh -l -c "bash '$launcher'"
+    if [[ "$direction" == "new-tab" ]]; then
+      zellij action new-tab \
+        --name "$pane_name" \
+        --cwd "${SPAWN_ROOT:-$(pwd)}" \
+        -- /bin/zsh -l -c "bash '$launcher'"
+    else
+      zellij action new-pane \
+        --direction "$direction" \
+        --name "$pane_name" \
+        --cwd "${SPAWN_ROOT:-$(pwd)}" \
+        -- /bin/zsh -l -c "bash '$launcher'"
+    fi
     return 0
   fi
   return 1
@@ -642,18 +666,26 @@ spawn_in_zellij_pane() {
 
 spawn_in_operator_session() {
   local launcher="$1"
-  local tab_name="${2:-agent}"
+  local pane_name="${2:-agent}"
   local session_name="${VIBECRAFT_OPERATOR_SESSION:-}"
+  local direction="${VIBECRAFT_ZELLIJ_SPAWN_DIRECTION:-$(spawn_pane_direction)}"
 
   [[ -n "$session_name" ]] || return 1
   command -v zellij >/dev/null 2>&1 || return 1
 
-  # External spawns should land in a dedicated operator tab rather than mutate
-  # whichever pane layout the operator is currently looking at.
-  zellij --session "$session_name" action new-tab \
-    --name "$tab_name" \
-    --cwd "${SPAWN_ROOT:-$(pwd)}" \
-    -- /bin/zsh -l -c "bash '$launcher'"
+  # External spawn into existing operator session — route as pane or new tab per grid policy.
+  if [[ "$direction" == "new-tab" ]]; then
+    zellij --session "$session_name" action new-tab \
+      --name "$pane_name" \
+      --cwd "${SPAWN_ROOT:-$(pwd)}" \
+      -- /bin/zsh -l -c "bash '$launcher'"
+  else
+    zellij --session "$session_name" action new-pane \
+      --direction "$direction" \
+      --name "$pane_name" \
+      --cwd "${SPAWN_ROOT:-$(pwd)}" \
+      -- /bin/zsh -l -c "bash '$launcher'"
+  fi
 }
 
 spawn_launch() {

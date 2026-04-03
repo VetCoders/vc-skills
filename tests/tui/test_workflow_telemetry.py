@@ -88,6 +88,101 @@ def _run_helper(
     return payload
 
 
+def _run_prompt_capture(
+    tmp_path: Path,
+    helper: str,
+    args: list[str],
+) -> dict[str, str]:
+    home = tmp_path / "home"
+    capture_file = tmp_path / f"{helper}-prompt.log"
+
+    home.mkdir(parents=True)
+
+    env = os.environ.copy()
+    env["HOME"] = str(home)
+    env["CAPTURE_FILE"] = str(capture_file)
+    env["VETCODERS_SPAWN_RUNTIME"] = "headless"
+    env["VIBECRAFT_ROOT"] = str(REPO_ROOT)
+
+    quoted_args = " ".join(shlex.quote(arg) for arg in args)
+    subprocess.run(
+        [
+            "bash",
+            "-lc",
+            "\n".join(
+                [
+                    "set -euo pipefail",
+                    f'source "{HELPER_SCRIPT}"',
+                    "_vetcoders_prompt_text() {",
+                    '  local tool="$1"',
+                    '  local mode="$2"',
+                    "  {",
+                    '    printf "TOOL=%s\\n" "$tool"',
+                    '    printf "MODE=%s\\n" "$mode"',
+                    '    printf "RUN_ID=%s\\n" "${VIBECRAFT_RUN_ID:-}"',
+                    '    printf "SKILL_CODE=%s\\n" "${VIBECRAFT_SKILL_CODE:-}"',
+                    '    printf "SKILL_NAME=%s\\n" "${VIBECRAFT_SKILL_NAME:-}"',
+                    '    printf "RUN_LOCK=%s\\n" "${VIBECRAFT_RUN_LOCK:-}"',
+                    '  } > "$CAPTURE_FILE"',
+                    "}",
+                    f"{helper} {quoted_args}".rstrip(),
+                ]
+            ),
+        ],
+        check=True,
+        cwd=REPO_ROOT,
+        env=env,
+    )
+
+    payload: dict[str, str] = {}
+    for line in capture_file.read_text(encoding="utf-8").splitlines():
+        key, value = line.split("=", 1)
+        payload[key] = value
+    return payload
+
+
+def test_workflow_skill_helpers_create_run_context_before_prompt_text(
+    tmp_path: Path,
+) -> None:
+    org_repo = _org_repo()
+    cases = [
+        ("codex-skill-workflow", "workflow", "wflw"),
+        ("codex-followup", "followup", "fwup"),
+        ("codex-dou", "dou", "vdou"),
+    ]
+
+    for index, (helper, skill_name, prefix) in enumerate(cases, start=1):
+        payload = _run_prompt_capture(
+            tmp_path / f"prompt-case-{index}",
+            helper,
+            ["--prompt", f"{skill_name} prompt capture"],
+        )
+        run_id = payload["RUN_ID"]
+        assert payload["TOOL"] == "codex"
+        assert payload["MODE"] == "implement"
+        assert re.fullmatch(rf"{prefix}-\d{{6}}", run_id)
+        assert payload["SKILL_CODE"] == prefix
+        assert payload["SKILL_NAME"] == skill_name
+
+        lock_path = Path(payload["RUN_LOCK"])
+        expected_lock = (
+            tmp_path
+            / f"prompt-case-{index}"
+            / "home"
+            / ".vibecrafted"
+            / "locks"
+            / Path(org_repo)
+            / f"{run_id}.lock"
+        )
+        assert lock_path == expected_lock
+        assert lock_path.read_text(encoding="utf-8").splitlines()[:4] == [
+            f"run_id={run_id}",
+            "agent=codex",
+            f"skill={skill_name}",
+            f"root={REPO_ROOT}",
+        ]
+
+
 def test_workflow_skill_helpers_export_registered_run_ids_and_locks(
     tmp_path: Path,
 ) -> None:

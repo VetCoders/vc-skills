@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 import subprocess
 from pathlib import Path
 
@@ -15,6 +16,13 @@ def _bash(script: str) -> subprocess.CompletedProcess[str]:
         capture_output=True,
         text=True,
     )
+
+
+def _expected_operator_session(run_id: str | None = None) -> str:
+    base = (
+        re.sub(r"[^a-z0-9]+", "-", REPO_ROOT.name.lower()).strip("-") or "vibecrafted"
+    )
+    return f"{base}-{run_id}" if run_id else base
 
 
 def test_runtime_prompt_guards_report_path_from_bare_slash(tmp_path: Path) -> None:
@@ -68,6 +76,8 @@ def test_generated_launcher_runs_from_spawn_root(tmp_path: Path) -> None:
 
 
 def test_spawn_in_zellij_pane_honors_requested_direction(tmp_path: Path) -> None:
+    run_id = "marb-014520"
+    operator_session = _expected_operator_session(run_id)
     launcher = tmp_path / "launch.sh"
     launcher.write_text("#!/usr/bin/env bash\nexit 0\n", encoding="utf-8")
     launcher.chmod(0o755)
@@ -96,8 +106,9 @@ def test_spawn_in_zellij_pane_honors_requested_direction(tmp_path: Path) -> None
         export CAPTURE_FILE="{capture_file}"
         export ZELLIJ=1
         export ZELLIJ_PANE_ID=terminal_1
-        export ZELLIJ_SESSION_NAME=vibecrafted
-        export VIBECRAFT_OPERATOR_SESSION=vibecrafted
+        export VIBECRAFT_RUN_ID="{run_id}"
+        export ZELLIJ_SESSION_NAME="{operator_session}"
+        export VIBECRAFT_OPERATOR_SESSION="{operator_session}"
         export VIBECRAFT_ZELLIJ_SPAWN_DIRECTION=down
         source "{COMMON_SH}"
         spawn_in_zellij_pane "{launcher}" "workflow"
@@ -112,6 +123,8 @@ def test_spawn_in_zellij_pane_honors_requested_direction(tmp_path: Path) -> None
 
 
 def test_generated_launcher_preserves_operator_session_contract(tmp_path: Path) -> None:
+    run_id = "marb-014520"
+    operator_session = _expected_operator_session(run_id)
     launcher = tmp_path / "launch.sh"
     meta = tmp_path / "meta.json"
     report = tmp_path / "report.txt"
@@ -127,7 +140,8 @@ def test_generated_launcher_preserves_operator_session_contract(tmp_path: Path) 
         export SPAWN_RUN_ID="run-123"
         export SPAWN_LOOP_NR="2"
         export SPAWN_SKILL_CODE="marb"
-        export VIBECRAFT_OPERATOR_SESSION="vibecrafted"
+        export VIBECRAFT_RUN_ID="{run_id}"
+        export VIBECRAFT_OPERATOR_SESSION="{operator_session}"
         export VIBECRAFT_ZELLIJ_SPAWN_DIRECTION="right"
         cmd='printf "%s\\n%s\\n" "$VIBECRAFT_OPERATOR_SESSION" "$VIBECRAFT_ZELLIJ_SPAWN_DIRECTION" > "{report}"'
         spawn_write_meta "{meta}" "launching" "claude" "marbles" "{tmp_path}" "{launcher}" "{report}" "{transcript}" "{launcher}"
@@ -138,7 +152,7 @@ def test_generated_launcher_preserves_operator_session_contract(tmp_path: Path) 
     )
 
     payload = report.read_text(encoding="utf-8").splitlines()
-    assert payload == ["vibecrafted", "right"]
+    assert payload == [operator_session, "right"]
 
 
 def test_spawn_prepare_paths_warns_when_run_id_falls_back(tmp_path: Path) -> None:
@@ -165,6 +179,8 @@ def test_spawn_prepare_paths_warns_when_run_id_falls_back(tmp_path: Path) -> Non
 
 
 def test_spawn_in_operator_session_targets_named_session(tmp_path: Path) -> None:
+    run_id = "marb-014520"
+    operator_session = _expected_operator_session(run_id)
     launcher = tmp_path / "launch.sh"
     launcher.write_text("#!/usr/bin/env bash\nexit 0\n", encoding="utf-8")
     launcher.chmod(0o755)
@@ -191,7 +207,8 @@ def test_spawn_in_operator_session_targets_named_session(tmp_path: Path) -> None
         set -euo pipefail
         export PATH="{fake_bin}:$PATH"
         export CAPTURE_FILE="{capture_file}"
-        export VIBECRAFT_OPERATOR_SESSION="vibecrafted"
+        export VIBECRAFT_RUN_ID="{run_id}"
+        export VIBECRAFT_OPERATOR_SESSION="{operator_session}"
         export SPAWN_ROOT="{tmp_path}"
         source "{COMMON_SH}"
         spawn_in_operator_session "{launcher}" "workflow"
@@ -200,8 +217,8 @@ def test_spawn_in_operator_session_targets_named_session(tmp_path: Path) -> None
 
     payload = capture_file.read_text(encoding="utf-8").splitlines()
     assert "--session" in payload
-    assert "vibecrafted" in payload
+    assert operator_session in payload
     assert "action" in payload
-    assert "new-tab" in payload
+    assert "new-pane" in payload
     assert "--name" in payload
     assert "workflow" in payload

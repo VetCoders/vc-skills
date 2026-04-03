@@ -28,6 +28,7 @@ def _write_capture_command(bin_dir: Path, name: str, capture_file: Path) -> None
 def _write_stateful_zellij(
     bin_dir: Path, capture_file: Path, session_state_file: Path
 ) -> None:
+    default_session = _expected_operator_session()
     script = bin_dir / "zellij"
     script.write_text(
         "\n".join(
@@ -41,7 +42,7 @@ def _write_stateful_zellij(
                 'capture = Path(os.environ["CAPTURE_FILE"])',
                 'state_file = Path(os.environ["SESSION_STATE_FILE"])',
                 'state = state_file.read_text(encoding="utf-8").strip() if state_file.exists() else "missing"',
-                'session = os.environ.get("FAKE_ZELLIJ_SESSION", "vibecrafted")',
+                f'session = os.environ.get("FAKE_ZELLIJ_SESSION", "{default_session}")',
                 'if "--session" in args:',
                 '    idx = args.index("--session")',
                 "    if idx + 1 < len(args):",
@@ -105,10 +106,11 @@ def _write_fake_osascript(
 
 
 def _expected_operator_session(run_id: str | None = None) -> str:
+    # Session name is always bare repo basename — run_id is for telemetry, not sessions.
     base = (
         re.sub(r"[^a-z0-9]+", "-", REPO_ROOT.name.lower()).strip("-") or "vibecrafted"
     )
-    return f"{base}-{run_id}" if run_id else base
+    return base
 
 
 def test_vc_start_launches_operator_entrypoint_layout(tmp_path: Path) -> None:
@@ -140,7 +142,7 @@ def test_vc_start_launches_operator_entrypoint_layout(tmp_path: Path) -> None:
 
     payload = capture_file.read_text(encoding="utf-8").splitlines()
     assert "--session" in payload
-    assert "vibecrafted" in payload
+    assert _expected_operator_session() in payload
     assert "--new-session-with-layout" in payload
     assert (
         str(REPO_ROOT / "config" / "zellij" / "layouts" / "vibecrafted.kdl") in payload
@@ -203,6 +205,7 @@ def test_vc_start_reports_dead_session_with_resume_hint(tmp_path: Path) -> None:
     env["VIBECRAFT_ROOT"] = str(REPO_ROOT)
     env["CAPTURE_FILE"] = str(capture_file)
     env["SESSION_STATE_FILE"] = str(session_state_file)
+    env["FAKE_ZELLIJ_SESSION"] = _expected_operator_session()
     env.pop("ZELLIJ", None)
     env.pop("ZELLIJ_PANE_ID", None)
     env.pop("ZELLIJ_SESSION_NAME", None)
@@ -216,7 +219,9 @@ def test_vc_start_reports_dead_session_with_resume_hint(tmp_path: Path) -> None:
     )
 
     assert result.returncode == 1
-    assert "Dead Zellij session detected: vibecrafted" in result.stderr
+    assert (
+        f"Dead Zellij session detected: {_expected_operator_session()}" in result.stderr
+    )
     assert "Run: vc-start resume" in result.stderr
     assert "EXITED - attach to resurrect" in result.stderr
 
@@ -239,6 +244,7 @@ def test_vc_start_resume_resurrects_dead_session(tmp_path: Path) -> None:
     env["VIBECRAFT_ROOT"] = str(REPO_ROOT)
     env["CAPTURE_FILE"] = str(capture_file)
     env["SESSION_STATE_FILE"] = str(session_state_file)
+    env["FAKE_ZELLIJ_SESSION"] = _expected_operator_session()
     env.pop("ZELLIJ", None)
     env.pop("ZELLIJ_PANE_ID", None)
     env.pop("ZELLIJ_SESSION_NAME", None)
@@ -251,7 +257,49 @@ def test_vc_start_resume_resurrects_dead_session(tmp_path: Path) -> None:
     )
 
     payload = capture_file.read_text(encoding="utf-8")
-    assert "ZELLIJ attach --force-run-commands vibecrafted" in payload
+    assert (
+        f"ZELLIJ attach --force-run-commands {_expected_operator_session()}" in payload
+    )
+
+
+def test_vc_dashboard_recreates_dead_run_id_session_without_layout_suffix(
+    tmp_path: Path,
+) -> None:
+    home = tmp_path / "home"
+    fake_bin = tmp_path / "bin"
+    capture_file = tmp_path / "capture.log"
+    session_state_file = tmp_path / "session-state.txt"
+
+    home.mkdir()
+    fake_bin.mkdir()
+    session_state_file.write_text("dead", encoding="utf-8")
+    _write_stateful_zellij(fake_bin, capture_file, session_state_file)
+
+    env = os.environ.copy()
+    env["HOME"] = str(home)
+    env["PATH"] = f"{fake_bin}:{env.get('PATH', '')}"
+    env["XDG_CONFIG_HOME"] = str(tmp_path / "xdg")
+    env["VIBECRAFT_ROOT"] = str(REPO_ROOT)
+    env["CAPTURE_FILE"] = str(capture_file)
+    env["SESSION_STATE_FILE"] = str(session_state_file)
+    env["VIBECRAFT_RUN_ID"] = "marb-014520"
+    env["FAKE_ZELLIJ_SESSION"] = _expected_operator_session(env["VIBECRAFT_RUN_ID"])
+    env.pop("ZELLIJ", None)
+    env.pop("ZELLIJ_PANE_ID", None)
+    env.pop("ZELLIJ_SESSION_NAME", None)
+
+    subprocess.run(
+        ["bash", "-lc", f'source "{HELPER_SCRIPT}"; vc-dashboard vc-marbles'],
+        check=True,
+        cwd=REPO_ROOT,
+        env=env,
+    )
+
+    payload = capture_file.read_text(encoding="utf-8")
+    expected_session = _expected_operator_session(env["VIBECRAFT_RUN_ID"])
+    assert f"ZELLIJ delete-session {expected_session}" in payload
+    assert f"ZELLIJ --session {expected_session} --new-session-with-layout" in payload
+    assert f"{expected_session}-marbles" not in payload
 
 
 def test_skill_bootstraps_operator_session_before_spawning(tmp_path: Path) -> None:
@@ -274,6 +322,7 @@ def test_skill_bootstraps_operator_session_before_spawning(tmp_path: Path) -> No
     env["CAPTURE_FILE"] = str(capture_file)
     env["SESSION_STATE_FILE"] = str(session_state_file)
     env["VIBECRAFT_OSASCRIPT_BIN"] = str(fake_bin / "osascript")
+    env["FAKE_ZELLIJ_SESSION"] = _expected_operator_session()
     env.pop("ZELLIJ", None)
     env.pop("ZELLIJ_PANE_ID", None)
     env.pop("ZELLIJ_SESSION_NAME", None)
@@ -292,8 +341,8 @@ def test_skill_bootstraps_operator_session_before_spawning(tmp_path: Path) -> No
     payload = capture_file.read_text(encoding="utf-8")
     assert "OSA " in payload
     assert "new-session-with-layout" in payload
-    session_match = re.search(r"vibecrafted-fwup-\d{6}", payload)
-    assert session_match is not None
+    # Session name is bare repo basename — no run_id suffix
+    assert _expected_operator_session() in payload
 
 
 def test_skill_bootstraps_fresh_operator_session_when_existing_one_is_dead(
@@ -309,7 +358,6 @@ def test_skill_bootstraps_fresh_operator_session_when_existing_one_is_dead(
     session_state_file.write_text("dead", encoding="utf-8")
     _write_stateful_zellij(fake_bin, capture_file, session_state_file)
     _write_fake_osascript(fake_bin, capture_file, session_state_file)
-    _write_capture_command(fake_bin, "codex", tmp_path / "unused-codex.txt")
 
     env = os.environ.copy()
     env["HOME"] = str(home)
@@ -320,22 +368,32 @@ def test_skill_bootstraps_fresh_operator_session_when_existing_one_is_dead(
     env["SESSION_STATE_FILE"] = str(session_state_file)
     env["VIBECRAFT_OSASCRIPT_BIN"] = str(fake_bin / "osascript")
     env["VIBECRAFT_RUN_ID"] = "fwup-014520"
+    env["FAKE_ZELLIJ_SESSION"] = _expected_operator_session(env["VIBECRAFT_RUN_ID"])
     env.pop("ZELLIJ", None)
     env.pop("ZELLIJ_PANE_ID", None)
     env.pop("ZELLIJ_SESSION_NAME", None)
 
-    subprocess.run(
+    result = subprocess.run(
         [
             "bash",
             "-lc",
-            f'source "{HELPER_SCRIPT}"; codex-followup --prompt "Check runtime"',
+            (
+                f'source "{HELPER_SCRIPT}"; '
+                "_vetcoders_prepare_operator_runtime terminal; "
+                'printf "%s\\n" "$VIBECRAFT_OPERATOR_SESSION"'
+            ),
         ],
-        check=True,
         cwd=REPO_ROOT,
         env=env,
+        capture_output=True,
+        text=True,
     )
 
+    expected_session = _expected_operator_session(env["VIBECRAFT_RUN_ID"])
+    assert result.returncode == 0
+    assert result.stdout.strip().endswith(expected_session)
     payload = capture_file.read_text(encoding="utf-8")
+    assert f"ZELLIJ delete-session {expected_session}" in payload
     assert "OSA " in payload
-    assert env["VIBECRAFT_RUN_ID"] in payload
-    assert re.search(rf"{re.escape(env['VIBECRAFT_RUN_ID'])}-\d{{4}}", payload) is None
+    # Session name appears in the osascript zellij command (possibly escaped)
+    assert expected_session in payload

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+import re
 import subprocess
 from pathlib import Path
 
@@ -41,6 +42,13 @@ def _write_fake_command(bin_dir: Path, name: str, capture_file: Path) -> None:
         encoding="utf-8",
     )
     script.chmod(0o755)
+
+
+def _expected_operator_session(run_id: str | None = None) -> str:
+    base = (
+        re.sub(r"[^a-z0-9]+", "-", REPO_ROOT.name.lower()).strip("-") or "vibecrafted"
+    )
+    return f"{base}-{run_id}" if run_id else base
 
 
 def test_init_prefers_repo_skill_path_when_repo_launcher_runs_with_portable_home(
@@ -204,7 +212,7 @@ def test_dashboard_subcommand_launches_repo_owned_zellij_layout(tmp_path: Path) 
 
     payload = capture_file.read_text(encoding="utf-8").splitlines()
     assert "--session" in payload
-    assert "vibecrafted-dashboard" in payload
+    assert f"{_expected_operator_session()}-dashboard" in payload
     assert "--new-session-with-layout" in payload
     assert (
         str(REPO_ROOT / "config" / "zellij" / "layouts" / "vc-dashboard.kdl") in payload
@@ -239,7 +247,7 @@ def test_start_subcommand_launches_operator_entrypoint_layout(tmp_path: Path) ->
 
     payload = capture_file.read_text(encoding="utf-8").splitlines()
     assert "--session" in payload
-    assert "vibecrafted" in payload
+    assert _expected_operator_session() in payload
     assert "--new-session-with-layout" in payload
     assert (
         str(REPO_ROOT / "config" / "zellij" / "layouts" / "vibecrafted.kdl") in payload

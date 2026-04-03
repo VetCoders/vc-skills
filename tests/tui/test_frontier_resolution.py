@@ -39,10 +39,11 @@ def _write_capture_binary(bin_dir: Path, name: str, capture_file: Path) -> None:
 
 
 def _expected_operator_session(run_id: str | None = None) -> str:
+    # Session name is always bare repo basename — run_id is for telemetry, not sessions.
     base = (
         re.sub(r"[^a-z0-9]+", "-", REPO_ROOT.name.lower()).strip("-") or "vibecrafted"
     )
-    return f"{base}-{run_id}" if run_id else base
+    return base
 
 
 def test_vc_frontier_paths_mix_repo_prompt_with_companion_zellij(
@@ -114,7 +115,7 @@ def test_vc_dashboard_mixes_companion_zellij_config_with_repo_layout(
 
     payload = capture_file.read_text(encoding="utf-8").splitlines()
     assert "--session" in payload
-    assert "vibecrafted-marbles" in payload
+    assert f"{_expected_operator_session()}-marbles" in payload
     assert "--new-session-with-layout" in payload
     assert (
         str(REPO_ROOT / "config" / "zellij" / "layouts" / "vc-marbles.kdl") in payload
