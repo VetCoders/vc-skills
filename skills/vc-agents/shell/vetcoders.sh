@@ -234,16 +234,16 @@ _vetcoders_prepare_operator_runtime() {
 }
 
 _vetcoders_spawn_into_operator_session() {
-  local pane_name="$1"
-  local direction="$2"
-  local command_text="$3"
+  local tab_name="$1"
+  local command_text="$2"
   local session_name="${VIBECRAFT_OPERATOR_SESSION:-$(_vetcoders_operator_session_name)}"
   local root_dir="${_vetcoders_contract_root:-$(_vetcoders_repo_root)}"
 
   command -v zellij >/dev/null 2>&1 || return 1
-  zellij --session "$session_name" action new-pane \
-    --direction "$direction" \
-    --name "$pane_name" \
+  # When bootstrapping from outside the operator session, open a fresh tab so
+  # we do not disturb the currently focused tab layout.
+  zellij --session "$session_name" action new-tab \
+    --name "$tab_name" \
     --cwd "$root_dir" \
     -- /bin/zsh -l -c "$command_text"
 }
@@ -867,7 +867,7 @@ _vetcoders_skill() {
   prompt="$(_vetcoders_compose_skill_prompt "$skill" "$_vetcoders_contract_prompt" "$_vetcoders_contract_file")" || return 1
   local spawn_args=(--runtime "$(_vetcoders_effective_runtime)")
   [[ -n "$_vetcoders_contract_root" ]] && spawn_args+=(--root "$_vetcoders_contract_root")
-  VIBECRAFT_SKILL_CODE="$code" VIBECRAFT_LOOP_NR="$loop_nr" _vetcoders_prompt_text "$tool" implement "$prompt" "${spawn_args[@]}"
+  VIBECRAFT_SKILL_CODE="$code" VIBECRAFT_LOOP_NR="$loop_nr" VIBECRAFT_SKILL_NAME="$skill" _vetcoders_prompt_text "$tool" implement "$prompt" "${spawn_args[@]}"
 }
 
 _vetcoders_skill_entry() {
@@ -927,7 +927,7 @@ _vetcoders_marbles() {
     if [[ -n "${VIBECRAFT_OPERATOR_SESSION:-}" ]]; then
       local marbles_cmd
       marbles_cmd="export VIBECRAFT_ZELLIJ_SPAWN_DIRECTION=right; bash '$script' ${marbles_args[*]}"
-      _vetcoders_spawn_into_operator_session "marbles" "down" "$marbles_cmd"
+      _vetcoders_spawn_into_operator_session "marbles" "$marbles_cmd"
     else
       bash "$script" "${marbles_args[@]}"
     fi

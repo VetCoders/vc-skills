@@ -130,5 +130,5 @@ spawn_generate_launcher "$SPAWN_LAUNCHER" \
 chmod +x "$SPAWN_LAUNCHER"
 spawn_print_launch gemini "$mode" "$runtime"
 [[ -n "$model" ]] && printf '  model:  %s\n' "$model" || printf '  model:  (CLI default)\n'
-spawn_launch "$SPAWN_LAUNCHER" "$runtime" "$dry_run"
+spawn_launch "$SPAWN_LAUNCHER" "$runtime" "$dry_run" "gemini-${VIBECRAFT_SKILL_NAME:-$mode}"
 printf 'Agent launched. Report will land at: %s\n' "$SPAWN_REPORT"

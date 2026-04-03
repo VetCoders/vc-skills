@@ -136,7 +136,6 @@ def test_spawn_in_operator_session_targets_named_session(tmp_path: Path) -> None
         export PATH="{fake_bin}:$PATH"
         export CAPTURE_FILE="{capture_file}"
         export VIBECRAFT_OPERATOR_SESSION="vibecrafted"
-        export VIBECRAFT_ZELLIJ_SPAWN_DIRECTION=down
         export SPAWN_ROOT="{tmp_path}"
         source "{COMMON_SH}"
         spawn_in_operator_session "{launcher}" "workflow"
@@ -147,6 +146,6 @@ def test_spawn_in_operator_session_targets_named_session(tmp_path: Path) -> None
     assert "--session" in payload
     assert "vibecrafted" in payload
     assert "action" in payload
-    assert "new-pane" in payload
-    assert "--direction" in payload
-    assert "down" in payload
+    assert "new-tab" in payload
+    assert "--name" in payload
+    assert "workflow" in payload

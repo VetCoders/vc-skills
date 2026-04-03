@@ -598,16 +598,16 @@ spawn_in_zellij_pane() {
 
 spawn_in_operator_session() {
   local launcher="$1"
-  local pane_name="${2:-agent}"
-  local direction="${VIBECRAFT_ZELLIJ_SPAWN_DIRECTION:-down}"
+  local tab_name="${2:-agent}"
   local session_name="${VIBECRAFT_OPERATOR_SESSION:-}"
 
   [[ -n "$session_name" ]] || return 1
   command -v zellij >/dev/null 2>&1 || return 1
 
-  zellij --session "$session_name" action new-pane \
-    --direction "$direction" \
-    --name "$pane_name" \
+  # External spawns should land in a dedicated operator tab rather than mutate
+  # whichever pane layout the operator is currently looking at.
+  zellij --session "$session_name" action new-tab \
+    --name "$tab_name" \
     --cwd "${SPAWN_ROOT:-$(pwd)}" \
     -- /bin/zsh -l -c "bash '$launcher'"
 }

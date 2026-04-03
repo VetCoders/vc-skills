@@ -65,7 +65,7 @@ def _write_stateful_zellij(
                 'if "--new-session-with-layout" in args:',
                 '    state_file.write_text("live", encoding="utf-8")',
                 "    sys.exit(0)",
-                'if "action" in args and "new-pane" in args:',
+                'if "action" in args and ("new-pane" in args or "new-tab" in args):',
                 "    sys.exit(0)",
                 "sys.exit(0)",
             ]
@@ -270,7 +270,9 @@ def test_skill_bootstraps_operator_session_before_spawning(tmp_path: Path) -> No
     payload = capture_file.read_text(encoding="utf-8")
     assert "OSA " in payload
     assert "new-session-with-layout" in payload
-    assert "ZELLIJ --session vibecrafted action new-pane --direction down" in payload
+    assert (
+        "ZELLIJ --session vibecrafted action new-tab --name codex-followup" in payload
+    )
 
 
 def test_skill_refuses_to_replace_dead_operator_session(tmp_path: Path) -> None:
