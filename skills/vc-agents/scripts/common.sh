@@ -585,11 +585,15 @@ end tell
 EOF_APPLE
 }
 
+spawn_in_zellij_context() {
+  [[ -n "${ZELLIJ:-}" && "${ZELLIJ}" != "0" ]]
+}
+
 spawn_in_zellij_pane() {
   local launcher="$1"
   local pane_name="${2:-agent}"
   local direction="${VIBECRAFT_ZELLIJ_SPAWN_DIRECTION:-right}"
-  if [[ -n "${ZELLIJ:-}" ]] && command -v zellij >/dev/null 2>&1; then
+  if spawn_in_zellij_context && command -v zellij >/dev/null 2>&1; then
     zellij run --name "$pane_name" --direction "$direction" -- /bin/zsh -l -c "bash '$launcher'"
     return 0
   fi

@@ -51,6 +51,10 @@ _vetcoders_default_runtime() {
   printf '%s\n' "${VETCODERS_SPAWN_RUNTIME:-terminal}"
 }
 
+_vetcoders_in_zellij() {
+  [[ -n "${ZELLIJ:-}" && "${ZELLIJ}" != "0" ]]
+}
+
 _vetcoders_atuin_bin() {
   local override="${VIBECRAFT_ATUIN_BIN:-}"
   if [[ -n "$override" && -x "$override" ]]; then
@@ -200,7 +204,7 @@ _vetcoders_prepare_operator_runtime() {
     *) return 0 ;;
   esac
 
-  [[ -n "${ZELLIJ:-}" ]] && return 0
+  _vetcoders_in_zellij && return 0
   command -v zellij >/dev/null 2>&1 || return 0
 
   session_name="$(_vetcoders_operator_session_name)"
@@ -496,7 +500,7 @@ _vetcoders_dashboard_session_name() {
 }
 
 _vetcoders_launch_dashboard() {
-  local layout_name layout_file session_name
+  local layout_name layout_file session_name repo_source repo_zellij_dir
   layout_name="$(_vetcoders_dashboard_layout_name "${1:-}")"
   shift || true
 
@@ -513,6 +517,14 @@ _vetcoders_launch_dashboard() {
     echo "Expected zellij/layouts/${layout_name}.kdl in the active frontier config roots." >&2
     return 1
   }
+
+  if [[ "${VIBECRAFT_PREFER_REPO_ZELLIJ:-0}" == "1" ]]; then
+    repo_source="$(_vetcoders_frontier_source_root 2>/dev/null || true)"
+    repo_zellij_dir="${repo_source:+$repo_source/config/zellij}"
+    if [[ -n "$repo_zellij_dir" && -f "$repo_zellij_dir/config.kdl" && "$layout_file" == "$repo_zellij_dir"/layouts/* ]]; then
+      export ZELLIJ_CONFIG_DIR="$repo_zellij_dir"
+    fi
+  fi
 
   session_name="$(_vetcoders_dashboard_session_name "$layout_name")"
   case "$(_vetcoders_zellij_session_state "$session_name")" in
@@ -683,6 +695,15 @@ _vetcoders_require_file() {
     echo "Input file not found: $file_path" >&2
     return 1
   }
+}
+
+_vetcoders_shell_quote_join() {
+  local quoted=()
+  local arg
+  for arg in "$@"; do
+    quoted+=("$(printf '%q' "$arg")")
+  done
+  printf '%s' "${quoted[*]}"
 }
 
 _vetcoders_compose_input_context() {
@@ -888,7 +909,7 @@ gemini-hydrate() { _vetcoders_skill gemini hydrate "$@"; }
 _vetcoders_marbles() {
   local tool="$1"
   shift
-  local script
+  local script marbles_cmd quoted_args
   script="$(_vetcoders_spawn_script "$tool" "marbles_spawn.sh")" || return 1
   _vetcoders_parse_contract "$@" || return 1
   [[ -z "$_vetcoders_contract_session" ]] || {
@@ -919,14 +940,15 @@ _vetcoders_marbles() {
     marbles_args+=(--depth "${_vetcoders_contract_depth:-3}")
   fi
 
+  quoted_args="$(_vetcoders_shell_quote_join "${marbles_args[@]}")"
+  marbles_cmd="export VIBECRAFT_ZELLIJ_SPAWN_DIRECTION=right; bash $(printf '%q' "$script") ${quoted_args}"
+
   # Inside zellij: run marbles orchestrator in a pane below, keep operator free
-  if [[ -n "${ZELLIJ:-}" ]] && command -v zellij >/dev/null 2>&1; then
-    zellij run --name "marbles" --direction down -- /bin/zsh -l -c "export VIBECRAFT_ZELLIJ_SPAWN_DIRECTION=right; bash '$script' ${marbles_args[*]}"
+  if _vetcoders_in_zellij && command -v zellij >/dev/null 2>&1; then
+    zellij run --name "marbles" --direction down -- /bin/zsh -l -c "$marbles_cmd"
   elif [[ "$(_vetcoders_effective_runtime)" =~ ^(terminal|visible)$ ]]; then
     _vetcoders_prepare_operator_runtime "$(_vetcoders_effective_runtime)" || return 1
     if [[ -n "${VIBECRAFT_OPERATOR_SESSION:-}" ]]; then
-      local marbles_cmd
-      marbles_cmd="export VIBECRAFT_ZELLIJ_SPAWN_DIRECTION=right; bash '$script' ${marbles_args[*]}"
       _vetcoders_spawn_into_operator_session "marbles" "$marbles_cmd"
     else
       bash "$script" "${marbles_args[@]}"

@@ -531,8 +531,18 @@ cmd_start() {
     cmd_start_help
     return 0
   fi
+  local previous_repo_zellij_pref="${VIBECRAFT_PREFER_REPO_ZELLIJ-}"
+  local status
   _ensure_helpers_loaded || return 1
+  export VIBECRAFT_PREFER_REPO_ZELLIJ=1
   _run_helper vc-start "$@"
+  status=$?
+  if [[ -n "${previous_repo_zellij_pref}" ]]; then
+    export VIBECRAFT_PREFER_REPO_ZELLIJ="${previous_repo_zellij_pref}"
+  else
+    unset VIBECRAFT_PREFER_REPO_ZELLIJ
+  fi
+  return "$status"
 }
 
 cmd_init() {
@@ -581,8 +591,18 @@ cmd_dashboard() {
     cmd_dashboard_help
     return 0
   fi
+  local previous_repo_zellij_pref="${VIBECRAFT_PREFER_REPO_ZELLIJ-}"
+  local status
   _ensure_helpers_loaded || return 1
+  export VIBECRAFT_PREFER_REPO_ZELLIJ=1
   _run_helper vc-dashboard "$@"
+  status=$?
+  if [[ -n "${previous_repo_zellij_pref}" ]]; then
+    export VIBECRAFT_PREFER_REPO_ZELLIJ="${previous_repo_zellij_pref}"
+  else
+    unset VIBECRAFT_PREFER_REPO_ZELLIJ
+  fi
+  return "$status"
 }
 
 cmd_stats() {
