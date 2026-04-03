@@ -93,6 +93,9 @@ def test_vc_dashboard_mixes_companion_zellij_config_with_repo_layout(
     env["VIBECRAFT_ROOT"] = str(REPO_ROOT)
     env["CAPTURE_FILE"] = str(capture_file)
     env.pop("ZELLIJ_CONFIG_DIR", None)
+    env.pop("ZELLIJ", None)
+    env.pop("ZELLIJ_PANE_ID", None)
+    env.pop("ZELLIJ_SESSION_NAME", None)
 
     subprocess.run(
         ["bash", "-lc", f'source "{HELPER_SCRIPT}"; vc-dashboard vc-marbles'],

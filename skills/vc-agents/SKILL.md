@@ -80,6 +80,16 @@ Then collect their results in `~/.vibecrafted/artifacts/<org>/<repo>/<YYYY_MMDD>
 5. Observe progress through artifacts and transcripts.
 6. Synthesize results back into the main thread.
 
+## Runtime contract
+
+- Session ownership is repo-bound. The operator session name is derived from the current repo root, not a global shared session.
+- If you are already inside the matching repo session, keep work local to that session.
+- Partner mode reserves the upper `3/5` for the operator pane.
+- Spawn surfaces belong in the lower `2/5`. The marbles/orchestrator pane opens below, and spawned workers split within that lower surface.
+- If you are outside the repo session, open a new tab in the repo session instead of mutating the currently focused operator tab.
+- Falling back to a brand-new iTerm or Terminal tab is last resort only when no usable repo session routing exists.
+- `.vibecrafted/plans` and `.vibecrafted/reports` inside the repo are convenience links only. The canonical store remains `~/.vibecrafted/artifacts/<org>/<repo>/<YYYY_MMDD>/`.
+
 ## Mandatory plan rules
 
 Every subagent plan should:

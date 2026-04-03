@@ -95,6 +95,9 @@ def test_spawn_in_zellij_pane_honors_requested_direction(tmp_path: Path) -> None
         export PATH="{fake_bin}:$PATH"
         export CAPTURE_FILE="{capture_file}"
         export ZELLIJ=1
+        export ZELLIJ_PANE_ID=terminal_1
+        export ZELLIJ_SESSION_NAME=vibecrafted
+        export VIBECRAFT_OPERATOR_SESSION=vibecrafted
         export VIBECRAFT_ZELLIJ_SPAWN_DIRECTION=down
         source "{COMMON_SH}"
         spawn_in_zellij_pane "{launcher}" "workflow"
@@ -106,6 +109,36 @@ def test_spawn_in_zellij_pane_honors_requested_direction(tmp_path: Path) -> None
     assert "workflow" in payload
     assert "--direction" in payload
     assert "down" in payload
+
+
+def test_generated_launcher_preserves_operator_session_contract(tmp_path: Path) -> None:
+    launcher = tmp_path / "launch.sh"
+    meta = tmp_path / "meta.json"
+    report = tmp_path / "report.txt"
+    transcript = tmp_path / "trace.log"
+
+    _bash(
+        f'''
+        set -euo pipefail
+        source "{COMMON_SH}"
+        export SPAWN_ROOT="{tmp_path}"
+        export SPAWN_AGENT="claude"
+        export SPAWN_PROMPT_ID="prompt-123"
+        export SPAWN_RUN_ID="run-123"
+        export SPAWN_LOOP_NR="2"
+        export SPAWN_SKILL_CODE="marb"
+        export VIBECRAFT_OPERATOR_SESSION="vibecrafted"
+        export VIBECRAFT_ZELLIJ_SPAWN_DIRECTION="right"
+        cmd='printf "%s\\n%s\\n" "$VIBECRAFT_OPERATOR_SESSION" "$VIBECRAFT_ZELLIJ_SPAWN_DIRECTION" > "{report}"'
+        spawn_write_meta "{meta}" "launching" "claude" "marbles" "{tmp_path}" "{launcher}" "{report}" "{transcript}" "{launcher}"
+        spawn_generate_launcher "{launcher}" "{meta}" "{report}" "{transcript}" "{COMMON_SH}" "$cmd"
+        chmod +x "{launcher}"
+        bash "{launcher}"
+        '''
+    )
+
+    payload = report.read_text(encoding="utf-8").splitlines()
+    assert payload == ["vibecrafted", "right"]
 
 
 def test_spawn_in_operator_session_targets_named_session(tmp_path: Path) -> None:

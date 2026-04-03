@@ -69,9 +69,13 @@ def _run_marbles_prompt(tmp_path: Path, *, inside_zellij: bool) -> list[str]:
     env["ZELLIJ_CAPTURE_FILE"] = str(zellij_capture_file)
     env.pop("VIBECRAFT_OPERATOR_SESSION", None)
     env.pop("ZELLIJ", None)
+    env.pop("ZELLIJ_PANE_ID", None)
+    env.pop("ZELLIJ_SESSION_NAME", None)
 
     if inside_zellij:
         env["ZELLIJ"] = "operator"
+        env["ZELLIJ_PANE_ID"] = "terminal_7"
+        env["ZELLIJ_SESSION_NAME"] = "vibecrafted"
     else:
         env["VIBECRAFT_OPERATOR_SESSION"] = "vibecrafted"
 

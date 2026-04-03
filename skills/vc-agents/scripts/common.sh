@@ -438,6 +438,7 @@ spawn_generate_launcher() {
 
   local q_meta q_report q_transcript q_common q_cmd
   local q_root q_agent q_prompt_id q_run_id q_loop_nr q_skill_code
+  local q_operator_session q_spawn_direction
   q_meta="$(printf '%q' "$meta_path")"
   q_report="$(printf '%q' "$report_path")"
   q_transcript="$(printf '%q' "$transcript_path")"
@@ -449,6 +450,8 @@ spawn_generate_launcher() {
   q_run_id="$(printf '%q' "${SPAWN_RUN_ID:-}")"
   q_loop_nr="$(printf '%q' "${SPAWN_LOOP_NR:-0}")"
   q_skill_code="$(printf '%q' "${SPAWN_SKILL_CODE:-}")"
+  q_operator_session="$(printf '%q' "${VIBECRAFT_OPERATOR_SESSION:-}")"
+  q_spawn_direction="$(printf '%q' "${VIBECRAFT_ZELLIJ_SPAWN_DIRECTION:-}")"
 
   cat > "$launcher" <<EOF_LAUNCH
 #!/usr/bin/env bash
@@ -465,6 +468,8 @@ export SPAWN_PROMPT_ID=$q_prompt_id
 export SPAWN_RUN_ID=$q_run_id
 export SPAWN_LOOP_NR=$q_loop_nr
 export SPAWN_SKILL_CODE=$q_skill_code
+export VIBECRAFT_OPERATOR_SESSION=$q_operator_session
+export VIBECRAFT_ZELLIJ_SPAWN_DIRECTION=$q_spawn_direction
 
 rm -f "\$transcript" "\$report"
 if [[ -n "\${SPAWN_ROOT:-}" ]]; then
@@ -589,11 +594,22 @@ spawn_in_zellij_context() {
   [[ -n "${ZELLIJ_PANE_ID:-}" ]] || [[ -n "${ZELLIJ:-}" && "${ZELLIJ}" != "0" ]]
 }
 
+spawn_current_zellij_session_name() {
+  printf '%s\n' "${ZELLIJ_SESSION_NAME:-}"
+}
+
+spawn_in_target_zellij_session() {
+  local target_session="${VIBECRAFT_OPERATOR_SESSION:-}"
+  spawn_in_zellij_context || return 1
+  [[ -n "$target_session" ]] || return 0
+  [[ "$(spawn_current_zellij_session_name)" == "$target_session" ]]
+}
+
 spawn_in_zellij_pane() {
   local launcher="$1"
   local pane_name="${2:-agent}"
   local direction="${VIBECRAFT_ZELLIJ_SPAWN_DIRECTION:-right}"
-  if spawn_in_zellij_context && command -v zellij >/dev/null 2>&1; then
+  if spawn_in_target_zellij_session && command -v zellij >/dev/null 2>&1; then
     zellij action new-pane \
       --direction "$direction" \
       --name "$pane_name" \

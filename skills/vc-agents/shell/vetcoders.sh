@@ -55,6 +55,10 @@ _vetcoders_in_zellij() {
   [[ -n "${ZELLIJ_PANE_ID:-}" ]] || [[ -n "${ZELLIJ:-}" && "${ZELLIJ}" != "0" ]]
 }
 
+_vetcoders_current_zellij_session_name() {
+  printf '%s\n' "${ZELLIJ_SESSION_NAME:-}"
+}
+
 _vetcoders_atuin_bin() {
   local override="${VIBECRAFT_ATUIN_BIN:-}"
   if [[ -n "$override" && -x "$override" ]]; then
@@ -163,7 +167,17 @@ _vetcoders_operator_layout_file() {
 }
 
 _vetcoders_operator_session_name() {
-  printf 'vibecrafted\n'
+  local root
+  root="$(_vetcoders_repo_root)"
+  local base
+  base="$(basename "$root" | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9]/-/g; s/^-*//; s/-*$//')"
+  printf '%s\n' "${base:-vibecrafted}"
+}
+
+_vetcoders_in_target_session() {
+  local session_name="${1:-$(_vetcoders_operator_session_name)}"
+  _vetcoders_in_zellij || return 1
+  [[ "$(_vetcoders_current_zellij_session_name)" == "$session_name" ]]
 }
 
 _vetcoders_wait_for_zellij_session() {
@@ -204,13 +218,13 @@ _vetcoders_prepare_operator_runtime() {
     *) return 0 ;;
   esac
 
-  if _vetcoders_in_zellij; then
-    export VIBECRAFT_OPERATOR_SESSION="${ZELLIJ_SESSION_NAME:-$(_vetcoders_operator_session_name)}"
+  session_name="$(_vetcoders_operator_session_name)"
+  if _vetcoders_in_target_session "$session_name"; then
+    export VIBECRAFT_OPERATOR_SESSION="$session_name"
     return 0
   fi
   command -v zellij >/dev/null 2>&1 || return 0
 
-  session_name="$(_vetcoders_operator_session_name)"
   layout_file="$(_vetcoders_operator_layout_file 2>/dev/null || true)"
   [[ -n "$layout_file" ]] || return 0
 
@@ -492,14 +506,15 @@ _vetcoders_dashboard_layout_file() {
 }
 
 _vetcoders_dashboard_session_name() {
-  local layout_name slug
+  local layout_name slug base_session
   layout_name="$(_vetcoders_dashboard_layout_name "${1:-}")"
+  base_session="$(_vetcoders_operator_session_name)"
   if [[ "$layout_name" == "vibecrafted" ]]; then
-    printf 'vibecrafted\n'
+    printf '%s\n' "$base_session"
     return 0
   fi
   slug="${layout_name#vc-}"
-  printf 'vibecrafted-%s\n' "$slug"
+  printf '%s-%s\n' "$base_session" "$slug"
 }
 
 _vetcoders_launch_dashboard() {
@@ -954,9 +969,10 @@ _vetcoders_marbles() {
   marbles_cmd="export VIBECRAFT_ZELLIJ_SPAWN_DIRECTION=right; bash $(printf '%q' "$script") ${quoted_args}"
 
   # Inside zellij: run marbles orchestrator in a pane below, keep operator free
-  if _vetcoders_in_zellij && command -v zellij >/dev/null 2>&1; then
+  if _vetcoders_in_target_session "$(_vetcoders_operator_session_name)" && command -v zellij >/dev/null 2>&1; then
     zellij action new-pane \
       --direction down \
+      --height 40% \
       --name "marbles" \
       --cwd "${_vetcoders_contract_root:-$(_vetcoders_repo_root)}" \
       -- /bin/zsh -l -c "$marbles_cmd"

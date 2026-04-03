@@ -191,6 +191,9 @@ def test_dashboard_subcommand_launches_repo_owned_zellij_layout(tmp_path: Path) 
     env["PATH"] = f"{fake_bin}:{env.get('PATH', '')}"
     env["CAPTURE_FILE"] = str(capture_file)
     env.pop("ZELLIJ_CONFIG_DIR", None)
+    env.pop("ZELLIJ", None)
+    env.pop("ZELLIJ_PANE_ID", None)
+    env.pop("ZELLIJ_SESSION_NAME", None)
 
     subprocess.run(
         ["bash", str(LAUNCHER), "dashboard"],
@@ -223,6 +226,9 @@ def test_start_subcommand_launches_operator_entrypoint_layout(tmp_path: Path) ->
     env["PATH"] = f"{fake_bin}:{env.get('PATH', '')}"
     env["CAPTURE_FILE"] = str(capture_file)
     env.pop("ZELLIJ_CONFIG_DIR", None)
+    env.pop("ZELLIJ", None)
+    env.pop("ZELLIJ_PANE_ID", None)
+    env.pop("ZELLIJ_SESSION_NAME", None)
 
     subprocess.run(
         ["bash", str(LAUNCHER), "start"],

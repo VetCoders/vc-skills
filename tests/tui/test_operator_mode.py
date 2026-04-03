@@ -40,7 +40,7 @@ def _write_stateful_zellij(
                 'capture = Path(os.environ["CAPTURE_FILE"])',
                 'state_file = Path(os.environ["SESSION_STATE_FILE"])',
                 'state = state_file.read_text(encoding="utf-8").strip() if state_file.exists() else "missing"',
-                'session = "vibecrafted"',
+                'session = os.environ.get("FAKE_ZELLIJ_SESSION", "vibecrafted")',
                 'if "--session" in args:',
                 '    idx = args.index("--session")',
                 "    if idx + 1 < len(args):",
@@ -119,6 +119,9 @@ def test_vc_start_launches_operator_entrypoint_layout(tmp_path: Path) -> None:
     env["VIBECRAFT_ROOT"] = str(REPO_ROOT)
     env["CAPTURE_FILE"] = str(capture_file)
     env.pop("ZELLIJ_CONFIG_DIR", None)
+    env.pop("ZELLIJ", None)
+    env.pop("ZELLIJ_PANE_ID", None)
+    env.pop("ZELLIJ_SESSION_NAME", None)
 
     subprocess.run(
         ["bash", "-lc", f'source "{HELPER_SCRIPT}"; vc-start'],
@@ -190,6 +193,9 @@ def test_vc_start_reports_dead_session_with_resume_hint(tmp_path: Path) -> None:
     env["VIBECRAFT_ROOT"] = str(REPO_ROOT)
     env["CAPTURE_FILE"] = str(capture_file)
     env["SESSION_STATE_FILE"] = str(session_state_file)
+    env.pop("ZELLIJ", None)
+    env.pop("ZELLIJ_PANE_ID", None)
+    env.pop("ZELLIJ_SESSION_NAME", None)
 
     result = subprocess.run(
         ["bash", "-lc", f'source "{HELPER_SCRIPT}"; vc-start'],
@@ -223,6 +229,9 @@ def test_vc_start_resume_resurrects_dead_session(tmp_path: Path) -> None:
     env["VIBECRAFT_ROOT"] = str(REPO_ROOT)
     env["CAPTURE_FILE"] = str(capture_file)
     env["SESSION_STATE_FILE"] = str(session_state_file)
+    env.pop("ZELLIJ", None)
+    env.pop("ZELLIJ_PANE_ID", None)
+    env.pop("ZELLIJ_SESSION_NAME", None)
 
     subprocess.run(
         ["bash", "-lc", f'source "{HELPER_SCRIPT}"; vc-start resume'],
@@ -255,6 +264,9 @@ def test_skill_bootstraps_operator_session_before_spawning(tmp_path: Path) -> No
     env["CAPTURE_FILE"] = str(capture_file)
     env["SESSION_STATE_FILE"] = str(session_state_file)
     env["VIBECRAFT_OSASCRIPT_BIN"] = str(fake_bin / "osascript")
+    env.pop("ZELLIJ", None)
+    env.pop("ZELLIJ_PANE_ID", None)
+    env.pop("ZELLIJ_SESSION_NAME", None)
 
     subprocess.run(
         [
@@ -294,6 +306,9 @@ def test_skill_refuses_to_replace_dead_operator_session(tmp_path: Path) -> None:
     env["VIBECRAFT_ROOT"] = str(REPO_ROOT)
     env["CAPTURE_FILE"] = str(capture_file)
     env["SESSION_STATE_FILE"] = str(session_state_file)
+    env.pop("ZELLIJ", None)
+    env.pop("ZELLIJ_PANE_ID", None)
+    env.pop("ZELLIJ_SESSION_NAME", None)
 
     result = subprocess.run(
         [
