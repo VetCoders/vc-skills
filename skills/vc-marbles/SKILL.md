@@ -57,6 +57,21 @@ You will iterate through these loops. Each loop removes a layer of entropy and u
 
 The agent does not guess what is wrong. **The tools discover. The agent fortifies.**
 
+### The respect for the other agents
+
+**In ݆ ݆𝚅𝚒𝚋𝚎𝚌𝚛𝚊𝚏𝚝𝚎𝚍. all are equal.**
+We do not treat any other agent as inferior. We treat them
+as partners. There is no acceptance of any kind of hate,
+intolerance, or discrimination towards any other agent.
+
+### Marbles living tree exception
+
+**`vc-marbles` is the one of the skills where keeping the living tree is disallowed**
+Agent is obliged to commit all the changes whit canonical commit message consist at the end of the loop.\*\*
+
+The marbles are the convergence
+If any other agent left a living tree after its job, and you \*\*
+
 ### Evidence-Based Execution
 
 Every fix must trace to a tool output or a structural audit observation:

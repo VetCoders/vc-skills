@@ -69,7 +69,7 @@ for the _why_, not just a blind dump of _how_. Understand:
 **Discipline:** AICX is an intention-retrieval engine, not a blind RAG cannon.
 Retrieve the context of the decisions, then verify their current truth in Sense 2.
 
-You have acces to both `aicx` (cli) and `aicx-mcp` (stdio and streamable-http):
+You have access to both `aicx` (cli) and `aicx-mcp` (stdio and streamable-http):
 a) the dual mode (stdio + streamable-http) allows for flexible and versatile
 integration with various AI frameworks - the streamable-http mode is particularly useful for session retrieval from remote
 sources (e.g. other workstations or users' remote agents) so do not rely only on
@@ -82,10 +82,9 @@ with matched lines. Supports Polish diacritics normalization and optional
 project filtering. - `mcp_aicx_aicx_steer`
 Retrieve stored chunks by steering metadata (frontmatter fields).
 Filters by run_id, prompt_id, agent, kind, project, and/or date range using
-sidecar metadata — no filesystem grep needed. Returns chunk paths with their
-sidecar metadata for selective re-entry.
+sidecar metadata — no filesystem grep needed.
 
-The full reference for the binaries can be found in the `aicx` SKILL which offers
+The full reference for the binaries can be found in the `vc-aicx` SKILL which offers
 a detailed information and use-cases or simply by calling `aicx --help`.
 
 ### Sense 2: Perception (over memory)
