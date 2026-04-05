@@ -104,5 +104,5 @@ Key sections:
 
 ---
 
-Created by M&K (c)2026 VetCoders
+Created by M&K (c)2024-2026 VetCoders
 Co-Authored-By: [Maciej](void@div0.space) & [Klaudiusz](the1st@whoai.am)

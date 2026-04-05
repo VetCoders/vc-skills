@@ -40,7 +40,7 @@ Environment Variables:
     CHATCLIENT_API_KEY      Default API key
     CHATCLIENT_MODEL        Default model
 
-Created by M&K (c)2026 VetCoders
+Created by M&K (c)2024-2026 VetCoders
 """
 
 from __future__ import annotations
@@ -275,7 +275,7 @@ Examples:
   # OpenAI
   ./chat-cli.py --base-url https://api.openai.com/v1 --api-key $OPENAI_API_KEY --model gpt-4o
 
-Created by M&K (c)2026 VetCoders
+Created by M&K (c)2024-2026 VetCoders
 """,
     )
     parser.add_argument(

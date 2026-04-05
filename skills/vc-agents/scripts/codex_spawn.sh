@@ -99,8 +99,36 @@ spawn_generate_launcher "$SPAWN_LAUNCHER" \
   "$SCRIPT_DIR/common.sh" \
   "$launch_cmd" \
   "" \
-  "$success_hook_extra" \
-  "$failure_hook_extra"
+  "$combined_success" \
+  "$combined_failure"
+
+
+# shellcheck disable=SC2016
+codex_success_hook='
+  if [[ ! -s "$report" ]]; then
+    spawn_write_frontmatter "$report" "$SPAWN_AGENT" "unknown" "completed"
+    cat >> "$report" <<TXT
+Codex completed without writing a standalone report file.
+See transcript for the full event stream:
+$transcript
+TXT
+  fi'
+
+# shellcheck disable=SC2016
+codex_failure_hook='
+  if [[ ! -s "$report" ]]; then
+    spawn_write_frontmatter "$report" "$SPAWN_AGENT" "unknown" "failed"
+    cat >> "$report" <<TXT
+Codex failed before writing a standalone report file.
+See transcript for the full event stream:
+$transcript
+TXT
+  fi'
+
+combined_success="${codex_success_hook}${success_hook_extra:+
+$success_hook_extra}"
+combined_failure="${codex_failure_hook}${failure_hook_extra:+
+$failure_hook_extra}"
 
 chmod +x "$SPAWN_LAUNCHER"
 spawn_print_launch codex "$mode" "$runtime"

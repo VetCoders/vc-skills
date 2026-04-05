@@ -424,13 +424,44 @@ PY
   printf '\033[2mRecent active 𝚅𝚒𝚋𝚎𝚌𝚛𝚊𝚏𝚝𝚎𝚍. runs:\n%s\033[0m\n' "$recent_active"
 }
 
+
+spawn_write_frontmatter() {
+  local target_file="$1"
+  local agent="${2:-${SPAWN_AGENT:-unknown}}"
+  local model="${3:-${SPAWN_MODEL:-unknown}}"
+  local status="${4:-pending}"
+
+  cat > "$target_file" <<EOF_FM
+---
+run_id: ${SPAWN_RUN_ID:-unknown}
+prompt_id: ${SPAWN_PROMPT_ID:-unknown}
+agent: $agent
+skill: ${SPAWN_SKILL_CODE:-unknown}
+model: $model
+status: $status
+---
+
+EOF_FM
+}
+
 spawn_build_runtime_prompt() {
   local source_file="$1"
   local runtime_file="$2"
   local report_path="$3"
   local agent="${4:-${SPAWN_AGENT:-agent}}"
+  local model="${5:-${SPAWN_MODEL:-unknown}}"
 
-  cat "$source_file" > "$runtime_file"
+  spawn_write_frontmatter "$runtime_file" "$agent" "$model" "prompt"
+
+  # Strip existing frontmatter (so we don't have double) and append the plan
+  awk '
+    BEGIN { in_fm=0; fm_done=0; }
+    NR==1 && /^---[ 	]*$/ { in_fm=1; next; }
+    in_fm && /^---[ 	]*$/ { in_fm=0; fm_done=1; next; }
+    in_fm { next; }
+    { print }
+  ' "$source_file" >> "$runtime_file"
+
   cat >> "$runtime_file" <<EOF_PROMPT
 
 At the end of the task, write your final human-readable report to this exact path:
@@ -440,14 +471,7 @@ Keep streaming useful progress to stdout while you work. If you cannot write a
 standalone report file, finish normally and let the transcript act as the fallback
 artifact.
 
-When writing your report file, include YAML frontmatter at the top:
----
-agent: $agent
-run_id: ${SPAWN_RUN_ID:-unknown}
-prompt_id: ${SPAWN_PROMPT_ID:-unknown}
-started_at: (ISO 8601 when you began)
-model: (your model name)
----
+When writing your report file, include YAML frontmatter at the top (use the exact frontmatter that this prompt starts with, but change status to 'completed' or 'failed').
 EOF_PROMPT
 }
 
@@ -582,6 +606,7 @@ export VIBECRAFTED_OPERATOR_SESSION=$q_operator_session
 export VIBECRAFTED_ZELLIJ_SPAWN_DIRECTION=$q_spawn_direction
 
 rm -f "\$transcript" "\$report"
+spawn_write_frontmatter "\$transcript" "\$SPAWN_AGENT" "unknown" "transcript"
 if [[ -n "\${SPAWN_ROOT:-}" ]]; then
   cd "\$SPAWN_ROOT"
 fi
@@ -759,7 +784,7 @@ spawn_in_zellij_pane() {
   local pane_name="${2:-agent}"
   local direction="${VIBECRAFTED_ZELLIJ_SPAWN_DIRECTION:-$(spawn_pane_direction)}"
 
-  if spawn_in_target_zellij_session && command -v zellij >/dev/null 2>&1; then
+  if spawn_in_zellij_context && command -v zellij >/dev/null 2>&1; then
     if [[ "$direction" == "new-tab" ]]; then
       zellij action new-tab \
         --name "$pane_name" \

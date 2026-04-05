@@ -210,4 +210,4 @@ Ship it clean. Ship it documented. Ship it with a plan for what comes next.
 
 _"The code is done. The packaging is done. Now ship it to people."_
 
-_Vibecrafted with AI Agents by VetCoders (c)2026 VetCoders_
+_Vibecrafted with AI Agents by VetCoders (c)2024-2026 VetCoders_

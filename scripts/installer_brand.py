@@ -12,7 +12,7 @@ FRAMEWORK_STAMP = (
 )
 TAGLINE = "The Founders' Framework"
 PRODUCT_LINE = "A convergence-driven system for shipping software with AI agents."
-FOOTER_BRANDING = "𝚅𝚒𝚋𝚎𝚌𝚛𝚊𝚏𝚝𝚎𝚍. with AI Agents (c)2026 VetCoders"
+FOOTER_BRANDING = "𝚅𝚒𝚋𝚎𝚌𝚛𝚊𝚏𝚝𝚎𝚍. with AI Agents (c)2024-2026 VetCoders"
 
 
 def version_line(version: str) -> str:

@@ -1118,8 +1118,8 @@ _vetcoders_marbles() {
   fi
 
   # Inside zellij: run marbles orchestrator in a pane below, keep operator free
-  if _vetcoders_in_target_session "$operator_session" && command -v zellij >/dev/null 2>&1; then
-    export VIBECRAFTED_OPERATOR_SESSION="$operator_session"
+  if _vetcoders_in_zellij && command -v zellij >/dev/null 2>&1; then
+    export VIBECRAFTED_OPERATOR_SESSION="$(_vetcoders_current_zellij_session_name)"
     zellij action new-pane \
       --direction down \
       --height 40% \

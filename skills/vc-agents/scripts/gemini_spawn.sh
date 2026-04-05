@@ -93,13 +93,15 @@ qmodel="$(printf '%q' "$model")"
 # shellcheck disable=SC2016
 gemini_success_hook='
   if [[ ! -s "$report" && -s "$transcript" ]]; then
-    cp "$transcript" "$report"
+    spawn_write_frontmatter "$report" "$SPAWN_AGENT" "${SPAWN_MODEL:-unknown}" "completed"
+    cat "$transcript" >> "$report"
   fi'
 
 # shellcheck disable=SC2016
 gemini_failure_hook='
   if [[ ! -s "$report" && -s "$transcript" ]]; then
-    cp "$transcript" "$report"
+    spawn_write_frontmatter "$report" "$SPAWN_AGENT" "${SPAWN_MODEL:-unknown}" "failed"
+    cat "$transcript" >> "$report"
   fi'
 
 model_flag=""

@@ -209,7 +209,7 @@ HEADER
         printf '\n...\n'
       done
 
-    printf '\n---\n𝚅𝚒𝚋𝚎𝚌𝚛𝚊𝚏𝚝𝚎𝚍. with AI Agents (c)2026 VetCoders\n'
+    printf '\n---\n𝚅𝚒𝚋𝚎𝚌𝚛𝚊𝚏𝚝𝚎𝚍. with AI Agents (c)2024-2026 VetCoders\n'
   } > "$convergence"
 
   # Launch final-loop verification (is_final=1 → includes convergence assessment)

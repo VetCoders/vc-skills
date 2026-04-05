@@ -375,4 +375,4 @@ Why this exists alongside `vc-agents`:
 
 ---
 
-_Vibecrafted with AI Agents by VetCoders (c)2026 VetCoders_
+_Vibecrafted with AI Agents by VetCoders (c)2024-2026 VetCoders_

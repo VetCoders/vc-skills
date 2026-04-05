@@ -132,4 +132,4 @@ If it doesn't run in production, build the release, or test the integrity... **c
 
 ---
 
-_Vibecrafted with AI Agents by VetCoders (c)2026 VetCoders_
+_Vibecrafted with AI Agents by VetCoders (c)2024-2026 VetCoders_

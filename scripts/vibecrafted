@@ -603,16 +603,25 @@ cmd_dashboard() {
 }
 
 cmd_stats() {
-  local today_dir artifacts_dir
+  local today_dir ts_prefix artifacts_dir local_artifacts_dir
+  local search_dirs=()
+  
   today_dir="$(date +%Y_%m%d)"
+  ts_prefix="$(date +%Y%m%d)"
   artifacts_dir="$crafted_home/artifacts"
+  local_artifacts_dir="$(_repo_root 2>/dev/null || pwd)/.vibecrafted/reports"
+
+  [[ -d "$artifacts_dir" ]] && search_dirs+=("$artifacts_dir")
+  [[ -d "$local_artifacts_dir" ]] && search_dirs+=("$local_artifacts_dir")
+
   printf '\n%b⚒  𝚅𝚒𝚋𝚎𝚌𝚛𝚊𝚏𝚝𝚎𝚍. Stats — %s%b\n' "$_bold$_copper" "$(date +%Y-%m-%d)" "$_reset"
   printf '%b─────────────────────────────────────────%b\n' "$_steel" "$_reset"
-  if [[ ! -d "$artifacts_dir" ]]; then
+  if [[ ${#search_dirs[@]} -eq 0 ]]; then
     printf '  No artifacts found yet.\n\n'
     return 0
   fi
-  find "$artifacts_dir" -path "*${today_dir}*" -name "*.meta.json" -type f | sort -r | sed -n '1,8p' | sed 's#^#  #'
+  
+  find "${search_dirs[@]}" \( -path "*${today_dir}*" -o -name "${ts_prefix}_*.meta.json" \) -name "*.meta.json" -type f 2>/dev/null | sort -r | sed -n '1,8p' | sed 's#^#  #'
   printf '\n'
 }
 

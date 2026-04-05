@@ -111,4 +111,4 @@ If an abstraction is fundamentally broken, cut it. Do not negotiate with bad arc
 
 _"The user won't notice anything changed, but the app will no longer go down on a Friday night."_
 
-_Vibecrafted with AI Agents by VetCoders (c)2026 VetCoders_
+_Vibecrafted with AI Agents by VetCoders (c)2024-2026 VetCoders_

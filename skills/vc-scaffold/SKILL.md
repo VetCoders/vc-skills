@@ -192,4 +192,4 @@ That's it. No polishing. No prettifying. Just working plans.
 
 See references/plan-template.md for the output format.
 
-_Vibecrafted with AI Agents by VetCoders (c)2026 VetCoders_
+_Vibecrafted with AI Agents by VetCoders (c)2024-2026 VetCoders_

@@ -235,4 +235,4 @@ Step 5: Verify
 ---
 
 _Phase 3 — Ship (dou → decorate → hydrate → release)_
-_Vibecrafted with AI Agents by VetCoders (c)2026 VetCoders_
+_Vibecrafted with AI Agents by VetCoders (c)2024-2026 VetCoders_

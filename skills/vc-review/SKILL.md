@@ -450,4 +450,4 @@ prview --json --quiet | jq '.checks[] | select(.status == "Failed")'
 
 ---
 
-_Created by M&K (c)2026 VetCoders_
+_Created by M&K (c)2024-2026 VetCoders_

@@ -93,7 +93,8 @@ qmodel="$(printf '%q' "$model")"
 # shellcheck disable=SC2016
 claude_success_hook='
   if [[ ! -s "$report" ]]; then
-    cat > "$report" <<TXT
+    spawn_write_frontmatter "$report" "$SPAWN_AGENT" "${SPAWN_MODEL:-unknown}" "completed"
+    cat >> "$report" <<TXT
 Claude completed without writing a standalone report file.
 See transcript for the full event stream:
 $transcript
@@ -103,7 +104,8 @@ TXT
 # shellcheck disable=SC2016
 claude_failure_hook='
   if [[ ! -s "$report" ]]; then
-    cat > "$report" <<TXT
+    spawn_write_frontmatter "$report" "$SPAWN_AGENT" "${SPAWN_MODEL:-unknown}" "failed"
+    cat >> "$report" <<TXT
 Claude failed before writing a standalone report file.
 See transcript for the full event stream:
 $transcript
