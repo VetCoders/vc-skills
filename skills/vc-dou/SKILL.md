@@ -13,17 +13,22 @@ description: >
   "co brakuje do launchu", "readiness audit", "packaging gap".
 ---
 
-# vc-dou — Definition of Undone Audit
+# vc-dou — Definition of Undone (Action Engine)
 
-> "Green gates are necessary, not sufficient. Runtime truth wins."
+> "Audit skills are dead. Work is taking initiative, not just pointing out flaws."
 > "The engineering is done. The packaging is not."
 
 The DoU skill answers the question no agent asks by default:
-**"What remains incomplete across the entire product surface, and why?"**
+**"What remains incomplete across the entire product surface, and how do we fix it right now?"**
 
-This is the completion oracle described in the DoU manifesto — not a one-off report,
-but a structured, repeatable audit that measures the gap between "it runs on my machine"
-and "someone can buy this."
+This is the completion engine described in the DoU manifesto. It is not a passive checklist generator. It is an **active** engine that measures the gap between "it runs on my machine" and "someone can buy this" — and then immediately starts patching those gaps by creating the missing CI scripts, generating the missing representation layer, and writing the missing docs.
+
+<details>
+<summary>Foundation Dependencies (Loaded with framework)</summary>
+
+- [vc-loctree](../foundations/vc-loctree/SKILL.md) — primary map and structural awareness.
+- [vc-aicx](../foundations/vc-aicx/SKILL.md) — primary memory and steerability index.
+</details>
 
 One critical rule:
 
@@ -207,8 +212,10 @@ Do NOT just mark it missing and move on. A product without a face is invisible.
 
 Generate `./presence/` with three files:
 
-- `index.html` — product name, one-line description, what it does, install command, key features (3-5), links (GitHub, docs, crates.io/npm/pypi)
-- `styles.css` — dark theme, monospace chrome, clean typography, material palette if defined in scaffold, otherwise neutral steel/stone
+- `index.html` — product name, one-line description, what it does, install command, key features (3-5), links (GitHub,
+  docs, crates.io/npm/pypi)
+- `styles.css` — dark theme, monospace chrome, clean typography, material palette if defined in scaffold, otherwise
+  neutral steel/stone
 - `app.js` — copy button for install command, smooth scroll, fade-up observer. Nothing more.
 
 Design rules:
@@ -319,7 +326,7 @@ Discovery → Landing → Understanding → Trial → Adoption → Payment
 100 = technically brilliant, commercially invisible
 ```
 
-## Integration with VibeCrafted Pipeline
+## Integration with 𝚅𝚒𝚋𝚎𝚌𝚛𝚊𝚏𝚝𝚎𝚍. Pipeline
 
 ```
 Phase 1 — Craft:     scaffold → init → workflow → followup
@@ -360,4 +367,4 @@ Items 4-6 are the Definition of Undone.
 _"The antidote is not more tools. It is not another framework._
 _It is a decision: choose what ships, and finish it. All of it. Not just the code."_
 
-_Vibecrafted with AI Agents by VetCoders (c)2026 VetCoders_
+_Vibecrafted with AI Agents by VetCoders (c)2024-2026 VetCoders_
