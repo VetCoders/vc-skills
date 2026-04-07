@@ -470,8 +470,7 @@ _vetcoders_spawn_into_operator_session() {
   # zellij rejects inline command args once they carry shell-quoted multibyte
   # prompt content. Hand it an ASCII-safe temp script path instead.
   cmd_script="$(mktemp "${TMPDIR:-/tmp}/vc-spawn-cmd.XXXXXX")"
-  printf '#!/bin/zsh -l\ntrap "rm -f %q" EXIT\n%s\n' "$cmd_script" "$command_text" > "$cmd_script"
-  chmod +x "$cmd_script"
+  _vetcoders_write_command_script "$cmd_script" "$command_text" || return 1
   zellij --session "$session_name" action new-tab \
     --name "$tab_name" \
     --cwd "$root_dir" \
@@ -927,6 +926,25 @@ _vetcoders_shell_quote_join() {
   printf '%s' "${quoted[*]}"
 }
 
+_vetcoders_write_command_script() {
+  local script_path="$1"
+  local command_text="$2"
+  local shell_bin
+
+  if command -v zsh >/dev/null 2>&1; then
+    shell_bin="$(command -v zsh)"
+  else
+    shell_bin="$(command -v bash)"
+  fi
+
+  # shellcheck disable=SC2016
+  printf '#!/usr/bin/env bash\nset -euo pipefail\ntrap '\''rm -f "$0"'\'' EXIT\n%s -lc %s\n' \
+    "$(_vetcoders_shell_quote "$shell_bin")" \
+    "$(_vetcoders_shell_quote "$command_text")" \
+    > "$script_path"
+  chmod +x "$script_path"
+}
+
 _vetcoders_compose_input_context() {
   local prompt_text="${1:-}"
   local file_path="${2:-}"
@@ -1199,8 +1217,7 @@ _vetcoders_marbles() {
     local cmd_script
     export VIBECRAFTED_OPERATOR_SESSION="$(_vetcoders_current_zellij_session_name)"
     cmd_script="$(mktemp "${TMPDIR:-/tmp}/vibecrafted-marbles.XXXXXX")"
-    printf '#!/bin/zsh -l\ntrap "rm -f %q" EXIT\n%s\n' "$cmd_script" "$marbles_cmd" > "$cmd_script"
-    chmod +x "$cmd_script"
+    _vetcoders_write_command_script "$cmd_script" "$marbles_cmd" || return 1
     zellij action new-tab \
       --name "marbles" \
       --cwd "${_vetcoders_contract_root:-$(_vetcoders_repo_root)}" \

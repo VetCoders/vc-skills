@@ -218,3 +218,44 @@ def test_parse_contract_treats_everything_after_prompt_as_prompt_block() -> None
     assert lines["RUNTIME"] == ""
     assert lines["DEPTH"] == ""
     assert lines["PROMPT"] == "Portable musi działać. --runtime headless --depth 99"
+
+
+def test_write_command_script_falls_back_to_bash_when_zsh_missing(
+    tmp_path: Path,
+) -> None:
+    fake_bin = tmp_path / "bin"
+    fake_bin.mkdir()
+    (fake_bin / "bash").symlink_to(Path("/bin/bash"))
+    (fake_bin / "chmod").symlink_to(Path("/bin/chmod"))
+
+    command_script = tmp_path / "spawn-cmd"
+    env = os.environ.copy()
+    env["PATH"] = f"{fake_bin}:/usr/bin"
+
+    subprocess.run(
+        [
+            "/bin/bash",
+            "-c",
+            (
+                f'source "{HELPER_SCRIPT}"; '
+                f'_vetcoders_write_command_script "{command_script}" "printf %s fallback-ok"'
+            ),
+        ],
+        check=True,
+        cwd=REPO_ROOT,
+        env=env,
+    )
+
+    script_body = command_script.read_text(encoding="utf-8")
+    assert str(fake_bin / "bash") in script_body
+    assert "zsh" not in script_body
+
+    result = subprocess.run(
+        [str(command_script)],
+        check=True,
+        cwd=REPO_ROOT,
+        capture_output=True,
+        text=True,
+    )
+    assert result.stdout == "fallback-ok"
+    assert not command_script.exists()
