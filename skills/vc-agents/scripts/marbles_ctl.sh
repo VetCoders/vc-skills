@@ -39,7 +39,14 @@ _find_active_sessions() {
     local rid
     rid="$(basename "$dir")"
     local status
-    status=$(python3 -c "import json; print(json.load(open('$sf')).get('status','?'))" 2>/dev/null || echo "?")
+    status=$(python3 - "$sf" <<'PY' 2>/dev/null || echo "?"
+import json
+import sys
+
+with open(sys.argv[1]) as handle:
+    print(json.load(handle).get("status", "?"))
+PY
+)
     case "$status" in
       initialized|promise|confirmed|running|paused)
         printf '%s\n' "$rid"
@@ -67,7 +74,7 @@ cmd_pause() {
     while IFS= read -r rid; do
       [[ -n "$rid" ]] || continue
       _signal_session "$rid" "pause"
-      ((found++))
+      ((++found))
     done < <(_find_active_sessions)
     ((found > 0)) || printf '%bNo active sessions to pause%b\n' "$_dim" "$_reset"
   else
@@ -82,7 +89,7 @@ cmd_stop() {
     while IFS= read -r rid; do
       [[ -n "$rid" ]] || continue
       _signal_session "$rid" "stop"
-      ((found++))
+      ((++found))
     done < <(_find_active_sessions)
     ((found > 0)) || printf '%bNo active sessions to stop%b\n' "$_dim" "$_reset"
   else
@@ -166,7 +173,7 @@ PY
     ) || true
     if [[ -n "$row" ]]; then
       printf '%s\n' "$row"
-      ((found++))
+      ((++found))
     fi
   done
 

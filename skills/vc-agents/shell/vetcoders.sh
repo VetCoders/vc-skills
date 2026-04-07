@@ -1052,6 +1052,57 @@ _vetcoders_compose_skill_prompt() {
   printf '%s\n' "$base"
 }
 
+_vetcoders_init_runtime() {
+  local runtime="${1:-terminal}"
+  case "$runtime" in
+    terminal|visible)
+      printf '%s\n' "$runtime"
+      ;;
+    *)
+      echo "vc-init is interactive-only: use --runtime terminal or visible." >&2
+      return 1
+      ;;
+  esac
+}
+
+_vetcoders_compose_init_prompt() {
+  local prompt_text="${1:-}"
+  local file_path="${2:-}"
+  local init_prompt="/vc-init"
+  local extra
+
+  extra="$(_vetcoders_compose_input_context "$prompt_text" "$file_path")" || return 1
+  if [[ -n "$extra" ]]; then
+    init_prompt+=$'\n\n'
+    init_prompt+="$extra"
+  fi
+
+  printf '%s' "$init_prompt"
+}
+
+_vetcoders_init_command_text() {
+  local tool="$1"
+  local init_prompt="$2"
+  local quoted_prompt
+  quoted_prompt="$(_vetcoders_shell_quote "$init_prompt")"
+
+  case "$tool" in
+    claude)
+      printf 'claude --verbose --dangerously-skip-permissions %s' "$quoted_prompt"
+      ;;
+    codex)
+      printf 'codex --dangerously-bypass-approvals-and-sandbox %s' "$quoted_prompt"
+      ;;
+    gemini)
+      printf 'gemini -y -i %s' "$quoted_prompt"
+      ;;
+    *)
+      echo "Unsupported init agent: $tool" >&2
+      return 1
+      ;;
+  esac
+}
+
 _vetcoders_spawn_plan() {
   local tool="$1"
   local mode="$2"
@@ -1227,6 +1278,38 @@ _vetcoders_skill_entry() {
   local skill="$2"
   shift 2
   _vetcoders_skill "$tool" "$skill" "$@"
+}
+
+_vetcoders_skill_init() {
+  local tool="$1"
+  shift
+  local runtime init_prompt command_text
+
+  _vetcoders_parse_contract "$@" || return 1
+  [[ -z "$_vetcoders_contract_count" ]] || {
+    echo "--count is not supported by vibecrafted init." >&2
+    return 1
+  }
+  [[ -z "$_vetcoders_contract_depth" ]] || {
+    echo "--depth is not supported by vibecrafted init." >&2
+    return 1
+  }
+  [[ -z "$_vetcoders_contract_session" ]] || {
+    echo "--session is not supported by vibecrafted init." >&2
+    return 1
+  }
+
+  command -v zellij >/dev/null 2>&1 || {
+    echo "vc-init requires zellij so the operator session can be attached or created." >&2
+    return 1
+  }
+
+  runtime="$(_vetcoders_init_runtime "${_vetcoders_contract_runtime:-terminal}")" || return 1
+  init_prompt="$(_vetcoders_compose_init_prompt "$_vetcoders_contract_prompt" "$_vetcoders_contract_file")" || return 1
+  command_text="$(_vetcoders_init_command_text "$tool" "$init_prompt")" || return 1
+
+  _vetcoders_prepare_operator_runtime "$runtime" || return 1
+  _vetcoders_spawn_into_operator_session "${tool}-init" "$command_text"
 }
 
 codex-dou() { _vetcoders_skill codex dou "$@"; }
@@ -1426,9 +1509,9 @@ codex-skill-hydrate() { _vetcoders_skill_entry codex hydrate "$@"; }
 claude-skill-hydrate() { _vetcoders_skill_entry claude hydrate "$@"; }
 gemini-skill-hydrate() { _vetcoders_skill_entry gemini hydrate "$@"; }
 
-codex-skill-init() { _vetcoders_skill_entry codex init "$@"; }
-claude-skill-init() { _vetcoders_skill_entry claude init "$@"; }
-gemini-skill-init() { _vetcoders_skill_entry gemini init "$@"; }
+codex-skill-init() { _vetcoders_skill_init codex "$@"; }
+claude-skill-init() { _vetcoders_skill_init claude "$@"; }
+gemini-skill-init() { _vetcoders_skill_init gemini "$@"; }
 
 codex-skill-justdo() { _vetcoders_skill_entry codex justdo "$@"; }
 claude-skill-justdo() { _vetcoders_skill_entry claude justdo "$@"; }
@@ -1704,6 +1787,9 @@ vc-start() {
     shift || true
     _vetcoders_resume_operator_session "$@"
     return
+  fi
+  if [[ "${1:-}" == "vibecrafted" ]]; then
+    shift || true
   fi
   _vetcoders_launch_dashboard vibecrafted "$@"
 }

@@ -2,11 +2,11 @@
 name: aicx
 version: 3.0.0
 description: >
-  An Intention Retrieval Engine for Agents' sessions. aicx (formely 
-  ai-contexters) is a sophisticated parser tool that recover and keep i the central 
-  storage the histry of agents' sessions in both human ant agent readable format. 
-  Additionally it provides ad-hoc mode to recover agent output that is too large to 
-  Read or unreadable. Works on any Claude Code, Openai Codex, Gemini JSON, 
+  An Intention Retrieval Engine for Agents' sessions. aicx (formerly
+  ai-contexters) is a sophisticated parser tool that recovers and keeps the
+  central history of agents' sessions in both human- and agent-readable format.
+  Additionally it provides ad-hoc mode to recover agent output that is too large to
+  read or is unreadable. Works on any Claude Code, OpenAI Codex, Gemini JSON,
   JSONL-format file regardless of extension (.jsonl, .txt, .output). Generates 
   output path automatically — no -o flag needed.
 ---
@@ -43,7 +43,7 @@ for the _why_, not just a blind dump of _how_.
 AICX is an intention-retrieval engine, not a blind RAG cannon.
 Retrieve the context of the decisions, then verify their current truth in Sense 2.
 
-## Te output structure::
+## The output structure:
 
 ```
 [1-100/100 <score_range>] <org>/<repo> | <agent> | <date>

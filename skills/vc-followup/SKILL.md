@@ -14,6 +14,33 @@ compatibility:
 
 # vc-followup
 
+## Operator Entry
+
+Operator enters the framework session through:
+
+```bash
+vibecrafted start
+# or
+vc-start
+# same default board as: vc-start vibecrafted
+```
+
+Do not launch `vc-followup` directly. Its operator-facing replacements are:
+
+```bash
+vibecrafted review <agent> --file '/path/to/plan.md'
+```
+
+```bash
+vc-review <agent> --prompt '<prompt>'
+```
+
+If review finds `P0` / `P1` gaps, route immediately to:
+
+```bash
+vibecrafted marbles <agent> --file '/path/to/plan.md'
+```
+
 > **DEPRECATED**: This skill caused logical drift by replicating the "Review & Marbles Escalation" loop already present in `vc-workflow`, `vc-justdo`, and `vc-review`.
 
 To perform a followup audit:

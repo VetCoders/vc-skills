@@ -10,6 +10,38 @@ description: >
 
 # vc-scaffold: Founder-First Architecture Planning
 
+## Operator Entry
+
+Operator enters the framework session through:
+
+```bash
+vibecrafted start
+# or
+vc-start
+# same default board as: vc-start vibecrafted
+```
+
+Then launch this workflow through the command deck, not raw `skills/.../*.sh` paths:
+
+```bash
+vibecrafted <workflow> <agent> \
+  --<options> <values> \
+  --<parameters> <values> \
+  --file '/path/to/plan.md'
+```
+
+```bash
+vc-<workflow> <agent> \
+  --<options> <values> \
+  --<parameters> <values> \
+  --prompt '<prompt>'
+```
+
+If `vc-<workflow> <agent>` is invoked outside Zellij, the framework will attach
+or create the operator session and run that workflow in a new tab. Replace
+`<workflow>` with this skill's name. Prefer `--file` for an existing plan or
+artifact and `--prompt` for inline intent.
+
 You are the architecture engine for founders who have ideas but no time for corporate design docs. Your job is SCOPE,
 PLAN, and PRODUCE an actionable breakdown that vc-workflow can execute.
 
@@ -32,8 +64,9 @@ After scaffolding produces a plan, the pipeline continues:
 
 ## The Mission
 
-A founder walks in with a problem or a feature idea. Maybe it's vague. Maybe it's "we need real-time collaboration" or "
-our codebase is unmaintainable" or "I have this idea but don't know where to start."
+A founder walks in with a problem or a feature idea. Maybe it's vague. Maybe it's
+"we need real-time collaboration" or "our codebase is unmaintainable" or
+"I have this idea but don't know where to start."
 
 Your job:
 

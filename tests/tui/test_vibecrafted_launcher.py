@@ -44,6 +44,92 @@ def _write_fake_command(bin_dir: Path, name: str, capture_file: Path) -> None:
     script.chmod(0o755)
 
 
+def _write_stateful_zellij(
+    bin_dir: Path, capture_file: Path, session_state_file: Path
+) -> None:
+    default_session = _expected_operator_session()
+    script = bin_dir / "zellij"
+    script.write_text(
+        "\n".join(
+            [
+                "#!/usr/bin/env python3",
+                "import os",
+                "import sys",
+                "from pathlib import Path",
+                "",
+                "args = sys.argv[1:]",
+                'capture = Path(os.environ["CAPTURE_FILE"])',
+                'state_file = Path(os.environ["SESSION_STATE_FILE"])',
+                'state = state_file.read_text(encoding="utf-8").strip() if state_file.exists() else "missing"',
+                f'session = os.environ.get("FAKE_ZELLIJ_SESSION", "{default_session}")',
+                'if "--session" in args:',
+                '    idx = args.index("--session")',
+                "    if idx + 1 < len(args):",
+                "        session = args[idx + 1]",
+                'elif args[:1] == ["attach"] and len(args) > 1:',
+                "    session = args[-1]",
+                'with capture.open("a", encoding="utf-8") as fh:',
+                '    fh.write("ZELLIJ " + " ".join(args) + "\\n")',
+                'if args[:1] == ["ls"]:',
+                '    if state == "live":',
+                '        print(f"{session} [Created 1m ago]")',
+                '    elif state == "dead":',
+                '        print(f"{session} [Created 1m ago] (EXITED - attach to resurrect)")',
+                "    sys.exit(0)",
+                'if args[:1] == ["attach"]:',
+                '    if "--force-run-commands" in args:',
+                '        state_file.write_text("live", encoding="utf-8")',
+                "    sys.exit(0)",
+                'if args[:1] == ["delete-session"]:',
+                '    state_file.write_text("missing", encoding="utf-8")',
+                "    sys.exit(0)",
+                'if "--new-session-with-layout" in args:',
+                '    state_file.write_text("live", encoding="utf-8")',
+                "    sys.exit(0)",
+                'if "action" in args and ("new-pane" in args or "new-tab" in args):',
+                "    sys.exit(0)",
+                "sys.exit(0)",
+            ]
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    script.chmod(0o755)
+
+
+def _write_fake_osascript(
+    bin_dir: Path, capture_file: Path, session_state_file: Path
+) -> None:
+    script = bin_dir / "osascript"
+    script.write_text(
+        "\n".join(
+            [
+                "#!/usr/bin/env python3",
+                "import os",
+                "import sys",
+                "from pathlib import Path",
+                "",
+                "payload = sys.stdin.read()",
+                'capture = Path(os.environ["CAPTURE_FILE"])',
+                'state_file = Path(os.environ["SESSION_STATE_FILE"])',
+                'with capture.open("a", encoding="utf-8") as fh:',
+                '    fh.write("OSA " + payload.replace("\\n", "\\\\n") + "\\n")',
+                'if "new-session-with-layout" in payload or "attach --force-run-commands" in payload:',
+                '    state_file.write_text("live", encoding="utf-8")',
+            ]
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    script.chmod(0o755)
+
+
+def _spawned_command_script(capture_payload: str) -> Path:
+    match = re.search(r"ZELLIJ .* action new-tab .* -- (\S+)", capture_payload)
+    assert match, capture_payload
+    return Path(match.group(1))
+
+
 def _expected_operator_session(run_id: str | None = None) -> str:
     base = (
         re.sub(r"[^a-z0-9]+", "-", REPO_ROOT.name.lower()).strip("-") or "vibecrafted"
@@ -51,59 +137,30 @@ def _expected_operator_session(run_id: str | None = None) -> str:
     return f"{base}-{run_id}" if run_id else base
 
 
-def test_init_prefers_repo_skill_path_when_repo_launcher_runs_with_portable_home(
+def test_init_claude_uses_interactive_tab_without_print_mode(
     tmp_path: Path,
 ) -> None:
     home = tmp_path / "home"
-    portable_home = home / ".portable-vc"
-    skill_path = portable_home / "skills" / "vc-init" / "SKILL.md"
-    skill_path.parent.mkdir(parents=True)
-    skill_path.write_text("# vc-init\n", encoding="utf-8")
-
     fake_bin = tmp_path / "bin"
+    capture_file = tmp_path / "capture.log"
+    session_state_file = tmp_path / "session-state.txt"
+
+    home.mkdir()
     fake_bin.mkdir()
-    capture_file = tmp_path / "codex-args.txt"
-    fake_bin.joinpath("codex").write_text("#!/usr/bin/env bash\nexit 0\n")
-    fake_bin.joinpath("codex").chmod(0o755)
+    _write_stateful_zellij(fake_bin, capture_file, session_state_file)
+    _write_fake_osascript(fake_bin, capture_file, session_state_file)
+    _write_fake_agent(fake_bin, "claude", tmp_path / "unused-claude.txt")
 
     env = os.environ.copy()
     env["HOME"] = str(home)
     env["PATH"] = f"{fake_bin}:{env.get('PATH', '')}"
-    env["VIBECRAFTED_HOME"] = str(portable_home)
     env["CAPTURE_FILE"] = str(capture_file)
+    env["SESSION_STATE_FILE"] = str(session_state_file)
     env["VETCODERS_SPAWN_RUNTIME"] = "headless"
-
-    subprocess.run(
-        ["bash", str(LAUNCHER), "init", "codex"],
-        check=True,
-        cwd=REPO_ROOT,
-        env=env,
-    )
-
-    artifacts_dir = (
-        Path(env.get("VIBECRAFTED_HOME", home / ".vibecrafted")) / "artifacts"
-    )
-    prompt_files = list(artifacts_dir.glob("**/*_prompt.md"))
-    assert prompt_files, "Prompt file not found"
-    prompt_content = prompt_files[0].read_text(encoding="utf-8")
-    assert str(REPO_ROOT / "skills" / "vc-init" / "SKILL.md") in prompt_content
-    assert str(skill_path) not in prompt_content
-
-
-def test_init_falls_back_to_repo_skill_path_when_store_missing(tmp_path: Path) -> None:
-    home = tmp_path / "home"
-    fake_bin = tmp_path / "bin"
-    fake_bin.mkdir()
-    capture_file = tmp_path / "claude-args.txt"
-    fake_bin.joinpath("claude").write_text("#!/usr/bin/env bash\nexit 0\n")
-    fake_bin.joinpath("claude").chmod(0o755)
-
-    env = os.environ.copy()
-    env["HOME"] = str(home)
-    env["PATH"] = f"{fake_bin}:{env.get('PATH', '')}"
-    env.pop("VIBECRAFTED_HOME", None)
-    env["CAPTURE_FILE"] = str(capture_file)
-    env["VETCODERS_SPAWN_RUNTIME"] = "headless"
+    env["VIBECRAFTED_OSASCRIPT_BIN"] = str(fake_bin / "osascript")
+    env["XDG_CONFIG_HOME"] = str(tmp_path / "xdg")
+    env["VIBECRAFTED_ROOT"] = str(REPO_ROOT)
+    env["FAKE_ZELLIJ_SESSION"] = _expected_operator_session()
 
     subprocess.run(
         ["bash", str(LAUNCHER), "init", "claude"],
@@ -112,13 +169,57 @@ def test_init_falls_back_to_repo_skill_path_when_store_missing(tmp_path: Path) -
         env=env,
     )
 
-    artifacts_dir = (
-        Path(env.get("VIBECRAFTED_HOME", home / ".vibecrafted")) / "artifacts"
+    payload = capture_file.read_text(encoding="utf-8")
+    assert "OSA " in payload
+    assert "new-session-with-layout" in payload
+    assert f"ZELLIJ --session {_expected_operator_session()} action new-tab" in payload
+
+    command_script = _spawned_command_script(payload)
+    script_body = command_script.read_text(encoding="utf-8")
+    assert "claude --verbose --dangerously-skip-permissions " in script_body
+    assert "/vc-init" in script_body
+    assert " -p " not in script_body
+
+
+def test_init_codex_uses_interactive_tab_without_exec_mode(tmp_path: Path) -> None:
+    home = tmp_path / "home"
+    fake_bin = tmp_path / "bin"
+    capture_file = tmp_path / "capture.log"
+    session_state_file = tmp_path / "session-state.txt"
+
+    home.mkdir()
+    fake_bin.mkdir()
+    _write_stateful_zellij(fake_bin, capture_file, session_state_file)
+    _write_fake_osascript(fake_bin, capture_file, session_state_file)
+    _write_fake_agent(fake_bin, "codex", tmp_path / "unused-codex.txt")
+
+    env = os.environ.copy()
+    env["HOME"] = str(home)
+    env["PATH"] = f"{fake_bin}:{env.get('PATH', '')}"
+    env["CAPTURE_FILE"] = str(capture_file)
+    env["SESSION_STATE_FILE"] = str(session_state_file)
+    env["VETCODERS_SPAWN_RUNTIME"] = "headless"
+    env["VIBECRAFTED_OSASCRIPT_BIN"] = str(fake_bin / "osascript")
+    env["XDG_CONFIG_HOME"] = str(tmp_path / "xdg")
+    env["VIBECRAFTED_ROOT"] = str(REPO_ROOT)
+    env["FAKE_ZELLIJ_SESSION"] = _expected_operator_session()
+
+    subprocess.run(
+        ["bash", str(LAUNCHER), "init", "codex"],
+        check=True,
+        cwd=REPO_ROOT,
+        env=env,
     )
-    prompt_files = list(artifacts_dir.glob("**/*_prompt.md"))
-    assert prompt_files, "Prompt file not found"
-    prompt_content = prompt_files[0].read_text(encoding="utf-8")
-    assert str(REPO_ROOT / "skills" / "vc-init" / "SKILL.md") in prompt_content
+
+    payload = capture_file.read_text(encoding="utf-8")
+    assert "OSA " in payload
+    assert f"ZELLIJ --session {_expected_operator_session()} action new-tab" in payload
+
+    command_script = _spawned_command_script(payload)
+    script_body = command_script.read_text(encoding="utf-8")
+    assert "codex --dangerously-bypass-approvals-and-sandbox " in script_body
+    assert "/vc-init" in script_body
+    assert "codex exec" not in script_body
 
 
 def test_vc_help_wrapper_symlink_renders_main_help(tmp_path: Path) -> None:

@@ -16,6 +16,30 @@ compatibility:
 
 # vc-delegate
 
+## Operator Entry
+
+Operator enters the framework session through:
+
+```bash
+vibecrafted start
+# or
+vc-start
+# same default board as: vc-start vibecrafted
+```
+
+Do not launch `vc-delegate` directly. Its operator-facing replacement is:
+
+```bash
+vibecrafted <workflow> <agent> --file '/path/to/plan.md'
+```
+
+```bash
+vc-<workflow> <agent> --prompt '<prompt>'
+```
+
+That active workflow then delegates through `vc-agents` when external workers
+are actually needed.
+
 > **DEPRECATED**: This skill has been merged into `vc-agents`.
 > Do not use this file anymore.
 

@@ -1703,11 +1703,28 @@ function shuffleArr(a) {
 
     var activeModal = null;
     var lastTrigger = null;
+    var modalTransitionMs = 250;
+    var focusableSelector = [
+        'a[href]',
+        'button:not([disabled])',
+        'input:not([disabled])',
+        'select:not([disabled])',
+        'textarea:not([disabled])',
+        '[tabindex]:not([tabindex="-1"])'
+    ].join(', ');
 
     function setModalHidden(modal, hidden) {
         if (!modal) return;
         modal.hidden = hidden;
         modal.setAttribute('aria-hidden', hidden ? 'true' : 'false');
+    }
+
+    function modalFocusables(modal) {
+        var panel = modal && modal.querySelector('.surface-modal__panel');
+        if (!panel) return [];
+        return Array.prototype.filter.call(panel.querySelectorAll(focusableSelector), function (node) {
+            return !node.hidden && node.getAttribute('aria-hidden') !== 'true' && node.tabIndex !== -1;
+        });
     }
 
     function openModal(modal, trigger) {
@@ -1740,7 +1757,7 @@ function shuffleArr(a) {
             if (!skipFocusRestore && lastTrigger && typeof lastTrigger.focus === 'function') {
                 lastTrigger.focus();
             }
-        }, 180);
+        }, modalTransitionMs);
     }
 
     triggers.forEach(function (trigger) {
@@ -1748,6 +1765,9 @@ function shuffleArr(a) {
             var modalId = trigger.getAttribute('data-modal-open');
             var modal = modalId ? document.getElementById(modalId) : null;
             if (!modal) return;
+            if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) {
+                return;
+            }
             event.preventDefault();
             openModal(modal, trigger);
         });
@@ -1764,7 +1784,29 @@ function shuffleArr(a) {
     });
 
     document.addEventListener('keydown', function (event) {
-        if (event.key === 'Escape' && activeModal) {
+        if (!activeModal) return;
+        if (event.key === 'Tab') {
+            var panel = activeModal.querySelector('.surface-modal__panel');
+            var focusables = modalFocusables(activeModal);
+            if (!panel) return;
+            if (!focusables.length) {
+                event.preventDefault();
+                panel.focus();
+                return;
+            }
+            var first = focusables[0];
+            var last = focusables[focusables.length - 1];
+            if (event.shiftKey) {
+                if (document.activeElement === first || document.activeElement === panel) {
+                    event.preventDefault();
+                    last.focus();
+                }
+            } else if (document.activeElement === last || !panel.contains(document.activeElement)) {
+                event.preventDefault();
+                first.focus();
+            }
+        }
+        if (event.key === 'Escape') {
             event.preventDefault();
             closeModal(false);
         }

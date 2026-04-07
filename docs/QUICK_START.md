@@ -64,7 +64,7 @@ vibecrafted justdo codex --prompt "Add user authentication with JWT"
 vibecrafted scaffold claude --prompt "Plan the auth architecture"   # vc-scaffold
 vibecrafted init claude                                             # vc-init
 vibecrafted workflow claude --prompt "Plan and implement auth"      # vc-workflow
-vibecrafted followup codex --prompt "Audit the auth changes"        # vc-followup
+vibecrafted review codex --prompt "Audit the auth changes"          # vc-review
 vibecrafted marbles codex --count 3 --depth 3                       # vc-marbles
 vibecrafted dou claude --prompt "Audit launch readiness"            # vc-dou
 vibecrafted decorate codex --prompt "Polish the surface"            # vc-decorate

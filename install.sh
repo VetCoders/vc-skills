@@ -145,7 +145,7 @@ safe_ref="$(sanitize_ref "$ref")"
 [[ -n "$safe_ref" ]] || safe_ref="current"
 staged_dir="$tools_dir/vibecrafted-$safe_ref"
 current_link="$tools_dir/vibecrafted-current"
-incoming_dir="$tools_dir/.incoming-$safe_ref-$"
+incoming_dir="$tools_dir/.incoming-$safe_ref-$$"
 
 rm -rf "$incoming_dir"
 mv "$source_dir" "$incoming_dir"

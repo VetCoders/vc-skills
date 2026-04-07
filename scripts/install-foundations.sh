@@ -133,11 +133,9 @@ install_loctree() {
 
   info "Downloading loctree v${LOCTREE_VERSION} for ${os}/${arch}..."
   tmpdir="$(mktemp -d)"
-  # shellcheck disable=SC2064 # intentional: expand $tmpdir now
-  trap "rm -rf '$tmpdir'" RETURN
-
   local archive="$tmpdir/$asset"
   if ! curl -fsSL -o "$archive" "$url"; then
+    rm -rf "$tmpdir"
     warn "Failed to download loctree binary from release."
     warn "URL: $url"
     warn "Falling back to cargo install..."
@@ -170,11 +168,13 @@ install_loctree() {
   done < <(find "$tmpdir/out" -type f \( -name 'loctree*' -o -name 'loct' \) -print0 2>/dev/null)
 
   if (( !found )); then
+    rm -rf "$tmpdir"
     warn "No loctree binaries found in release archive. Trying cargo..."
     install_from_cargo "loctree-mcp" "loctree-mcp"
     return $?
   fi
 
+  rm -rf "$tmpdir"
   ok "Loctree v${LOCTREE_VERSION} installed to $PREFIX"
 }
 
@@ -214,8 +214,6 @@ install_from_cargo() {
   # Install to a temp dir, then copy binaries to PREFIX
   local cargo_root
   cargo_root="$(mktemp -d)"
-  # shellcheck disable=SC2064 # intentional: expand $cargo_root now
-  trap "rm -rf '$cargo_root'" RETURN
 
   if cargo install "$crate" --root "$cargo_root" 2>&1; then
     local installed=0
@@ -229,13 +227,17 @@ install_from_cargo() {
       installed=1
     done
     if (( !installed )); then
+      rm -rf "$cargo_root"
       warn "cargo install $crate succeeded but no binaries found"
       return 1
     fi
   else
+    rm -rf "$cargo_root"
     warn "cargo install $crate failed"
     return 1
   fi
+
+  rm -rf "$cargo_root"
 }
 
 # ---------------------------------------------------------------------------

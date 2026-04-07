@@ -19,16 +19,16 @@ while :; do
 done
 ```
 
-The same prompt is fed to Agentrepeatedly. The "self-referential" aspect comes from Agentseeing its own previous
-work in the files and git history, not from feeding output back as input.
+The same prompt is fed to the agent repeatedly. The "self-referential" aspect comes from the agent seeing its own
+previous work in the files and git history, not from feeding output back as input.
 
 **Each iteration:**
 
-1. Agentreceives the SAME prompt
+1. Agent receives the SAME prompt
 2. Works on the task, modifying files
 3. Tries to exit
 4. Stop hook intercepts and feeds the same prompt again
-5. Agentsees its previous work in the files
+5. Agent sees its previous work in the files
 6. Iteratively improves until completion
 
 The technique is described as "deterministically bad in an undeterministic world" - failures are predictable, enabling
@@ -85,7 +85,7 @@ Cancel an active Marbles (removes the loop state file).
 
 ### Completion Promises
 
-To signal completion, Agentmust output a `<promise>` tag:
+To signal completion, the agent must output a `<promise>` tag:
 
 ```
 <promise>TASK COMPLETE</promise>
@@ -95,10 +95,10 @@ The stop hook looks for this specific tag. Without it (or `--max-iterations`), M
 
 ### Self-Reference Mechanism
 
-The "loop" doesn't mean Agenttalks to itself. It means:
+The "loop" doesn't mean the agent talks to itself. It means:
 
 - Same prompt repeated
-- Claude's work persists in files
+- The previous work persists in files
 - Each iteration sees previous attempts
 - Builds incrementally toward goal
 

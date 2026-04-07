@@ -1698,6 +1698,34 @@ def is_benign_zsh_session_noise(stderr: str) -> bool:
     return not remainder
 
 
+def describe_dumb_terminal_noise(stdout: str, stderr: str) -> str:
+    """Summarize shell noise seen under TERM=dumb with a concrete fix hint."""
+    issues: List[str] = []
+    stderr = (stderr or "").strip()
+    stdout = (stdout or "").strip()
+    stderr_lower = stderr.lower()
+
+    if stderr and not is_benign_zsh_session_noise(stderr):
+        if "starship::print" in stderr_lower and "term=dumb" in stderr_lower:
+            issues.append("starship init still runs under TERM=dumb")
+        else:
+            first_stderr = stderr.splitlines()[0].strip()
+            issues.append(f"stderr noise: {first_stderr}")
+
+    if stdout:
+        first_stdout = stdout.splitlines()[0].strip()
+        issues.append(f"stdout noise: {first_stdout}")
+
+    if not issues:
+        return ""
+
+    return (
+        "zsh -ic is noisy under TERM=dumb — "
+        + "; ".join(issues)
+        + '; guard banners/prompt init with [[ -o interactive && "${TERM:-}" != "dumb" ]]'
+    )
+
+
 def run_doctor(store_path: Path, state: InstallState) -> List[DoctorFinding]:
     """Run full installation health check."""
     findings: List[DoctorFinding] = []
@@ -1896,7 +1924,7 @@ def run_doctor(store_path: Path, state: InstallState) -> List[DoctorFinding]:
             )
         )
 
-    # 7. Shell smoke check: non-interactive zsh should stay quiet under TERM=dumb
+    # 7. Shell smoke check: interactive shells should suppress UI noise under TERM=dumb
     zsh_path = shutil.which("zsh")
     if zsh_path:
         env = os.environ.copy()
@@ -1907,10 +1935,10 @@ def run_doctor(store_path: Path, state: InstallState) -> List[DoctorFinding]:
             capture_output=True,
             text=True,
         )
+        stdout = (smoke.stdout or "").strip()
         stderr = (smoke.stderr or "").strip()
-        if smoke.returncode == 0 and (
-            not stderr or is_benign_zsh_session_noise(stderr)
-        ):
+        dumb_noise = describe_dumb_terminal_noise(stdout, stderr)
+        if smoke.returncode == 0 and not dumb_noise:
             findings.append(
                 DoctorFinding("ok", "shell:dumb-terminal", "zsh -ic stays quiet")
             )
@@ -1919,7 +1947,7 @@ def run_doctor(store_path: Path, state: InstallState) -> List[DoctorFinding]:
                 DoctorFinding(
                     "warn",
                     "shell:dumb-terminal",
-                    "zsh -ic emits stderr under TERM=dumb — guard prompt init for non-interactive shells",
+                    dumb_noise,
                 )
             )
         else:
@@ -1981,14 +2009,15 @@ def print_doctor(
     print(f"  {bold('Simple path:')}")
     print(f"    {cyan('vibecrafted init claude')}")
     print(
-        f"    {cyan('vibecrafted workflow claude --prompt "Plan and implement <task>"')}"
+        "    "
+        + cyan("vibecrafted workflow claude --prompt 'Plan and implement <task>'")
     )
-    print(f"    {cyan('vibecrafted justdo codex --prompt "Ship <task>"')}")
+    print("    " + cyan("vibecrafted justdo codex --prompt 'Ship <task>'"))
     print()
     print(f"  {bold('Ship-ready path:')}")
-    print(f"    {cyan('vibecrafted dou claude --prompt "Audit launch readiness"')}")
-    print(f"    {cyan('vibecrafted hydrate codex --prompt "Package the product"')}")
-    print(f"    {cyan('vibecrafted release codex --prompt "Prepare release steps"')}")
+    print("    " + cyan("vibecrafted dou claude --prompt 'Audit launch readiness'"))
+    print("    " + cyan("vibecrafted hydrate codex --prompt 'Package the product'"))
+    print("    " + cyan("vibecrafted release codex --prompt 'Prepare release steps'"))
     print()
 
     actions = _doctor_action_items(findings)

@@ -21,6 +21,7 @@ Options:
   --count <n>         Number of loops (default: 3)
   --runtime <rt>      terminal, headless (default: terminal)
   --root <dir>        Repository root
+  --no-watch          Skip watcher UI and use legacy fire-and-forget chaining
 EOF
 }
 

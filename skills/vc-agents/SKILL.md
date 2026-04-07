@@ -10,6 +10,38 @@ description: >
 
 # vc-agents — The Unified Execution Fleet
 
+## Operator Entry
+
+Operator enters the framework session through:
+
+```bash
+vibecrafted start
+# or
+vc-start
+# same default board as: vc-start vibecrafted
+```
+
+`vc-agents` is the delegation contract behind active workflows, not the primary
+operator command a founder types first. The operator-facing entrypoint stays:
+
+```bash
+vibecrafted <workflow> <agent> \
+  --<options> <values> \
+  --<parameters> <values> \
+  --file '/path/to/plan.md'
+```
+
+```bash
+vc-<workflow> <agent> \
+  --<options> <values> \
+  --<parameters> <values> \
+  --prompt '<prompt>'
+```
+
+If `vc-<workflow> <agent>` is invoked outside Zellij, the framework will attach
+or create the operator session and run that workflow in a new tab. `vc-agents`
+defines how that workflow fans out into external workers.
+
 > We do not outsource thought. We deploy equally capable minds on parallel execution paths to protect the main context buffer.
 
 A single agent session carries immense context. Attempting to execute every small rewrite, forensic deep-dive, or radical structural shift in-thread causes prompt bloat and dilutes your focus.
@@ -123,32 +155,29 @@ The launch path depends on your chosen Execution Mode.
 
 ### Mode 1: Terminal Agent Swarm (Default)
 
-The canonical launch path for out-of-process delegation is through the portable spawn scripts.
-
-If the environment has optional shell aliases (like `codex-implement`), those are just convenience wrappers around these exact same scripts. Always use the portable scripts to ensure maximum compatibility.
+The operator-facing launch path for out-of-process delegation goes through the
+`vibecrafted` command deck or the `vc-<workflow>` helper. The repo-owned spawn
+scripts remain the internal engine behind that path.
 
 ### Codex
 
 ```bash
-# 1. Save the target plan
 PLAN="$VIBECRAFTED_HOME/artifacts/<org>/<repo>/<YYYY_MMDD>/plans/<plan-slug>.md"
-
-# 2. Spawn the chosen mind
-bash $VIBECRAFTED_ROOT/skills/vc-agents/scripts/codex_spawn.sh "$PLAN" --mode implement
+vibecrafted codex implement "$PLAN"
 ```
 
 ### Claude
 
 ```bash
 PLAN="$VIBECRAFTED_HOME/artifacts/<org>/<repo>/<YYYY_MMDD>/plans/<plan>.md"
-bash $VIBECRAFTED_ROOT/skills/vc-agents/scripts/claude_spawn.sh "$PLAN" --mode implement
+vibecrafted claude implement "$PLAN"
 ```
 
 ### Gemini
 
 ```bash
 PLAN="$VIBECRAFTED_HOME/artifacts/<org>/<repo>/<YYYY_MMDD>/plans/<plan>.md"
-bash $VIBECRAFTED_ROOT/skills/vc-agents/scripts/gemini_spawn.sh "$PLAN" --mode implement
+vibecrafted gemini implement "$PLAN"
 ```
 
 If these tools are unavailable, stop pretending spawn is correctly configured and say so explicitly.
@@ -182,7 +211,7 @@ Observe progress through durable artifacts in `$VIBECRAFTED_HOME/artifacts/<org>
 If your environment exposes the observer helper, the standard check is:
 
 ```bash
-bash $VIBECRAFTED_ROOT/skills/vc-agents/scripts/observe.sh codex --last
+vibecrafted codex observe --last
 ```
 
 Use the equivalent agent observer when needed.

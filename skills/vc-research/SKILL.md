@@ -23,6 +23,38 @@ compatibility:
 
 # vc-research — Triple-Agent Research Swarm
 
+## Operator Entry
+
+Operator enters the framework session through:
+
+```bash
+vibecrafted start
+# or
+vc-start
+# same default board as: vc-start vibecrafted
+```
+
+Then launch this workflow through the command deck, not raw `skills/.../*.sh` paths:
+
+```bash
+vibecrafted <workflow> <agent> \
+  --<options> <values> \
+  --<parameters> <values> \
+  --file '/path/to/plan.md'
+```
+
+```bash
+vc-<workflow> <agent> \
+  --<options> <values> \
+  --<parameters> <values> \
+  --prompt '<prompt>'
+```
+
+If `vc-<workflow> <agent>` is invoked outside Zellij, the framework will attach
+or create the operator session and run that workflow in a new tab. Replace
+`<workflow>` with this skill's name. Prefer `--file` for an existing plan or
+artifact and `--prompt` for inline intent.
+
 <details>
 <summary>Foundation Dependencies (Loaded with framework)</summary>
 
@@ -143,18 +175,18 @@ gets ALL plans — they are independent researchers, not specialists.
 
 ### Step 3 — Spawn triple research swarm
 
-Canonical launch path is through the portable spawn scripts:
+Canonical operator-facing launch path goes through the command deck:
 
 ```bash
 PLAN="$VIBECRAFTED_HOME/artifacts/<org>/<repo>/<YYYY_MMDD>/plans/<ts>_<slug>_research-plan.md"
 
-bash $VIBECRAFTED_ROOT/skills/vc-agents/scripts/claude_spawn.sh "$PLAN" --mode research
-bash $VIBECRAFTED_ROOT/skills/vc-agents/scripts/codex_spawn.sh "$PLAN" --mode research
-bash $VIBECRAFTED_ROOT/skills/vc-agents/scripts/gemini_spawn.sh "$PLAN" --mode research
+vc-research claude --file "$PLAN"
+vc-research codex --file "$PLAN"
+vc-research gemini --file "$PLAN"
 ```
 
-If your environment has the shell aliases (e.g. `claude-research`), those are convenience wrappers that point to these
-exact scripts.
+The repo-owned spawn scripts remain the internal engine behind that surface. Do
+not document raw `bash skills/...spawn.sh` paths as the operator entrypoint.
 
 All three get the same plan. All three work independently. This is intentional —
 divergence between reports reveals blind spots.
@@ -172,9 +204,9 @@ $VIBECRAFTED_HOME/artifacts/<org>/<repo>/<YYYY_MMDD>/reports/<ts>_research-plan_
 Wait for all three. Use the observe scripts:
 
 ```bash
-bash $VIBECRAFTED_ROOT/skills/vc-agents/scripts/observe.sh claude --last
-bash $VIBECRAFTED_ROOT/skills/vc-agents/scripts/observe.sh codex --last
-bash $VIBECRAFTED_ROOT/skills/vc-agents/scripts/observe.sh gemini --last
+vibecrafted claude observe --last
+vibecrafted codex observe --last
+vibecrafted gemini observe --last
 ```
 
 ### Step 5 — Synthesize

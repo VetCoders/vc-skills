@@ -35,6 +35,30 @@ print(shlex.quote(sys.argv[1]), end="")
 PY
 }
 
+spawn_preferred_shell() {
+  if command -v zsh >/dev/null 2>&1; then
+    command -v zsh
+  elif [[ -n "${SHELL:-}" ]] && command -v "${SHELL##*/}" >/dev/null 2>&1; then
+    printf '%s\n' "$SHELL"
+  else
+    command -v bash
+  fi
+}
+
+spawn_write_command_script() {
+  local script_path="$1"
+  local command_text="$2"
+  local shell_bin
+
+  shell_bin="$(spawn_preferred_shell)"
+  # shellcheck disable=SC2016
+  printf '#!/usr/bin/env bash\nset -euo pipefail\ntrap '\''rm -f "$0"'\'' EXIT\n%s -lc %s\n' \
+    "$(spawn_shell_quote "$shell_bin")" \
+    "$(spawn_shell_quote "$command_text")" \
+    > "$script_path"
+  chmod +x "$script_path"
+}
+
 spawn_repo_root() {
   git rev-parse --show-toplevel 2>/dev/null || pwd
 }
@@ -939,6 +963,7 @@ spawn_in_zellij_pane() {
   local launcher="$1"
   local pane_name="${2:-agent}"
   local direction="${VIBECRAFTED_ZELLIJ_SPAWN_DIRECTION:-$(spawn_pane_direction)}"
+  local cmd_script
 
   if spawn_in_zellij_context && command -v zellij >/dev/null 2>&1; then
     # If the operator explicitly targets another zellij session, do not open a
@@ -947,17 +972,20 @@ spawn_in_zellij_pane() {
       return 1
     fi
 
+    cmd_script="$(mktemp "${TMPDIR:-/tmp}/vc-spawn-cmd.XXXXXX")"
+    spawn_write_command_script "$cmd_script" "bash '$launcher'"
+
     if [[ "$direction" == "new-tab" ]]; then
       zellij action new-tab \
         --name "$pane_name" \
         --cwd "${SPAWN_ROOT:-$(pwd)}" \
-        -- /bin/zsh -l -c "bash '$launcher'"
+        -- "$cmd_script"
     else
       zellij action new-pane \
         --direction "$direction" \
         --name "$pane_name" \
         --cwd "${SPAWN_ROOT:-$(pwd)}" \
-        -- /bin/zsh -l -c "bash '$launcher'"
+        -- "$cmd_script"
     fi
     return 0
   fi
@@ -971,6 +999,7 @@ spawn_in_operator_session() {
   local direction="${VIBECRAFTED_ZELLIJ_SPAWN_DIRECTION:-$(spawn_pane_direction)}"
   local effective_direction="$direction"
   local had_explicit_session=0
+  local cmd_script
 
   spawn_normalize_ambient_context
   [[ -n "${VIBECRAFTED_OPERATOR_SESSION:-}" ]] && had_explicit_session=1
@@ -984,25 +1013,24 @@ spawn_in_operator_session() {
   # open a fresh tab. Otherwise zellij targets whichever operator tab is
   # currently focused, which can be a stale marbles tab.
   if ! spawn_in_target_zellij_session; then
-    if (( had_explicit_session )) && [[ -z "${VIBECRAFTED_ZELLIJ_SPAWN_DIRECTION:-}" || "$direction" == "right" ]]; then
-      effective_direction="right"
-    else
-      effective_direction="new-tab"
-    fi
+    effective_direction="new-tab"
   fi
+
+  cmd_script="$(mktemp "${TMPDIR:-/tmp}/vc-spawn-cmd.XXXXXX")"
+  spawn_write_command_script "$cmd_script" "bash '$launcher'"
 
   # External spawn into existing operator session — route as pane or new tab per grid policy.
   if [[ "$effective_direction" == "new-tab" ]]; then
     zellij --session "$session_name" action new-tab \
       --name "$pane_name" \
       --cwd "${SPAWN_ROOT:-$(pwd)}" \
-      -- /bin/zsh -l -c "bash '$launcher'"
+      -- "$cmd_script"
   else
     zellij --session "$session_name" action new-pane \
       --direction "$effective_direction" \
       --name "$pane_name" \
       --cwd "${SPAWN_ROOT:-$(pwd)}" \
-      -- /bin/zsh -l -c "bash '$launcher'"
+      -- "$cmd_script"
   fi
 }
 

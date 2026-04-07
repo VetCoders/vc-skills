@@ -314,16 +314,22 @@ cmd_start_help() {
   printf '\n'
   printf '%b⚒%b  %bstart%b\n' "$_copper" "$_reset" "$_bold" "$_reset"
   printf '%b─────────────────────────────────────────%b\n' "$_steel" "$_reset"
-  printf '  Start the operator Zellij session.\n'
+  printf '  Start the operator Zellij session (default board: vibecrafted).\n'
   printf '\n'
   printf '%bUsage:%b\n' "$_bold" "$_reset"
   printf '  vibecrafted start\n'
+  printf '  vibecrafted start vibecrafted\n'
   printf '  vc-start\n'
+  printf '  vc-start vibecrafted\n'
   printf '  vc-start resume\n'
   printf '\n'
   printf '%bExamples:%b\n' "$_bold" "$_reset"
   printf '  vibecrafted start\n'
+  printf '  vc-start vibecrafted\n'
   printf '  vc-start resume\n'
+  printf '\n'
+  printf '  Direct %bvc-<workflow> <agent>%b calls outside Zellij auto-enter the\n' "$_cyan" "$_reset"
+  printf '  operator session and run the workflow in a new tab.\n'
   printf '\n'
 }
 
@@ -570,7 +576,6 @@ cmd_start() {
 
 cmd_init() {
   local agent="${1:-claude}"
-  local init_prompt skill_path
   _has_agent "$agent" || {
     printf '%b[error]%b Unknown agent: %s\n' "$_red" "$_reset" "$agent" >&2
     return 1
@@ -582,12 +587,10 @@ cmd_init() {
     gemini) command -v gemini >/dev/null 2>&1 || return 1 ;;
   esac
 
-  skill_path="$(_resolve_skill_path "vc-init" "$agent")" || return 1
-  printf -v init_prompt "Use [\$vc-init](%s) on this repository and give me full operating context." "$skill_path"
-
+  [[ $# -gt 0 ]] && shift
   printf '%b⚒%b  Starting %b%s%b with vc-init...\n' "$_copper" "$_reset" "$_bold" "$agent" "$_reset"
   _ensure_helpers_loaded || return 1
-  _run_helper "${agent}-skill-init" --prompt "$init_prompt"
+  _run_helper "${agent}-skill-init" "$@"
 }
 
 cmd_doctor() {

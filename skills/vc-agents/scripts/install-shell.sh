@@ -51,7 +51,8 @@ done
 # Find source file (new name first, then legacy)
 source_file="$repo_root/skills/vc-agents/shell/vetcoders.sh"
 [[ -f "$source_file" ]] || source_file="$repo_root/skills/vc-agents/shell/vetcoders.zsh"
-[[ -f "$source_file" ]] || source_file="$repo_root/skills/vc-agents/shell/vetcoders.zsh"
+[[ -f "$source_file" ]] || source_file="$repo_root/vc-agents/shell/vetcoders.sh"
+[[ -f "$source_file" ]] || source_file="$repo_root/vc-agents/shell/vetcoders.zsh"
 [[ -f "$source_file" ]] || die "Helper file not found"
 
 # Canonical install location (shell-agnostic)
@@ -78,11 +79,17 @@ write_helper_shim() {
 
 _vibecrafted_helper_candidates() {
   local crafted_home="\${VIBECRAFTED_HOME:-\$HOME/.vibecrafted}"
+  if [[ -n "\${VIBECRAFTED_ROOT:-}" ]]; then
+    printf '%s\n' "\$VIBECRAFTED_ROOT/skills/vc-agents/shell/vetcoders.sh"
+    printf '%s\n' "\$VIBECRAFTED_ROOT/skills/vc-agents/shell/vetcoders.zsh"
+  fi
   printf '%s\n' \
-    "\${VIBECRAFTED_ROOT:+\$VIBECRAFTED_ROOT/skills/vc-agents/shell/vetcoders.sh}" \
     "$repo_root/skills/vc-agents/shell/vetcoders.sh" \
+    "$repo_root/skills/vc-agents/shell/vetcoders.zsh" \
     "\$crafted_home/skills/vc-agents/shell/vetcoders.sh" \
-    "\$crafted_home/tools/vibecrafted-current/skills/vc-agents/shell/vetcoders.sh"
+    "\$crafted_home/skills/vc-agents/shell/vetcoders.zsh" \
+    "\$crafted_home/tools/vibecrafted-current/skills/vc-agents/shell/vetcoders.sh" \
+    "\$crafted_home/tools/vibecrafted-current/skills/vc-agents/shell/vetcoders.zsh"
 }
 
 _vibecrafted_source_helper() {
@@ -99,8 +106,10 @@ _vibecrafted_source_helper() {
   return 1
 }
 
-_vibecrafted_source_helper
+_vibecrafted_source_status=0
+_vibecrafted_source_helper || _vibecrafted_source_status=\$?
 unset -f _vibecrafted_helper_candidates _vibecrafted_source_helper
+return "\$_vibecrafted_source_status" 2>/dev/null || exit "\$_vibecrafted_source_status"
 EOF_SHIM
 }
 

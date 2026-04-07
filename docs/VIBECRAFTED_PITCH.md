@@ -3,8 +3,8 @@
 ### Opis narzędzia
 
 **Co to jest:**
-Vibecrafted. to framework konwergencji dla AI-assisted software development. Nie pisze kodu za ciebie. Daje ci **system
-** w którym kod pisany przez AI jest systematycznie doprowadzany do jakości produkcyjnej — przez zamknięte pętle
+Vibecrafted. to framework konwergencji dla AI-assisted software development. Nie pisze kodu za ciebie. Daje ci **system**
+w którym kod pisany przez AI jest systematycznie doprowadzany do jakości produkcyjnej — przez zamknięte pętle
 weryfikacji, strukturalne narzędzia analityczne, i multi-agentową orkiestrację.
 
 **Differentiator:**
@@ -96,7 +96,7 @@ To jest hook który działa na trzech poziomach:
 | Kanał                                    | Cel                                | Format                                                              |
 | ---------------------------------------- | ---------------------------------- | ------------------------------------------------------------------- |
 | **GitHub** (open source)                 | Devs, contributors                 | Repo + README + GH Pages landing                                    |
-| **Vibecrafted..io**                      | Founders, decision makers          | Landing page z demo, pricing, CTA                                   |
+| **Vibecrafted.io**                       | Founders, decision makers          | Landing page z demo, pricing, CTA                                   |
 | **Hacker News**                          | Early adopters, technical sceptics | "Show HN: A framework that created itself" — link do technical post |
 | **Twitter/X**                            | Dev community, viral reach         | Thread: origin story + demo GIF + link                              |
 | **Reddit** (r/programming, r/LocalLLaMA) | Technical deep-dive audience       | Post z technical breakdown konwergencji                             |
@@ -122,7 +122,7 @@ To jest hook który działa na trzech poziomach:
 │  On-prem deployment consulting                   │
 │  Training & onboarding workshops                 │
 │  SLA guarantees                                  │
-│  info@Vibecrafted..io                             │
+│  info@vibecrafted.io                             │
 └─────────────────────────────────────────────────┘
 ```
 

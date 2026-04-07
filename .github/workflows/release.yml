@@ -10,7 +10,7 @@ permissions:
 
 jobs:
   release:
-    runs-on: ops-linux
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - name: Install shellcheck
@@ -25,8 +25,6 @@ jobs:
         run: make test
       - name: Check marketplace bundle drift
         run: make bundle-check
-      - name: Run tests
-        run: make test
       - name: Read version
         id: version
         run: |

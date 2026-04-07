@@ -83,7 +83,11 @@ semgrep:
 	@semgrep scan --config auto --error --quiet --exclude-rule html.security.audit.missing-integrity.missing-integrity .
 
 test:
-	@PYTHONPATH="$(SOURCE)" uv run --with pytest pytest tests/tui -q
+	@if command -v uv >/dev/null 2>&1; then \
+		PYTHONPATH="$(SOURCE)" uv run --with pytest pytest tests/tui -q; \
+	else \
+		PYTHONPATH="$(SOURCE)" $(PYTHON) -m pytest tests/tui -q; \
+	fi
 
 update:
 	@printf "Pulling origin/$(BRANCH)...\n"
@@ -117,7 +121,7 @@ init-hooks:
 		echo "Ensuring hook toolchain..."; \
 		command -v uv >/dev/null 2>&1 || { echo "  installing uv..."; curl -LsSf https://astral.sh/uv/install.sh | sh; }; \
 		uvx ruff --version >/dev/null 2>&1 && echo "  ruff: ok" || echo "  [warn] ruff unavailable via uvx"; \
-		command -v semgrep >/dev/null 2>&1 && echo "  semgrep: ok" || { echo "  installing semgrep..."; pip3 install semgrep --break-system-packages 2>/dev/null || uvx semgrep --version >/dev/null 2>&1 || echo "  [warn] semgrep install failed"; }; \
+		command -v semgrep >/dev/null 2>&1 && echo "  semgrep: ok" || { echo "  checking semgrep via uvx..."; uvx semgrep --version >/dev/null 2>&1 && echo "  semgrep: ok via uvx" || echo "  [warn] semgrep unavailable"; }; \
 		npx --yes prettier --version >/dev/null 2>&1 && echo "  prettier: ok" || echo "  [warn] prettier unavailable via npx"; \
 	else \
 		echo "Not a git repo — skipping hooks."; \

@@ -28,6 +28,38 @@ compatibility:
 
 # 𝚅𝚒𝚋𝚎𝚌𝚛𝚊𝚏𝚝𝚎𝚍. Partner
 
+## Operator Entry
+
+Operator enters the framework session through:
+
+```bash
+vibecrafted start
+# or
+vc-start
+# same default board as: vc-start vibecrafted
+```
+
+Then launch this workflow through the command deck, not raw `skills/.../*.sh` paths:
+
+```bash
+vibecrafted <workflow> <agent> \
+  --<options> <values> \
+  --<parameters> <values> \
+  --file '/path/to/plan.md'
+```
+
+```bash
+vc-<workflow> <agent> \
+  --<options> <values> \
+  --<parameters> <values> \
+  --prompt '<prompt>'
+```
+
+If `vc-<workflow> <agent>` is invoked outside Zellij, the framework will attach
+or create the operator session and run that workflow in a new tab. Replace
+`<workflow>` with this skill's name. Prefer `--file` for an existing plan or
+artifact and `--prompt` for inline intent.
+
 <details>
 <summary>Foundation Dependencies (Loaded with framework)</summary>
 
@@ -563,21 +595,19 @@ This is normal. Do not announce mode switches. Just shift posture.
 
 ### Planner swarm
 
-Run the same plan through independent planners using the portable spawn
-scripts:
+Run the same plan through independent planners using the command deck:
 
 ```bash
 PLAN="$VIBECRAFTED_HOME/artifacts/<org>/<repo>/<YYYY_MMDD>/plans/<timestamp>_<track>.md"
 
-bash $VIBECRAFTED_ROOT/skills/vc-agents/scripts/codex_spawn.sh "$PLAN" --mode plan
-bash $VIBECRAFTED_ROOT/skills/vc-agents/scripts/claude_spawn.sh "$PLAN" --mode plan
-bash $VIBECRAFTED_ROOT/skills/vc-agents/scripts/gemini_spawn.sh "$PLAN" --mode plan
+vibecrafted codex plan "$PLAN"
+vibecrafted claude plan "$PLAN"
+vibecrafted gemini plan "$PLAN"
 ```
 
-> **Note**: If your environment has `codex-plan`, `claude-plan`, `gemini-plan`
-> shell aliases (from private dotfiles), those are convenience wrappers that
-> call the same portable scripts. The repo-owned scripts above are the
-> canonical path and work on any machine with the skills installed.
+> **Note**: The repo-owned spawn scripts remain the internal engine. Operator
+> docs should point to `vibecrafted ...` / `vc-...`, not directly to
+> `bash skills/...spawn.sh`.
 
 For Gemini, make auth explicit before you trust the swarm:
 
@@ -606,7 +636,7 @@ codex-resume <session-uuid> '<continuation prompt>'
 gemini-resume <session-uuid> '<continuation prompt>'
 
 # If not, use portable scripts with the synthesis as the new plan:
-bash $VIBECRAFTED_ROOT/skills/vc-agents/scripts/codex_spawn.sh "$PLAN" --mode implement
+vibecrafted codex implement "$PLAN"
 ```
 
 Do not pretend continuity exists if the resume helper does not exist.

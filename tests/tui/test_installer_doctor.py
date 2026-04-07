@@ -89,3 +89,16 @@ def test_print_doctor_surfaces_simple_and_release_paths(capsys, tmp_path: Path) 
     assert "vibecrafted hydrate codex" in output
     assert "vibecrafted release codex" in output
     assert "START_HERE.md" in output
+
+
+def test_describe_dumb_terminal_noise_flags_starship_and_stdout() -> None:
+    detail = installer.describe_dumb_terminal_noise(
+        """
+       ○ ○○ ○○○ ○○○○
+        """,
+        "[ERROR] - (starship::print): Under a 'dumb' terminal (TERM=dumb).",
+    )
+
+    assert "starship init still runs under TERM=dumb" in detail
+    assert "stdout noise:" in detail
+    assert '[[ -o interactive && "${TERM:-}" != "dumb" ]]' in detail

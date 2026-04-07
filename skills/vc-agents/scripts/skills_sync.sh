@@ -172,8 +172,7 @@ done
 printf '\n'
 
 for tool in "${tools[@]}"; do
-  # shellcheck disable=SC2088
-  remote_target="$HOME/.${tool}/skills"
+  remote_target="\$HOME/.${tool}/skills"
   printf -- '-- %s symlink view -> %s:%s\n' "$tool" "$host" "$remote_target"
   if (( dry_run )); then
     printf '  ssh %s mkdir -p %s\n' "$host" "$remote_target"
@@ -219,7 +218,8 @@ if (( with_shell )); then
     # shellcheck disable=SC2016
     printf 'Skipping remote $HOME/.zshrc update (--no-zshrc).\n'
   else
-    ssh -n "$host" "touch $HOME/.zshrc && if ! grep -Fqx '$source_line' $HOME/.zshrc; then printf '\n# VetCoders shell helpers\n%s\n' '$source_line' >> $HOME/.zshrc; fi" \
+    remote_zshrc="\$HOME/.zshrc"
+    ssh -n "$host" "touch ${remote_zshrc} && if ! grep -Fqx '$source_line' ${remote_zshrc}; then printf '\n# VetCoders shell helpers\n%s\n' '$source_line' >> ${remote_zshrc}; fi" \
       || die "Could not update $HOME/.zshrc on $host"
   fi
 
@@ -227,7 +227,8 @@ if (( with_shell )); then
     # shellcheck disable=SC2016
     printf 'Skipping remote $HOME/.bashrc update (--no-bashrc).\n'
   else
-    ssh -n "$host" "touch $HOME/.bashrc && if ! grep -Fqx '$source_line' $HOME/.bashrc; then printf '\n# VetCoders shell helpers\n%s\n' '$source_line' >> $HOME/.bashrc; fi" \
+    remote_bashrc="\$HOME/.bashrc"
+    ssh -n "$host" "touch ${remote_bashrc} && if ! grep -Fqx '$source_line' ${remote_bashrc}; then printf '\n# VetCoders shell helpers\n%s\n' '$source_line' >> ${remote_bashrc}; fi" \
       || die "Could not update $HOME/.bashrc on $host"
   fi
 
@@ -254,7 +255,8 @@ done'
 
 for tool in "${tools[@]}"; do
   printf 'Verifying %s symlink view on %s\n' "$tool" "$host"
-  ssh -n "$host" "if [ -L $HOME/.${tool}/skills/vc-agents ]; then echo OK_LINK $HOME/.${tool}/skills/vc-agents; else echo MISSING_LINK $HOME/.${tool}/skills/vc-agents; fi"
+  remote_tool_skills="\$HOME/.${tool}/skills/vc-agents"
+  ssh -n "$host" "if [ -L ${remote_tool_skills} ]; then echo OK_LINK ${remote_tool_skills}; else echo MISSING_LINK ${remote_tool_skills}; fi"
 done
 
 if (( with_shell )); then

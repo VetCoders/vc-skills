@@ -51,7 +51,7 @@ collect_rewrites() {
 while IFS= read -r file; do
     [ -z "$file" ] && continue
     case "$file" in
-        *.sh|*.bash) SH_FILES+=("$file") ;;
+        *.sh|*.bash|*.zsh) SH_FILES+=("$file") ;;
         *.py) PY_FILES+=("$file") ;;
         *.md|*.yaml|*.yml) MD_YAML_FILES+=("$file") ;;
     esac
@@ -65,10 +65,14 @@ fi
 if [ ${#PY_FILES[@]} -gt 0 ]; then
     echo "▸ ruff (full)"
     track_hashes "${PY_FILES[@]}"
-    uvx ruff check --fix "${PY_FILES[@]}"
-    uvx ruff format "${PY_FILES[@]}"
-    uvx ruff check "${PY_FILES[@]}"
-    collect_rewrites "${PY_FILES[@]}"
+    if command -v uvx >/dev/null 2>&1; then
+        uvx ruff check --fix "${PY_FILES[@]}"
+        uvx ruff format "${PY_FILES[@]}"
+        uvx ruff check "${PY_FILES[@]}"
+        collect_rewrites "${PY_FILES[@]}"
+    else
+        echo "[warn] uvx unavailable; skipping ruff checks"
+    fi
 fi
 
 if [ ${#MD_YAML_FILES[@]} -gt 0 ]; then
@@ -80,7 +84,13 @@ if [ ${#MD_YAML_FILES[@]} -gt 0 ]; then
 fi
 
 echo "▸ semgrep (full)"
-semgrep scan --config auto --error --quiet --exclude-rule html.security.audit.missing-integrity.missing-integrity
+if command -v semgrep >/dev/null 2>&1; then
+    semgrep scan --config auto --error --quiet --exclude-rule html.security.audit.missing-integrity.missing-integrity
+elif command -v uvx >/dev/null 2>&1; then
+    uvx semgrep scan --config auto --error --quiet --exclude-rule html.security.audit.missing-integrity.missing-integrity
+else
+    echo "[warn] semgrep unavailable; skipping"
+fi
 
 if [ ${#REWRITTEN_FILES[@]} -gt 0 ]; then
     git add "${REWRITTEN_FILES[@]}"

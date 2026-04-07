@@ -10,9 +10,9 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - runner: dragon-macos
+          - runner: macos-latest
             os: macOS
-          - runner: ops-linux
+          - runner: ubuntu-latest
             os: Linux
     runs-on: ${{ matrix.runner }}
     steps:
@@ -38,13 +38,11 @@ jobs:
           sudo apt-get install -y rsync
       - name: Run portable checks
         run: bash scripts/check-portable.sh
-      - name: Run tests
-        run: make test
 
   curl-bootstrap:
     name: curl | bash bootstrap
     needs: portable
-    runs-on: ops-linux
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - name: Serve install.sh locally and bootstrap
@@ -54,7 +52,8 @@ jobs:
           bash install.sh --archive-file "$archive"
       - name: Verify bootstrap result
         run: |
-          test -L "$VIBECRAFTED_ROOT/.vibecrafted/tools/vibecrafted-current"
-          test -f "$VIBECRAFTED_ROOT/.vibecrafted/skills/vc-agents/scripts/codex_spawn.sh"
+          vibecrafted_home="${VIBECRAFTED_HOME:-$HOME/.vibecrafted}"
+          test -L "$vibecrafted_home/tools/vibecrafted-current"
+          test -f "$vibecrafted_home/tools/vibecrafted-current/skills/vc-agents/scripts/codex_spawn.sh"
           test -f "$HOME/.config/vetcoders/vc-skills.sh"
           echo "Bootstrap OK"

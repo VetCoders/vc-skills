@@ -233,9 +233,13 @@ This is the final loop. Your verified report MUST include:
 import json, sys, datetime
 with open(sys.argv[1]) as f: d = json.load(f)
 d["updated_at"] = datetime.datetime.now(datetime.timezone.utc).isoformat()
-for loop in d["loops"]:
-    if loop["loop"] == int(sys.argv[2]):
+loops = d.get("loops") or []
+if not isinstance(loops, list):
+    loops = []
+for loop in loops:
+    if isinstance(loop, dict) and loop.get("loop") == int(sys.argv[2]):
         loop["verification_status"] = "pending"
+d["loops"] = loops
 with open(sys.argv[1] + ".tmp", "w") as f: json.dump(d, f, indent=2)
 PY
     mv "$state_file.tmp" "$state_file" 2>/dev/null || true
