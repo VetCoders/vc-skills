@@ -63,7 +63,7 @@ vibecrafted init gemini --prompt 'Bootstrap context for the payments module'
 > 𝚅𝚒𝚋𝚎𝚌𝚛𝚊𝚏𝚝𝚜𝚖𝚊𝚗𝚜𝚑𝚒𝚙 is the ansfwer for the failure of vibe coding
 > and vibe coders community (that newer grew up unfortunately)
 > stuck in the 80/20 <-> 20/80 trap; look the reference:
-> [VIBECRAFTED.md](https://raw.githubusercontent.com/VetCoders/vibecrafted/refs/heads/main/docs/VIBECRAFTED.md)
+> [MANIFESTO_EN.md](https://raw.githubusercontent.com/VetCoders/vibecrafted/refs/heads/main/docs/runtime/MANIFESTO_EN.md)
 > "Not hating on vibe coding. It got you to launch and that matters more than most
 > people admit. But I keep getting the same call from founders who built their
 > product in a weekend with Cursor... and now they're stuck.

@@ -30,10 +30,10 @@ plan_slug="$(spawn_slug_from_path "$original_plan")"
 # ── State directory (watcher writes session_id here) ─────────────────
 state_dir="${VIBECRAFTED_HOME:-$HOME/.vibecrafted}/marbles/$run_id"
 state_file="$state_dir/state.json"
-report_sync_timeout_s="${VIBECRAFTED_MARBLES_REPORT_TIMEOUT_S:-900}"
+report_sync_timeout_s="${VIBECRAFTED_MARBLES_REPORT_TIMEOUT_S:-3600}"
 case "$report_sync_timeout_s" in
   ''|*[!0-9]*)
-    report_sync_timeout_s=900
+    report_sync_timeout_s=3600
     ;;
 esac
 report_poll_s=5
@@ -358,9 +358,17 @@ _launch_verification "$current" 0
 _update_lock current "$next"
 printf '\n\033[38;5;173m ⚒  Marbles loop %s/%s starting...\033[0m\n' "$next" "$total_count"
 
-# Same plan content, loop-numbered filename
+# Same plan content + round contract, loop-numbered filename
 ln_plan="$store/plans/marbles-${plan_slug}_L${next}.md"
 cp "$original_plan" "$ln_plan"
+cat >> "$ln_plan" <<ROUND_CONTRACT
+
+---
+## Exit Contract
+- **COMMIT**: mandatory. One commit when done.
+- **REPORT**: mandatory. Write to the report path given at the end of this prompt.
+- **SCOPE**: do your work, commit, report, stop.
+ROUND_CONTRACT
 
 # Build hooks for next iteration (recursive chain)
 q_agent="$(spawn_shell_quote "$agent")"
@@ -374,13 +382,13 @@ q_store="$(spawn_shell_quote "$store")"
 success_hook="bash $q_scripts/marbles_next.sh $q_agent $q_plan $total_count $next $run_id $q_root $q_runtime $q_scripts $q_lock $q_store"
 failure_hook="bash $q_scripts/marbles_next.sh --failed $q_agent $q_plan $total_count $next $run_id $q_root $q_runtime $q_scripts $q_lock $q_store"
 
-# Set env for next iteration
+# Set env for next iteration — LOOP_NR for orchestrator/hooks only.
+# SKILL_CODE deliberately omitted — agent sees "implement", not "marb".
 export VIBECRAFTED_LOOP_NR=$next
-export VIBECRAFTED_SKILL_CODE="marb"
 export VIBECRAFTED_RUN_ID="${run_id}-$(printf '%03d' "$next")"
 
 spawn_args=(
-  --mode marbles
+  --mode implement
   --runtime "$runtime"
   --root "$root_dir"
   --success-hook "$success_hook"

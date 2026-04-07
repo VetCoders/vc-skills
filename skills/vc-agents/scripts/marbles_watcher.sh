@@ -22,10 +22,10 @@ session_lock="$8"
 state_dir="${VIBECRAFTED_HOME:-$HOME/.vibecrafted}/marbles/$run_id"
 mkdir -p "$state_dir"
 state_file="$state_dir/state.json"
-report_timeout_s="${VIBECRAFTED_MARBLES_REPORT_TIMEOUT_S:-900}"
+report_timeout_s="${VIBECRAFTED_MARBLES_REPORT_TIMEOUT_S:-3600}"
 case "$report_timeout_s" in
   ''|*[!0-9]*)
-    report_timeout_s=900
+    report_timeout_s=3600
     ;;
 esac
 report_poll_s=5
@@ -340,11 +340,36 @@ _find_report() {
     2>/dev/null | sort | tail -1 || true
 }
 
+_log_file_size() {
+  local f="$1"
+  if [[ -f "$f" ]]; then
+    wc -c < "$f" 2>/dev/null | tr -d ' '
+  else
+    printf '0\n'
+  fi
+}
+
+# Fallback agent when the primary agent dies (log stops growing).
+# Cycle: codex → claude → gemini → codex
+_fallback_agent() {
+  local current="$1"
+  case "$current" in
+    codex)  printf 'claude\n' ;;
+    claude) printf 'gemini\n' ;;
+    gemini) printf 'codex\n'  ;;
+    *)      printf 'claude\n' ;;
+  esac
+}
+
 _wait_for_report() {
   local report_pattern="$1"
   local timeout_s="${2:-0}"
+  local transcript_file="${3:-}"
+  local stall_limit_s="${VIBECRAFTED_MARBLES_STALL_LIMIT_S:-600}"
   local elapsed=0
   local found=""
+  local last_size=0
+  local stall_elapsed=0
 
   while true; do
     found="$(_find_report "$report_pattern")"
@@ -358,8 +383,26 @@ _wait_for_report() {
       return 1
     fi
 
-    if (( timeout_s > 0 && elapsed >= timeout_s )); then
-      return 2
+    # Log growth check — agent alive if transcript keeps growing
+    if [[ -n "$transcript_file" && -f "$transcript_file" ]]; then
+      local current_size
+      current_size="$(_log_file_size "$transcript_file")"
+      if (( current_size > last_size )); then
+        last_size=$current_size
+        stall_elapsed=0
+      else
+        (( stall_elapsed += report_poll_s ))
+      fi
+
+      # Agent stalled — log not growing for stall_limit_s
+      if (( stall_limit_s > 0 && stall_elapsed >= stall_limit_s )); then
+        return 3  # stall — agent dead
+      fi
+    else
+      # No transcript yet — fall back to hard timeout
+      if (( timeout_s > 0 && elapsed >= timeout_s )); then
+        return 2
+      fi
     fi
 
     sleep "$report_poll_s"
@@ -473,7 +516,7 @@ for ((loop_nr=1; loop_nr<=total_count; loop_nr++)); do
 
   # ── Wait for report ──────────────────────────────────────────────
   actual_report=""
-  if actual_report="$(_wait_for_report "$report_pattern" "$report_timeout_s")"; then
+  if actual_report="$(_wait_for_report "$report_pattern" "$report_timeout_s" "$actual_transcript")"; then
     :
   else
     wait_status=$?
@@ -485,6 +528,18 @@ for ((loop_nr=1; loop_nr<=total_count; loop_nr++)); do
       _check_stop || true
       stopped=1
       break
+    fi
+
+    if (( wait_status == 3 )); then
+      # Agent stalled — log stopped growing. Dispatch fallback agent.
+      fb_agent="$(_fallback_agent "$agent")"
+      _record_loop_timeout "$loop_nr" "stall-fallback" "$duration"
+      _render_loop_phase "$loop_nr" "stall" "${duration_fmt}  log stopped · fallback → ${fb_agent}"
+
+      # Re-run this loop with fallback agent
+      agent="$fb_agent"
+      (( loop_nr-- ))  # retry same loop number
+      continue
     fi
 
     timed_out=1

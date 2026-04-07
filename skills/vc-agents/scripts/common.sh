@@ -259,6 +259,14 @@ spawn_slug_from_path() {
   raw="${raw#-}"
   raw="${raw%-}"
   [[ -n "$raw" ]] || raw="agent-task"
+  # Truncate to max 60 chars to prevent filesystem-busting filenames.
+  # Cut at a word boundary (dash or underscore) to keep slugs readable.
+  if (( ${#raw} > 60 )); then
+    raw="${raw:0:60}"
+    # Trim trailing partial word
+    raw="${raw%-*}"
+    [[ -n "$raw" ]] || raw="${1:0:60}"
+  fi
   printf '%s\n' "$raw"
 }
 

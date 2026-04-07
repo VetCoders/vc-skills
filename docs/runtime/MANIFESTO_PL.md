@@ -1,3 +1,11 @@
+---
+name: what_is_vibecrafted_pl
+version: 0.1.0
+description: >
+  A convergence framework for AI-native software development.
+  Architecture manifesto (Polish version).
+---
+
 # Vibecrafted. — Manifest Architektury
 
 ## Definicja

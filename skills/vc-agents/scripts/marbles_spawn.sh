@@ -130,10 +130,21 @@ printf '%b  run_id:  %b%s\n'   "$_steel" "$_reset" "$marbles_run_id"
 printf '%b  lock:    %b%s\n'   "$_steel" "$_reset" "$session_lock"
 printf '%b──────────────────────────────────%b\n' "$_steel" "$_reset"
 
-# ── Create L1 plan (same content, loop-numbered name) ─────────────────
+# ── Create L1 plan (original content + round contract) ────────────────
 plan_slug="$(spawn_slug_from_path "$original_plan")"
 l1_plan="$store/plans/marbles-${plan_slug}_L1.md"
 cp "$original_plan" "$l1_plan"
+
+# Inject minimal hard contract. The SKILL.md (loaded by agent's skill system)
+# handles the mental model. This only adds the operational exit requirements.
+cat >> "$l1_plan" <<ROUND_CONTRACT
+
+---
+## Exit Contract
+- **COMMIT**: mandatory. One commit when done.
+- **REPORT**: mandatory. Write to the report path given at the end of this prompt.
+- **SCOPE**: do your work, commit, report, stop.
+ROUND_CONTRACT
 
 # ── Build hooks for chaining ──────────────────────────────────────────
 q_agent="$(spawn_shell_quote "$agent")"
@@ -155,12 +166,14 @@ if (( use_watcher )); then
   # runs inside the watcher's observation loop.
 
   # Spawn L1 first (watcher observes from the start)
+  # LOOP_NR lives in orchestrator scope for hooks/watcher — agent does not
+  # need to know its loop number. SKILL_CODE deliberately omitted so the
+  # agent's frontmatter says "implement", not "marb".
   export VIBECRAFTED_LOOP_NR=1
-  export VIBECRAFTED_SKILL_CODE="marb"
   export VIBECRAFTED_RUN_ID="${marbles_run_id}-001"
 
   spawn_args=(
-    --mode marbles
+    --mode implement
     --runtime "$runtime"
     --root "$root_dir"
     --success-hook "$success_hook"
@@ -176,11 +189,10 @@ if (( use_watcher )); then
 else
   # Legacy fire-and-forget (--no-watch)
   export VIBECRAFTED_LOOP_NR=1
-  export VIBECRAFTED_SKILL_CODE="marb"
   export VIBECRAFTED_RUN_ID="${marbles_run_id}-001"
 
   spawn_args=(
-    --mode marbles
+    --mode implement
     --runtime "$runtime"
     --root "$root_dir"
     --success-hook "$success_hook"

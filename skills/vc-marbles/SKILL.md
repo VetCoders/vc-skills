@@ -96,6 +96,71 @@ It works against the **current workspace state** and the **current evidence surf
 The loop exists outside the worker.
 The worker must not try to model, narrate, or optimize the loop.
 
+## Why this works
+
+Context weight kills quality. An agent that has been working for 90 minutes on a
+complex refactor will make worse decisions in minute 91 than a fresh agent would in
+minute 1. The accumulated context becomes a lens that distorts perception — the agent
+starts defending its own sunk cost instead of seeing the tree clearly.
+
+Marbles exist to exploit this. Every round gets a fresh mind. The fresh mind does
+`vc-init`, perceives the project through live instruments (loctree, aicx-steer,
+semgrep), and sees the codebase as it actually is — not as the previous worker
+left it in their mental model.
+
+This is not a workaround. This is the design.
+
+## Reception protocol — how the orchestrator briefs the worker
+
+The orchestrating agent (partner, operator) prepares the plan. The implementing
+agent receives it as a plain task. The framing matters:
+
+**The worker enters with a mission, not a maintenance ticket.**
+
+Good framing:
+
+- "This project needs you. The auth surface is still exposed. Ship the fix."
+- "The installer doesn't bootstrap on bare machines. Make it work end-to-end."
+- "Tests pass but the runtime is fragile. Find the structural weakness and fortify."
+
+Bad framing:
+
+- "Previous rounds failed to deliver this." (creates parity judgment)
+- "Round 4 of 8, here's what rounds 1-3 did." (reveals mechanism)
+- "The delta from the last round was insufficient." (convergence cosplay)
+
+The worker should feel like the best person for the job walking into a project
+that needs them — not like cog #4 on a conveyor belt.
+
+## Mandatory entry: `vc-init`
+
+Every round begins with `vc-init`. No exceptions.
+
+The agent must perceive the project through live instruments before touching code:
+
+1. **loctree** — structural map, dependencies, dead code, hotspots
+2. **aicx-steer** — project intentions and decision history (not prior round reports)
+3. **semgrep / linters** — current security and quality surface
+4. **git status / recent commits** — what the tree looks like right now
+
+This is perception, not research. The agent is not building a mental model of
+the project's history — it is seeing what exists now.
+
+Without `vc-init`, the agent invents its own reality. With it, the agent works
+from evidence.
+
+## Instruments vs. gates
+
+**Instruments** (loctree, semgrep, aicx-steer) go at the **beginning**.
+They direct where to look. They are prosecution — accusing the tree with evidence.
+
+**Tests** (pytest, cargo test, build checks) go at the **end**.
+They verify the fix. They are the gate — confirming the fortification holds.
+
+If the agent runs tests first, its field of vision collapses to "what fails" instead
+of "what is fragile." Red tests scream loudest, but the real structural weakness is
+often silent. Instruments find the silent ones. Tests confirm the fix.
+
 ## What this skill does
 
 One invocation of `vc-marbles` performs one bounded stabilization round:
@@ -227,19 +292,20 @@ No mining git history to decide your subject line.
 
 ### Commit convention
 
-```text
-marble: <one-line summary of the fortification>
+```
+marble: <one-line summary>
 
-- <file>: <what changed and why>
 - <file>: <what changed and why>
 
 Gate: <pass|fail>
 Tests: <what ran>
 Regressions: <count>
 Round-ID: <opaque-id-if-provided>
+```
 
 Example:
 
+```
 marble: fortify operator-session spawn isolation
 
 - skills/vc-agents/shell/vetcoders.sh: cleared stale ambient run/session context before targeted spawn
@@ -249,93 +315,100 @@ Gate: pass
 Tests: 5 targeted + bundle-check
 Regressions: 0
 Round-ID: mr-20260407-01
+```
 
-Rules:
-	•	Do not invent a sequential round number by reading history.
-	•	If the operator or runtime injects an opaque round id, include it.
-	•	If the gate fails, still commit the actual round result. Do not hide the failure.
+### Commit rules
 
-Single-round protocol
+- Do not invent a sequential round number by reading history.
+- If the operator or runtime injects an opaque round id, include it.
+- If the gate fails, still commit the actual round result. Do not hide the failure.
 
-1. Accuse the present tree
+## Single-round protocol
+
+### 1. Accuse the present tree
 
 Find current fragility from evidence.
 
 Every target must trace to one of:
-	•	tool output
-	•	failing gate
-	•	direct structural audit
-	•	concrete production-risk counterexample
+
+- tool output
+- failing gate
+- direct structural audit
+- concrete production-risk counterexample
 
 No evidence, no target.
 
-2. Pick the smallest high-impact surface
+### 2. Pick the smallest high-impact surface
 
 Select at most 3 primary targets.
 
 Prefer:
-	•	high-severity breakage
-	•	high-frequency paths
-	•	silent failure modes
-	•	weak boundaries
-	•	issues that close an entire class of failure
+
+- high-severity breakage
+- high-frequency paths
+- silent failure modes
+- weak boundaries
+- issues that close an entire class of failure
 
 Avoid:
-	•	broad rewrites
-	•	style-only cleanup
-	•	speculative architecture changes
-	•	“while I’m here” edits
 
-3. Fortify
+- broad rewrites
+- style-only cleanup
+- speculative architecture changes
+- “while I’m here” edits
+
+### 3. Fortify
 
 Make the smallest set of changes that materially reduces fragility.
 
 Typical fortifications:
-	•	add missing scoping / auth checks
-	•	add missing indexes or reshape a hot query
-	•	replace swallowed exceptions with actionable handling
-	•	add smoke tests or gate enforcement
-	•	remove a rotten abstraction instead of preserving it
+
+- add missing scoping / auth checks
+- add missing indexes or reshape a hot query
+- replace swallowed exceptions with actionable handling
+- add smoke tests or gate enforcement
+- remove a rotten abstraction instead of preserving it
 
 Apply the VetCoders axiom here:
 Move on over backward compatibility.
 If a local abstraction is rotten and blocks stabilization, cut it cleanly instead of preserving garbage.
 
-4. Gate
+### 4. Gate
 
 Run the narrowest credible gates first, then broader gates if warranted.
 
 Minimum expectation:
-	•	syntax / lint sanity for touched surfaces
-	•	tests that directly cover the fortified path
-	•	relevant build or bundle checks when release/runtime is involved
+
+- syntax / lint sanity for touched surfaces
+- tests that directly cover the fortified path
+- relevant build or bundle checks when release/runtime is involved
 
 If a gate fails:
-	•	report it plainly
-	•	count the regression
-	•	do not bury it under narrative
 
-5. Commit
+- report it plainly
+- count the regression
+- do not bury it under narrative
+
+### 5. Commit
 
 Create exactly one round commit with the convention above.
 
-6. Report
+### 6. Report
 
 Save one short round delta report to the central store:
 
-$VIBECRAFTED_HOME/artifacts/<org>/<repo>/<YYYY_MMDD>/marbles/reports/<ts>_marble_<run_or_round_id>_<agent>.md
+`$VIBECRAFTED_HOME/artifacts/<org>/<repo>/<YYYY_MMDD>/marbles/reports/<ts>_marble_<run_or_round_id>_<agent>.md`
 
 The report is factual.
-No essay.
-No loop storytelling.
-No global convergence verdict.
+No essay. No loop storytelling. No global convergence verdict.
 
-Important: this is a local round report, not a repo-wide inventory.
-Do not attempt to enumerate everything still broken in the entire project.
+This is a local round report, not a repo-wide inventory.
+Do not enumerate everything still broken in the entire project.
 The external convergence layer owns the global ledger.
 
-Report template
+### Report template
 
+```yaml
 ---
 run_id: <opaque-run-id>
 round_id: <opaque-round-id-or-run_id>
@@ -351,12 +424,14 @@ gates_ran:
 tests_added: <number>
 files_touched:
   - <path>
-  - <path>
 ---
+```
 
+```markdown
 # Marble Report
 
 ## Attacked
+
 - id: <pillar/surface/failure-kind>
   pillar: <access|data|errors|release>
   severity: <high|medium|low>
@@ -365,74 +440,64 @@ files_touched:
   intent: <what this round tried to fortify>
 
 ## Resolved
+
 - id: <same-id>
   origin: <attacked|discovered-in-round>
   action: <what changed>
   proof: <test/gate/evidence that supports closure>
 
 ## Still Open
+
 - id: <same-id>
   origin: <attacked|discovered-in-round>
   blocker: <why it remains open>
 
 ## Discovered
+
 - id: <pillar/surface/failure-kind>
-  pillar: <access|data|errors|release>
   severity: <high|medium|low>
-  locator: <file|route|workflow|query>
   evidence: <tool output or structural observation>
   note: <why it matters>
 
 ## Regressions
+
 - none
+```
 
-Report rules
-	•	Do not attempt a repo-wide backlog.
-	•	Report only what you attacked and what you newly discovered in this round.
-	•	Every attacked id must end in exactly one of:
-	•	Resolved
-	•	Still Open
-	•	A newly discovered issue that remains open goes in Discovered.
-	•	A newly discovered issue that is fully fixed in the same round goes in Resolved with origin: discovered-in-round.
-	•	Regressions are failures introduced or exposed by your change/gate outcome.
-	•	Use - none for empty sections.
+### Report rules
 
-Finding ID rule
-Finding ids must be stable and boring.
+- Do not attempt a repo-wide backlog.
+- Report only what you attacked and what you newly discovered in this round.
+- Every attacked id must end in exactly one of: **Resolved** or **Still Open**.
+- A newly discovered issue that remains open goes in **Discovered**.
+- A newly discovered issue fully fixed in the same round goes in **Resolved** with `origin: discovered-in-round`.
+- Regressions are failures introduced or exposed by your change/gate outcome.
+- Use `- none` for empty sections.
 
-Use:
+### Finding ID rule
 
-<pillar>/<surface>/<failure-kind>
+Finding ids must be stable and boring. Format: `<pillar>/<surface>/<failure-kind>`
 
-Good:
-	•	access/orders-create/missing-tenant-scope
-	•	errors/stripe-webhook/silent-catch
-	•	release/operator-session/ambient-run-context-leak
+Good: `access/orders-create/missing-tenant-scope`, `errors/stripe-webhook/silent-catch`
 
-Bad:
-	•	issue-7
-	•	round-2-bug
-	•	fixed-by-me-now
+Bad: `issue-7`, `round-2-bug`, `fixed-by-me-now`
 
-The external convergence layer depends on stable ids.
-Do not rename the same issue every round.
+The external convergence layer depends on stable ids. Do not rename the same issue every round.
 
-Anti-patterns
-	•	Historical self-awareness — reading prior marble artifacts to sound informed.
-	•	Convergence cosplay — talking about step size, delta, or loop mastery instead of reducing current fragility.
-	•	Surface-area vanity — touching many files to make the round look bigger.
-	•	Aesthetic refactors — cleanup that does not close a failure mode.
-	•	Backward-compatibility worship — preserving rotten contracts that keep the foundation weak.
-	•	Narrative inflation — long explanations that hide a weak gate result.
-	•	Parallel contamination — importing another marble’s context into your round.
-	•	Fake omniscience — pretending this round can see the full global backlog.
+## Anti-patterns
 
-Finish condition
+- **Historical self-awareness** — reading prior marble artifacts to sound informed.
+- **Convergence cosplay** — talking about step size, delta, or loop mastery instead of reducing current fragility.
+- **Surface-area vanity** — touching many files to make the round look bigger.
+- **Aesthetic refactors** — cleanup that does not close a failure mode.
+- **Backward-compatibility worship** — preserving rotten contracts that keep the foundation weak.
+- **Narrative inflation** — long explanations that hide a weak gate result.
+- **Parallel contamination** — importing another marble’s context into your round.
+- **Fake omniscience** — pretending this round can see the full global backlog.
+
+## Finish condition
 
 Stop after the commit and report.
 Do not self-extend into the next round.
 Do not write instructions to your successor.
 Do your round well, then leave.
-
----
-```

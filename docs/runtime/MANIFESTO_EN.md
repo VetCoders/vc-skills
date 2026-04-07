@@ -1,3 +1,14 @@
+---
+name: what_is_vibecrafted
+version: 0.1.0
+description: >
+  A convergence framework for AI-native software development.
+  Convergence through counterexample. Marbles loops — the loop that makes 
+  code healthier. Tools find what is wrong. Agents categorize, prioritize
+  and eliminate the measured blockers. Monotonic entropy reduction. Stop 
+  when nothing is wrong. Architecture and philosophy manifesto.
+---
+
 # Vibecrafted. — Architecture Manifesto
 
 ## Definition
