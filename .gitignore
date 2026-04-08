@@ -17,7 +17,6 @@
 *.out
 *.zip
 *.plugin
-!vibecrafted-framework.plugin
 *.sha256
 /.vibecrafted
 CLAUDE.md
@@ -35,4 +34,3 @@ aicx-dashboard.html
 !SECURITY.md
 /tmp
 /dist
-\nvibecrafted-framework.plugin\n

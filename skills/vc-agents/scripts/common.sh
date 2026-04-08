@@ -438,6 +438,7 @@ spawn_print_dashboard_hint() {
   printf '\nRun:\n\nvibecrafted dashboard\n\nto monitor your sessions live.\n'
 }
 
+# shellcheck disable=SC2120
 spawn_workflow_label() {
   local skill_name="${1:-${SPAWN_SKILL_NAME:-${VIBECRAFTED_SKILL_NAME:-}}}"
   if [[ -n "$skill_name" ]]; then

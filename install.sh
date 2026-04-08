@@ -99,7 +99,7 @@ if [[ -n "$archive_url" && -n "$archive_file" ]]; then
 fi
 
 if [[ -z "$archive_url" && -z "$archive_file" ]]; then
-  archive_url="https://github.com/VetCoders/vibecrafted/archive/refs/heads/${ref}.tar.gz"
+  archive_url="https://vibecrafted.io/vibecrafted-v1.2.1.tar.gz"
 fi
 
 command -v tar >/dev/null 2>&1 || die "tar is required"
@@ -122,12 +122,54 @@ trap cleanup EXIT
 extract_root="$tmpdir/extract"
 mkdir -p "$extract_root"
 
+verify_signature() {
+  local file="$1" base_url="$2"
+  local sig_file="${file}.sig"
+  local pub_file="$tmpdir/vibecrafted-signing.pub"
+  local sums_file="$tmpdir/SHA256SUMS"
+
+  if ! curl -fsSL "${base_url}/vibecrafted-signing.pub" -o "$pub_file" 2>/dev/null; then
+    info "  [warn] Could not fetch signing key — skipping signature verification"
+    return 0
+  fi
+  if ! curl -fsSL "${base_url}/SHA256SUMS" -o "$sums_file" 2>/dev/null; then
+    info "  [warn] Could not fetch SHA256SUMS — skipping checksum verification"
+    return 0
+  fi
+
+  local expected actual
+  expected="$(grep "$(basename "$file")" "$sums_file" | awk '{print $1}')"
+  actual="$(shasum -a 256 "$file" 2>/dev/null || sha256sum "$file" 2>/dev/null)"
+  actual="${actual%% *}"
+  if [[ -n "$expected" && "$actual" != "$expected" ]]; then
+    die "SHA256 mismatch for $(basename "$file"): expected $expected, got $actual"
+  fi
+  [[ -n "$expected" ]] && info "  SHA256 ✓"
+
+  if curl -fsSL "${base_url}/$(basename "$sig_file")" -o "$sig_file" 2>/dev/null; then
+    if openssl dgst -sha256 -verify "$pub_file" -signature "$sig_file" "$file" >/dev/null 2>&1; then
+      info "  Signature ✓  (Maciej Gad / MW223P3NPX)"
+    else
+      die "Signature verification FAILED for $(basename "$file")"
+    fi
+  else
+    info "  [warn] No .sig file found — skipping signature verification"
+  fi
+}
+
 if [[ -n "$archive_file" ]]; then
   info "Unpacking local archive: $archive_file"
   tar -xzf "$archive_file" -C "$extract_root"
 else
   info "Downloading 𝚅𝚒𝚋𝚎𝚌𝚛𝚊𝚏𝚝𝚎𝚍. snapshot: $archive_url"
-  curl -fsSL "$archive_url" | tar -xzf - -C "$extract_root"
+  local_archive="$tmpdir/$(basename "$archive_url")"
+  curl -fsSL "$archive_url" -o "$local_archive"
+
+  base_url="${archive_url%/*}"
+  info "Verifying integrity..."
+  verify_signature "$local_archive" "$base_url"
+
+  tar -xzf "$local_archive" -C "$extract_root"
 fi
 
 source_dir=""
