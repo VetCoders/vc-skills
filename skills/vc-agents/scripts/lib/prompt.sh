@@ -6,7 +6,6 @@ spawn_write_command_script() {
   local shell_bin
 
   shell_bin="$(spawn_preferred_shell)"
-  mkdir -p "$(dirname "$script_path")"
   # shellcheck disable=SC2016
   printf '#!/usr/bin/env bash
 set -euo pipefail
@@ -114,15 +113,6 @@ spawn_build_runtime_prompt() {
     in_fm { next; }
     { print }
   ' "$source_file" >> "$runtime_file"
-
-  local run_id="${SPAWN_RUN_ID:-unknown}"
-  cat >> "$runtime_file" <<EOF_LABEL
----
-## Exit Contract
-- **COMMIT**: mandatory. One commit when done.
-- **REPORT**: mandatory. Write to the report path given at the end of this prompt.
-- **SCOPE**: do your work, commit, report, stop.
-EOF_LABEL
 
   cat >> "$runtime_file" <<EOF_PROMPT
 
