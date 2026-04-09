@@ -475,6 +475,8 @@ failure_hook="bash $q_scripts/marbles_next.sh --failed $q_state $total_count $ne
 
 export VIBECRAFTED_LOOP_NR=$next
 export VIBECRAFTED_RUN_ID="${run_id}-$(printf '%03d' "$next")"
+export VIBECRAFTED_SKILL_CODE="marb"
+export VIBECRAFTED_SKILL_NAME="marbles"
 
 spawn_args=(
   --mode implement
