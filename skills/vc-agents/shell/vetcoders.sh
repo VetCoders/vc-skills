@@ -528,11 +528,13 @@ _vetcoders_spawn_into_operator_session() {
   local session_name="${VIBECRAFTED_OPERATOR_SESSION:-$(_vetcoders_operator_session_name)}"
   local root_dir="${_vetcoders_contract_root:-$(_vetcoders_repo_root)}"
   local cmd_script
+  local tmp_root="${TMPDIR:-/tmp}"
 
   command -v zellij >/dev/null 2>&1 || return 1
   # zellij rejects inline command args carrying shell-quoted multibyte
   # prompt content (printf '%q' + Polish UTF-8). Temp script keeps path ASCII-safe.
-  cmd_script="$(mktemp "${TMPDIR:-/tmp}/vc-spawn-cmd.XXXXXX")"
+  tmp_root="${tmp_root%/}"
+  cmd_script="$(mktemp "${tmp_root}/vc-spawn-cmd.XXXXXX")"
   _vetcoders_write_command_script "$cmd_script" "$command_text" || return 1
   zellij --session "$session_name" action new-tab \
     --name "$tab_name" \
@@ -1375,8 +1377,10 @@ _vetcoders_marbles() {
   # Temp script keeps zellij args ASCII-safe (no inline UTF-8 prompt bytes).
   if _vetcoders_in_zellij && command -v zellij >/dev/null 2>&1; then
     local cmd_script
+    local tmp_root="${TMPDIR:-/tmp}"
     export VIBECRAFTED_OPERATOR_SESSION="$(_vetcoders_current_zellij_session_name)"
-    cmd_script="$(mktemp "${TMPDIR:-/tmp}/vibecrafted-marbles.XXXXXX")"
+    tmp_root="${tmp_root%/}"
+    cmd_script="$(mktemp "${tmp_root}/vibecrafted-marbles.XXXXXX")"
     _vetcoders_write_command_script "$cmd_script" "$marbles_cmd" || return 1
     zellij action new-tab \
       --name "marbles" \

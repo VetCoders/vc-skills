@@ -360,6 +360,125 @@ PY
   esac
 }
 
+_write_spawn_failure_artifacts() {
+  local loop_nr="$1"
+  local loop_agent="$2"
+  local loop_plan="$3"
+  local reason="$4"
+  local exit_code="${5:-1}"
+  local loop_run_id="${run_id}-$(printf '%03d' "$loop_nr")"
+  local stamp=""
+  local base=""
+  local report_path=""
+  local transcript_path=""
+  local meta_path=""
+  local prompt_id="marbles-ancestor_L${loop_nr}_$(date +%Y%m%d)"
+
+  stamp="$(spawn_timestamp)"
+  base="$store/reports/${stamp}_marbles-${ancestor_slug}_L${loop_nr}_${loop_agent}"
+  report_path="${base}.md"
+  transcript_path="${base}.transcript.log"
+  meta_path="${base}.meta.json"
+
+  mkdir -p "$store/reports"
+
+  spawn_write_frontmatter "$transcript_path" "$loop_agent" "unknown" "failed"
+  cat >> "$transcript_path" <<TXT
+Scheduling failure before loop ${loop_nr} could launch.
+Reason: ${reason}
+Exit code: ${exit_code}
+Run ID: ${loop_run_id}
+Plan: ${loop_plan}
+TXT
+
+  spawn_write_frontmatter "$report_path" "$loop_agent" "unknown" "failed"
+  cat >> "$report_path" <<TXT
+Marbles failed before loop ${loop_nr} could launch.
+
+- Reason: ${reason}
+- Exit code: ${exit_code}
+- Planned agent: ${loop_agent}
+- Planned run_id: ${loop_run_id}
+- Plan: ${loop_plan}
+- Ancestor: ${ancestor_plan}
+TXT
+
+  SPAWN_PROMPT_ID="$prompt_id" \
+  SPAWN_RUN_ID="$loop_run_id" \
+  SPAWN_LOOP_NR="$loop_nr" \
+  SPAWN_SKILL_CODE="impl" \
+  spawn_write_meta \
+    "$meta_path" \
+    "failed" \
+    "$loop_agent" \
+    "implement" \
+    "$root_dir" \
+    "$loop_plan" \
+    "$report_path" \
+    "$transcript_path" \
+    "$scripts_dir/${loop_agent}_spawn.sh"
+
+  SPAWN_PROMPT_ID="$prompt_id" \
+  SPAWN_RUN_ID="$loop_run_id" \
+  SPAWN_LOOP_NR="$loop_nr" \
+  SPAWN_SKILL_CODE="impl" \
+  spawn_finish_meta "$meta_path" "failed" "$exit_code"
+
+  printf '    ⚠ Next loop L%s failed before launch metadata stabilized (%s, exit %s)\n' \
+    "$loop_nr" "$reason" "$exit_code"
+}
+
+_launch_next_loop() {
+  local loop_nr="$1"
+  local loop_agent="$2"
+  local loop_model="$3"
+  local loop_plan="$4"
+  local loop_run_id="${run_id}-$(printf '%03d' "$loop_nr")"
+  local q_state=""
+  local q_root=""
+  local q_runtime=""
+  local q_scripts=""
+  local q_lock=""
+  local q_store=""
+  local success_hook=""
+  local failure_hook=""
+  local spawn_args=()
+
+  _update_lock current "$loop_nr"
+  printf '\n\033[38;5;173m ⚒  Marbles loop %s/%s starting...\033[0m\n' "$loop_nr" "$total_count"
+
+  spawn_marbles_write_child_plan "$ancestor_plan" "$loop_plan"
+
+  q_state="$(spawn_shell_quote "$state_dir")"
+  q_root="$(spawn_shell_quote "$root_dir")"
+  q_runtime="$(spawn_shell_quote "$runtime")"
+  q_scripts="$(spawn_shell_quote "$scripts_dir")"
+  q_lock="$(spawn_shell_quote "$session_lock")"
+  q_store="$(spawn_shell_quote "$store")"
+
+  success_hook="bash $q_scripts/marbles_next.sh $q_state $total_count $loop_nr $run_id $q_root $q_runtime $q_scripts $q_lock $q_store"
+  failure_hook="bash $q_scripts/marbles_next.sh --failed $q_state $total_count $loop_nr $run_id $q_root $q_runtime $q_scripts $q_lock $q_store"
+
+  spawn_args=(
+    --mode implement
+    --runtime "$runtime"
+    --root "$root_dir"
+    --success-hook "$success_hook"
+    --failure-hook "$failure_hook"
+  )
+  if [[ -n "$loop_model" && "$loop_agent" != "codex" ]]; then
+    spawn_args+=(--model "$loop_model")
+  fi
+
+  VIBECRAFTED_LOOP_NR="$loop_nr" \
+  VIBECRAFTED_RUN_ID="$loop_run_id" \
+  VIBECRAFTED_SKILL_CODE="marb" \
+  VIBECRAFTED_SKILL_NAME="marbles" \
+  VIBECRAFTED_ZELLIJ_SPAWN_DIRECTION=right \
+  VIBECRAFTED_STORE_DIR="$store" \
+  bash "$scripts_dir/${loop_agent}_spawn.sh" "${spawn_args[@]}" "$loop_plan"
+}
+
 current_agent="$(_read_loop_agent "$current")"
 [[ -n "$current_agent" ]] || current_agent="$(spawn_frontmatter_field "$ancestor_plan" "agent")"
 [[ -n "$current_agent" ]] || current_agent="unknown"
@@ -457,36 +576,18 @@ if [[ ! "$next_agent" =~ ^(claude|codex|gemini)$ ]]; then
 fi
 next_model="$(spawn_frontmatter_field "$ancestor_plan" "model")"
 
-_update_lock current "$next"
-printf '\n\033[38;5;173m ⚒  Marbles loop %s/%s starting...\033[0m\n' "$next" "$total_count"
-
 next_plan="$(_loop_child_plan "$next")"
-spawn_marbles_write_child_plan "$ancestor_plan" "$next_plan"
-
-q_state="$(spawn_shell_quote "$state_dir")"
-q_root="$(spawn_shell_quote "$root_dir")"
-q_runtime="$(spawn_shell_quote "$runtime")"
-q_scripts="$(spawn_shell_quote "$scripts_dir")"
-q_lock="$(spawn_shell_quote "$session_lock")"
-q_store="$(spawn_shell_quote "$store")"
-
-success_hook="bash $q_scripts/marbles_next.sh $q_state $total_count $next $run_id $q_root $q_runtime $q_scripts $q_lock $q_store"
-failure_hook="bash $q_scripts/marbles_next.sh --failed $q_state $total_count $next $run_id $q_root $q_runtime $q_scripts $q_lock $q_store"
-
-export VIBECRAFTED_LOOP_NR=$next
-export VIBECRAFTED_RUN_ID="${run_id}-$(printf '%03d' "$next")"
-export VIBECRAFTED_SKILL_CODE="marb"
-export VIBECRAFTED_SKILL_NAME="marbles"
-
-spawn_args=(
-  --mode implement
-  --runtime "$runtime"
-  --root "$root_dir"
-  --success-hook "$success_hook"
-  --failure-hook "$failure_hook"
-)
-if [[ -n "$next_model" && "$next_agent" != "codex" ]]; then
-  spawn_args+=(--model "$next_model")
+launch_rc=0
+_launch_next_loop "$next" "$next_agent" "$next_model" "$next_plan" || launch_rc=$?
+if (( launch_rc != 0 )); then
+  next_run_id="${run_id}-$(printf '%03d' "$next")"
+  if [[ -z "$(spawn_find_meta_for_run_id "$store/reports" "$next_run_id")" ]]; then
+    _write_spawn_failure_artifacts \
+      "$next" \
+      "$next_agent" \
+      "$next_plan" \
+      "next-loop spawn failed before meta.json was created" \
+      "$launch_rc"
+  fi
+  exit "$launch_rc"
 fi
-
-VIBECRAFTED_ZELLIJ_SPAWN_DIRECTION=right VIBECRAFTED_STORE_DIR="$store" bash "$scripts_dir/${next_agent}_spawn.sh" "${spawn_args[@]}" "$next_plan"

@@ -260,6 +260,50 @@ PY
   fi
 }
 
+_record_loop_failed() {
+  local loop_nr="$1"
+  local reason="$2"
+  local duration="$3"
+  local report_path="${4:-}"
+  local exit_code="${5:-}"
+  if command -v python3 >/dev/null 2>&1; then
+    python3 - "$state_file" "$loop_nr" "$reason" "$duration" "$report_path" "$exit_code" <<'PY'
+import datetime
+import json
+import sys
+
+with open(sys.argv[1], encoding="utf-8") as handle:
+    payload = json.load(handle)
+
+loop_nr = int(sys.argv[2])
+reason = sys.argv[3]
+duration = int(sys.argv[4])
+report_path = sys.argv[5]
+exit_code_raw = sys.argv[6]
+exit_code = int(exit_code_raw) if exit_code_raw else None
+now = datetime.datetime.now(datetime.timezone.utc).isoformat()
+
+payload["status"] = "failed"
+payload["updated_at"] = now
+for loop in payload.get("loops", []):
+    if loop.get("loop") == loop_nr:
+        loop["status"] = "failed"
+        loop["failure_reason"] = reason
+        loop["duration_s"] = duration
+        loop["completed_at"] = now
+        if report_path:
+            loop["report"] = report_path
+        if exit_code is not None:
+            loop["exit_code"] = exit_code
+
+with open(sys.argv[1] + ".tmp", "w", encoding="utf-8") as handle:
+    json.dump(payload, handle, indent=2)
+    handle.write("\n")
+PY
+    mv "$state_file.tmp" "$state_file"
+  fi
+}
+
 _record_verification_done() {
   local loop_nr="$1"
   local verified_report="$2"
@@ -377,6 +421,11 @@ _render_loop_phase() {
       printf '\n %bL%s%b %s\n' "$_bold" "$loop_nr" "$_reset" "$chain"
       printf '    %btimeout%b   %s\n' "$_red" "$_reset" "$detail"
       ;;
+    failed)
+      printf '\r\033[3A'
+      printf '\n %bL%s%b %s\n' "$_bold" "$loop_nr" "$_reset" "$chain"
+      printf '    %bfailed%b    %s\n' "$_red" "$_reset" "$detail"
+      ;;
   esac
 }
 
@@ -462,6 +511,14 @@ _wait_for_report_path() {
   local stall_elapsed=0
 
   while true; do
+    if [[ -n "$meta_path" ]]; then
+      local meta_status=""
+      meta_status="$(spawn_read_meta_field "$meta_path" "status")"
+      if [[ "$meta_status" == "failed" ]]; then
+        return 4
+      fi
+    fi
+
     if [[ -n "$report_path" && -s "$report_path" ]]; then
       printf '%s\n' "$report_path"
       return 0
@@ -472,9 +529,6 @@ _wait_for_report_path() {
       if [[ -n "$report_path" && -s "$report_path" ]]; then
         printf '%s\n' "$report_path"
         return 0
-      fi
-      if [[ "$(spawn_read_meta_field "$meta_path" "status")" == "failed" ]]; then
-        return 2
       fi
     fi
 
@@ -547,6 +601,8 @@ converged=0
 stopped=0
 timed_out=0
 timed_out_loop=0
+failed=0
+failed_loop=0
 
 for ((loop_nr = 1; loop_nr <= total_count; loop_nr++)); do
   if ! _check_stop; then
@@ -604,7 +660,24 @@ for ((loop_nr = 1; loop_nr <= total_count; loop_nr++)); do
 
   actual_transcript="$(spawn_read_meta_field "$meta_path" "transcript")"
   actual_report_hint="$(spawn_read_meta_field "$meta_path" "report")"
+  actual_meta_status="$(spawn_read_meta_field "$meta_path" "status")"
+  actual_exit_code="$(spawn_read_meta_field "$meta_path" "exit_code")"
   _record_loop_start "$loop_nr" "$actual_transcript" "$loop_agent" "$loop_focus" "$ancestor_slug" "$loop_model"
+
+  if [[ "$actual_meta_status" == "failed" ]]; then
+    loop_end=$(date +%s)
+    duration=$((loop_end - loop_start))
+    duration_fmt="$(printf '%dm %02ds' $((duration/60)) $((duration%60)))"
+    _record_loop_failed "$loop_nr" "spawn-failed" "$duration" "$actual_report_hint" "$actual_exit_code"
+    detail="$duration_fmt  failed before report"
+    if [[ -n "$actual_exit_code" ]]; then
+      detail="$detail  exit ${actual_exit_code}"
+    fi
+    _render_loop_phase "$loop_nr" "failed" "$detail"
+    failed=1
+    failed_loop=$loop_nr
+    break
+  fi
 
   session_id=""
   if [[ -n "$actual_transcript" ]]; then
@@ -638,6 +711,19 @@ for ((loop_nr = 1; loop_nr <= total_count; loop_nr++)); do
     if (( wait_status == 1 )); then
       _check_stop || true
       stopped=1
+      break
+    fi
+
+    if (( wait_status == 4 )); then
+      exit_code_hint="$(spawn_read_meta_field "$meta_path" "exit_code")"
+      _record_loop_failed "$loop_nr" "spawn-failed" "$duration" "$actual_report_hint" "$exit_code_hint"
+      detail="$duration_fmt  failed before report"
+      if [[ -n "$exit_code_hint" ]]; then
+        detail="$detail  exit ${exit_code_hint}"
+      fi
+      _render_loop_phase "$loop_nr" "failed" "$detail"
+      failed=1
+      failed_loop=$loop_nr
       break
     fi
 
@@ -712,6 +798,13 @@ elif (( timed_out )); then
   printf '%b──────────────────────────────────%b\n' "$_steel" "$_reset"
   printf '  %s\n' "$(_render_chain "$completed_loops" "$total_count")"
   printf '  report pathing is meta.json-only; loop not consumed\n'
+elif (( failed )); then
+  _update_status "failed"
+  completed_loops=$((failed_loop - 1))
+  printf '\n %b⚒  Failed · loop failure at L%s/%s · %s%b\n' "$_bold$_red" "$failed_loop" "$total_count" "$total_fmt" "$_reset"
+  printf '%b──────────────────────────────────%b\n' "$_steel" "$_reset"
+  printf '  %s\n' "$(_render_chain "$completed_loops" "$total_count")"
+  printf '  loop consumed truthfully; failure surfaced from launch metadata\n'
 elif (( stopped )); then
   _update_status "stopped"
   printf '\n %b⚒  Stopped · %s%b\n' "$_bold$_yellow" "$total_fmt" "$_reset"

@@ -69,7 +69,7 @@ def _prepare_fake_marbles_bundle(tmp_path: Path) -> tuple[Path, Path]:
 
     capture_file = tmp_path / "spawn-events.jsonl"
     fake_spawn = textwrap.dedent(
-        """\
+        r"""
         #!/usr/bin/env bash
         set -euo pipefail
 
@@ -103,6 +103,10 @@ def _prepare_fake_marbles_bundle(tmp_path: Path) -> tuple[Path, Path]:
         done
 
         spawn_prepare_paths "$agent" "$plan_file" "$root" "$mode"
+        if [[ -n "${MARBLES_TEST_FAIL_BEFORE_META_LOOP:-}" && "${SPAWN_LOOP_NR:-0}" == "${MARBLES_TEST_FAIL_BEFORE_META_LOOP}" ]]; then
+          printf 'synthetic pre-meta failure for loop %s\n' "${SPAWN_LOOP_NR:-0}" >&2
+          exit 42
+        fi
         spawn_write_meta "$SPAWN_META" "launching" "$agent" "$mode" "$SPAWN_ROOT" "$SPAWN_PLAN" "$SPAWN_REPORT" "$SPAWN_TRANSCRIPT" "$0" "$model"
 
         python3 - "$MARBLES_SPAWN_CAPTURE" "$SPAWN_PLAN" "$SPAWN_REPORT" "$success_hook" "$failure_hook" "$agent" "$model" "$SPAWN_RUN_ID" "$SPAWN_LOOP_NR" <<'PY'
@@ -125,7 +129,7 @@ def _prepare_fake_marbles_bundle(tmp_path: Path) -> tuple[Path, Path]:
         capture_path.parent.mkdir(parents=True, exist_ok=True)
         with capture_path.open("a", encoding="utf-8") as handle:
             json.dump(payload, handle, ensure_ascii=False)
-            handle.write("\\n")
+            handle.write("\n")
         PY
 
         cat > "$SPAWN_TRANSCRIPT" <<EOF
@@ -186,7 +190,7 @@ def _prepare_fake_marbles_bundle(tmp_path: Path) -> tuple[Path, Path]:
           bash -lc "$success_hook"
         fi
         """
-    )
+    ).lstrip()
 
     for agent in ("claude", "codex", "gemini"):
         script = scripts_dir / f"{agent}_spawn.sh"
@@ -217,6 +221,7 @@ def _run_marbles_prompt(
     home = tmp_path / "home"
     crafted_home = home / ".vibecrafted"
     fake_bin = tmp_path / "bin"
+    tmpdir_root = tmp_path / "tmpdir"
     capture_file = tmp_path / "marbles-args.txt"
     zellij_capture_file = tmp_path / "zellij-args.txt"
     spawn_script = (
@@ -225,6 +230,7 @@ def _run_marbles_prompt(
 
     home.mkdir()
     fake_bin.mkdir()
+    tmpdir_root.mkdir()
     spawn_script.parent.mkdir(parents=True)
     _write_fake_marbles_spawn(spawn_script)
     _write_replaying_zellij(fake_bin / "zellij")
@@ -235,6 +241,7 @@ def _run_marbles_prompt(
     env["VIBECRAFTED_HOME"] = str(crafted_home)
     env["CAPTURE_FILE"] = str(capture_file)
     env["ZELLIJ_CAPTURE_FILE"] = str(zellij_capture_file)
+    env["TMPDIR"] = f"{tmpdir_root}/"
     env.pop("VIBECRAFTED_OPERATOR_SESSION", None)
     env.pop("ZELLIJ", None)
     env.pop("ZELLIJ_PANE_ID", None)
@@ -282,6 +289,7 @@ def test_vc_marbles_preserves_prompt_as_single_argument_inside_zellij(
     assert "weź i vc-justdo wszystko co marbles znajdzie" in payload
     assert "new-tab" in zellij_payload
     assert any("vibecrafted-marbles." in line for line in zellij_payload)
+    assert not any("//vibecrafted-marbles." in line for line in zellij_payload)
     assert not any(
         "weź i vc-justdo wszystko co marbles znajdzie" in line
         for line in zellij_payload
@@ -301,6 +309,7 @@ def test_vc_marbles_preserves_prompt_as_single_argument_in_operator_session(
     assert "weź i vc-justdo wszystko co marbles znajdzie" in payload
     assert "new-tab" in zellij_payload
     assert any("vc-spawn-cmd." in line for line in zellij_payload)
+    assert not any("//vc-spawn-cmd." in line for line in zellij_payload)
     assert not any(
         "weź i vc-justdo wszystko co marbles znajdzie" in line
         for line in zellij_payload
@@ -537,3 +546,77 @@ def test_marbles_no_watch_still_creates_god_and_ancestor_contract(
     assert len(events) == 1
     assert str(state_dir) in str(events[0]["success_hook"])
     assert str(events[0]["plan"]).endswith("marbles-ancestor_L1.md")
+
+
+def test_marbles_materializes_failed_loop_when_child_spawn_dies_before_meta(
+    tmp_path: Path,
+) -> None:
+    scripts_dir, capture_file = _prepare_fake_marbles_bundle(tmp_path)
+    home = tmp_path / "home"
+    crafted_home = home / ".vibecrafted"
+    home.mkdir()
+
+    env = os.environ.copy()
+    env["HOME"] = str(home)
+    env["VIBECRAFTED_HOME"] = str(crafted_home)
+    env["MARBLES_SPAWN_CAPTURE"] = str(capture_file)
+    env["MARBLES_TEST_FAIL_BEFORE_META_LOOP"] = "2"
+    env["VIBECRAFTED_MARBLES_META_TIMEOUT_S"] = "2"
+    env["VIBECRAFTED_MARBLES_REPORT_TIMEOUT_S"] = "2"
+    env.pop("ZELLIJ", None)
+    env.pop("ZELLIJ_PANE_ID", None)
+    env.pop("ZELLIJ_SESSION_NAME", None)
+    env.pop("VIBECRAFTED_OPERATOR_SESSION", None)
+
+    result = subprocess.run(
+        [
+            "bash",
+            str(scripts_dir / "marbles_spawn.sh"),
+            "--agent",
+            "codex",
+            "--count",
+            "2",
+            "--runtime",
+            "headless",
+            "--prompt",
+            "Stabilize runtime truth",
+        ],
+        check=False,
+        cwd=REPO_ROOT,
+        env=env,
+        capture_output=True,
+        text=True,
+    )
+
+    state_dirs = list((crafted_home / "marbles").iterdir())
+    assert len(state_dirs) == 1
+    state_dir = state_dirs[0]
+    state = json.loads((state_dir / "state.json").read_text(encoding="utf-8"))
+
+    assert state["status"] == "failed"
+    assert [loop["status"] for loop in state["loops"]] == ["done", "failed"]
+    failed_loop = state["loops"][1]
+    assert failed_loop["failure_reason"] == "spawn-failed"
+    assert failed_loop["loop"] == 2
+    assert failed_loop["report"]
+    assert Path(failed_loop["report"]).exists()
+    assert "failed before loop 2 could launch" in Path(failed_loop["report"]).read_text(
+        encoding="utf-8"
+    )
+
+    meta_records = subprocess.run(
+        [
+            "bash",
+            "-lc",
+            (
+                f"find '{crafted_home / 'artifacts'}' -type f -name '*.meta.json' -print0 "
+                f"| xargs -0 jq -r 'select(.run_id==\"{state['run_id']}-002\") | .status'"
+            ),
+        ],
+        check=True,
+        cwd=REPO_ROOT,
+        capture_output=True,
+        text=True,
+    )
+    assert "failed" in meta_records.stdout.splitlines()
+    assert "no meta.json within" not in result.stdout
