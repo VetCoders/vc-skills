@@ -73,7 +73,7 @@ root_dir="${root:-$(spawn_repo_root)}"
 store="$(spawn_marbles_store_dir "$root_dir")"
 mkdir -p "$store/plans" "$store/reports"
 
-marbles_run_id="marb-$(date +%H%M%S)"
+marbles_run_id="${VIBECRAFTED_MARBLES_RUN_ID:-marb-$(date +%H%M%S)}"
 state_dir="$(spawn_marbles_state_dir "$marbles_run_id")"
 state_file="$state_dir/state.json"
 god_plan="$state_dir/god.md"

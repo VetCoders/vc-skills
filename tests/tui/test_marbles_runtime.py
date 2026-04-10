@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from datetime import datetime, timezone
 import json
 import os
 import re
@@ -259,6 +260,7 @@ def _run_marbles_prompt(
     home = tmp_path / "home"
     crafted_home = home / ".vibecrafted"
     fake_bin = tmp_path / "bin"
+    isolated_root = tmp_path / "isolated-root"
     tmpdir_root = tmp_path / "tmpdir"
     capture_file = tmp_path / "marbles-args.txt"
     zellij_capture_file = tmp_path / "zellij-args.txt"
@@ -268,6 +270,7 @@ def _run_marbles_prompt(
 
     home.mkdir()
     fake_bin.mkdir()
+    isolated_root.mkdir()
     tmpdir_root.mkdir()
     spawn_script.parent.mkdir(parents=True)
     _write_fake_marbles_spawn(spawn_script)
@@ -277,6 +280,7 @@ def _run_marbles_prompt(
     env["HOME"] = str(home)
     env["PATH"] = f"{fake_bin}:{env.get('PATH', '')}"
     env["VIBECRAFTED_HOME"] = str(crafted_home)
+    env["VIBECRAFTED_ROOT"] = str(isolated_root)
     env["CAPTURE_FILE"] = str(capture_file)
     env["ZELLIJ_CAPTURE_FILE"] = str(zellij_capture_file)
     env["TMPDIR"] = f"{tmpdir_root}/"
@@ -531,6 +535,96 @@ def test_marbles_runtime_steers_next_loop_from_ancestor_frontmatter(
     assert events[1]["model"] == "gemini-2.5-pro"
 
 
+def test_marbles_runtime_applies_rotation_schedule_without_ancestor_override(
+    tmp_path: Path,
+) -> None:
+    scripts_dir, capture_file = _prepare_fake_marbles_bundle(tmp_path)
+    home = tmp_path / "home"
+    crafted_home = home / ".vibecrafted"
+    home.mkdir()
+
+    env = os.environ.copy()
+    env["HOME"] = str(home)
+    env["VIBECRAFTED_HOME"] = str(crafted_home)
+    env["MARBLES_SPAWN_CAPTURE"] = str(capture_file)
+    env.pop("ZELLIJ", None)
+    env.pop("ZELLIJ_PANE_ID", None)
+    env.pop("ZELLIJ_SESSION_NAME", None)
+    env.pop("VIBECRAFTED_OPERATOR_SESSION", None)
+
+    subprocess.run(
+        [
+            "bash",
+            str(scripts_dir / "marbles_spawn.sh"),
+            "--agent",
+            "codex",
+            "--count",
+            "3",
+            "--rotation",
+            "trio",
+            "--runtime",
+            "headless",
+            "--prompt",
+            "Fix installer drift end to end",
+        ],
+        check=True,
+        cwd=REPO_ROOT,
+        env=env,
+        capture_output=True,
+        text=True,
+    )
+
+    state_dirs = list((crafted_home / "marbles").iterdir())
+    assert len(state_dirs) == 1
+    state_dir = state_dirs[0]
+    state = json.loads((state_dir / "state.json").read_text(encoding="utf-8"))
+
+    assert state["god_plan"] == str(state_dir / "god.md")
+    assert state["ancestor_plan"] == str(state_dir / "ancestor.md")
+    assert state["plan"] == str(state_dir / "ancestor.md")
+    assert state["rotation"] == "trio"
+    assert state["rotation_pool"] == ["codex", "claude", "gemini"]
+    assert [loop["agent"] for loop in state["loops"][:3]] == [
+        "codex",
+        "claude",
+        "gemini",
+    ]
+    assert [loop["focus"] for loop in state["loops"][:3]] == [
+        "initial prompt",
+        "initial prompt",
+        "initial prompt",
+    ]
+    assert (
+        (state_dir / "ancestor.md")
+        .read_text(encoding="utf-8")
+        .startswith("---\nagent: codex\nfocus: initial prompt\npriority: P0\n---\n")
+    )
+
+    events = _load_spawn_events(capture_file)
+    assert [event["agent"] for event in events] == ["codex", "claude", "gemini"]
+    child_plans = [Path(event["plan"]) for event in events]
+    assert [plan.name for plan in child_plans] == [
+        "marbles-ancestor_L1.md",
+        "marbles-ancestor_L2.md",
+        "marbles-ancestor_L3.md",
+    ]
+    assert (
+        child_plans[0]
+        .read_text(encoding="utf-8")
+        .startswith("---\nagent: codex\nfocus: initial prompt\npriority: P0\n---\n")
+    )
+    assert (
+        child_plans[1]
+        .read_text(encoding="utf-8")
+        .startswith("---\nagent: claude\nfocus: initial prompt\npriority: P0\n---\n")
+    )
+    assert (
+        child_plans[2]
+        .read_text(encoding="utf-8")
+        .startswith("---\nagent: gemini\nfocus: initial prompt\npriority: P0\n---\n")
+    )
+
+
 def test_marbles_runtime_consumes_ancestor_override_sequence_across_children(
     tmp_path: Path,
 ) -> None:
@@ -544,7 +638,7 @@ def test_marbles_runtime_consumes_ancestor_override_sequence_across_children(
     env["VIBECRAFTED_HOME"] = str(crafted_home)
     env["MARBLES_SPAWN_CAPTURE"] = str(capture_file)
     env["MARBLES_TEST_ANCESTOR_SEQUENCE"] = (
-        "claude|auth hardening|;gemini|accessibility|gemini-2.5-pro"
+        "gemini|accessibility|gemini-2.5-pro;claude|auth hardening|"
     )
     env.pop("ZELLIJ", None)
     env.pop("ZELLIJ_PANE_ID", None)
@@ -584,23 +678,28 @@ def test_marbles_runtime_consumes_ancestor_override_sequence_across_children(
     assert state["rotation"] == "trio"
     assert state["rotation_pool"] == ["codex", "claude", "gemini"]
     assert re.fullmatch(
-        r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z", state["ancestor_mtime"]
+        r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?Z", state["ancestor_mtime"]
     )
     assert [loop["agent"] for loop in state["loops"][:3]] == [
         "codex",
-        "claude",
         "gemini",
+        "claude",
     ]
     assert [loop["focus"] for loop in state["loops"][:3]] == [
         "initial prompt",
-        "auth hardening",
         "accessibility",
+        "auth hardening",
     ]
-    assert state["loops"][2]["model"] == "gemini-2.5-pro"
+    assert state["loops"][1]["model"] == "gemini-2.5-pro"
+    assert "model" not in state["loops"][2]
     assert all(loop["ancestor_slug"] == "ancestor" for loop in state["loops"][:3])
+    assert state["ancestor_mtime"] == datetime.fromtimestamp(
+        (state_dir / "ancestor.md").stat().st_mtime,
+        timezone.utc,
+    ).strftime("%Y-%m-%dT%H:%M:%S.%fZ")
 
     events = _load_spawn_events(capture_file)
-    assert [event["agent"] for event in events] == ["codex", "claude", "gemini"]
+    assert [event["agent"] for event in events] == ["codex", "gemini", "claude"]
     child_plans = [Path(event["plan"]) for event in events]
     assert [plan.name for plan in child_plans] == [
         "marbles-ancestor_L1.md",
@@ -615,15 +714,16 @@ def test_marbles_runtime_consumes_ancestor_override_sequence_across_children(
     assert (
         child_plans[1]
         .read_text(encoding="utf-8")
-        .startswith("---\nagent: claude\nfocus: auth hardening\npriority: P0\n---\n")
-    )
-    assert (
-        child_plans[2]
-        .read_text(encoding="utf-8")
         .startswith(
             "---\nagent: gemini\nfocus: accessibility\npriority: P0\nmodel: gemini-2.5-pro\n---\n"
         )
     )
+    assert (
+        child_plans[2]
+        .read_text(encoding="utf-8")
+        .startswith("---\nagent: claude\nfocus: auth hardening\npriority: P0\n---\n")
+    )
+    assert "model:" not in child_plans[2].read_text(encoding="utf-8")
 
     convergence_reports = sorted((crafted_home / "artifacts").rglob("*_CONVERGENCE.md"))
     assert len(convergence_reports) == 1

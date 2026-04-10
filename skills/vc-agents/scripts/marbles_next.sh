@@ -194,6 +194,87 @@ _update_lock() {
   fi
 }
 
+_refresh_state_steering_fields() {
+  # NOTE: does NOT update ancestor_mtime — that field tracks the mtime baseline
+  # for steering detection.  The baseline is consumed (updated) after the
+  # steering check in the main loop via _consume_ancestor_mtime_signal.
+  if [[ -f "$state_file" ]] && command -v python3 >/dev/null 2>&1; then
+    if python3 - "$state_file" "$god_plan" "$ancestor_plan" <<'PY'
+import datetime
+import json
+import sys
+
+state_file, god_plan, ancestor_plan = sys.argv[1:4]
+
+with open(state_file, encoding="utf-8") as handle:
+    payload = json.load(handle)
+
+payload["updated_at"] = datetime.datetime.now(datetime.timezone.utc).isoformat()
+payload["god_plan"] = god_plan
+payload["ancestor_plan"] = ancestor_plan
+payload["plan"] = ancestor_plan
+
+with open(state_file + ".tmp", "w", encoding="utf-8") as handle:
+    json.dump(payload, handle, indent=2)
+    handle.write("\n")
+PY
+    then
+      [[ -f "$state_file.tmp" ]] && mv "$state_file.tmp" "$state_file"
+    else
+      printf '    [warn] state refresh failed (python exit %d) — loop continues with stale state\n' "$?" >&2
+      rm -f "$state_file.tmp"
+    fi
+  fi
+}
+
+_consume_ancestor_mtime_signal() {
+  local current_mtime=""
+  current_mtime="$(spawn_ancestor_mtime_iso "$ancestor_plan")"
+  if [[ -n "$current_mtime" && -f "$state_file" ]] && command -v python3 >/dev/null 2>&1; then
+    python3 - "$state_file" "$current_mtime" <<'PY'
+import json, sys
+state_file, mtime = sys.argv[1:3]
+with open(state_file, encoding="utf-8") as f:
+    d = json.load(f)
+d["ancestor_mtime"] = mtime
+with open(state_file + ".tmp", "w", encoding="utf-8") as f:
+    json.dump(d, f, indent=2)
+    f.write("\n")
+PY
+    [[ -f "$state_file.tmp" ]] && mv "$state_file.tmp" "$state_file"
+  fi
+}
+
+_rewrite_loop_plan_frontmatter() {
+  local loop_plan="$1"
+  local loop_agent="$2"
+  local loop_model="$3"
+
+  [[ -f "$loop_plan" ]] || return 0
+
+  python3 - "$loop_plan" "$loop_agent" "$loop_model" <<'PY'
+import pathlib
+import re
+import sys
+
+plan, agent, model = sys.argv[1:4]
+text = pathlib.Path(plan).read_text(encoding="utf-8")
+m = re.match(r"^---\n(.*?\n)---\n", text, re.DOTALL)
+if not m:
+    raise SystemExit(0)
+fm = m.group(1)
+fm = re.sub(r"^agent:.*$", f"agent: {agent}", fm, flags=re.MULTILINE)
+if model:
+    if re.search(r"^model:", fm, re.MULTILINE):
+        fm = re.sub(r"^model:.*$", f"model: {model}", fm, flags=re.MULTILINE)
+    else:
+        fm += f"model: {model}\n"
+elif re.search(r"^model:", fm, re.MULTILINE):
+    fm = re.sub(r"^model:.*\n", "", fm, flags=re.MULTILINE)
+pathlib.Path(plan).write_text(f"---\n{fm}---\n{text[m.end():]}", encoding="utf-8")
+PY
+}
+
 _write_missing_report_failure() {
   local loop_nr="$1"
   local reason="$2"
@@ -447,32 +528,6 @@ _launch_next_loop() {
   _update_lock current "$loop_nr"
   printf '\n\033[38;5;173m ⚒  Marbles loop %s/%s starting...\033[0m\n' "$loop_nr" "$total_count"
 
-  spawn_marbles_write_child_plan "$ancestor_plan" "$loop_plan"
-
-  # Ensure child plan frontmatter matches the resolved agent/model
-  # (critical when rotation overrides the ancestor's raw agent)
-  if [[ -f "$loop_plan" ]]; then
-    python3 - "$loop_plan" "$loop_agent" "$loop_model" <<'PY'
-import pathlib, re, sys
-
-plan, agent, model = sys.argv[1:4]
-text = pathlib.Path(plan).read_text(encoding="utf-8")
-m = re.match(r"^---\n(.*?\n)---\n", text, re.DOTALL)
-if not m:
-    raise SystemExit(0)
-fm = m.group(1)
-fm = re.sub(r"^agent:.*$", f"agent: {agent}", fm, flags=re.MULTILINE)
-if model:
-    if re.search(r"^model:", fm, re.MULTILINE):
-        fm = re.sub(r"^model:.*$", f"model: {model}", fm, flags=re.MULTILINE)
-    else:
-        fm += f"model: {model}\n"
-elif re.search(r"^model:", fm, re.MULTILINE):
-    fm = re.sub(r"^model:.*\n", "", fm, flags=re.MULTILINE)
-pathlib.Path(plan).write_text(f"---\n{fm}---\n{text[m.end():]}", encoding="utf-8")
-PY
-  fi
-
   q_state="$(spawn_shell_quote "$state_dir")"
   q_root="$(spawn_shell_quote "$root_dir")"
   q_runtime="$(spawn_shell_quote "$runtime")"
@@ -548,6 +603,8 @@ else
   exit 0
 fi
 
+_refresh_state_steering_fields
+
 if [[ $next -gt $total_count ]]; then
   convergence="$store/reports/$(spawn_timestamp)_marbles-${ancestor_slug}_CONVERGENCE.md"
 
@@ -594,44 +651,86 @@ _launch_verification "$current" 0
 
 # --- Resolve next-loop agent and model ---
 # Sources, in priority order:
-#   1. Ancestor steering: if the child rewrote ancestor.md with a different
-#      agent than the session seed, honour explicit steering.
+#   1. Ancestor steering: if the child modified ancestor.md (mtime changed)
+#      AND set a different agent than the session seed, honour explicit steering.
 #   2. Rotation schedule: if mode is not "single", compute the scheduled agent.
 #   3. Ancestor raw agent (unsteered seed) / current agent fallback.
+# Model follows the same hierarchy: steering override → ancestor raw → empty.
 _rotation_mode="single"
 _seed_agent=""
+_stored_ancestor_mtime=""
 if [[ -f "$state_file" ]] && command -v python3 >/dev/null 2>&1; then
-  read -r _rotation_mode _seed_agent < <(python3 - "$state_file" <<'PY'
+  read -r _rotation_mode _seed_agent _stored_ancestor_mtime < <(python3 - "$state_file" <<'PY'
 import json, sys
 with open(sys.argv[1], encoding="utf-8") as f:
     d = json.load(f)
-print(d.get("rotation", "single"), d.get("agent", ""))
+print(d.get("rotation", "single"), d.get("agent", ""), d.get("ancestor_mtime", ""))
 PY
   )
 fi
 
-_ancestor_agent="$(spawn_frontmatter_field "$ancestor_plan" "agent")"
-next_model="$(spawn_frontmatter_field "$ancestor_plan" "model")"
+next_plan="$(_loop_child_plan "$next")"
+next_plan_tmp="${next_plan}.tmp"
+rm -f "$next_plan_tmp"
+spawn_marbles_write_child_plan "$ancestor_plan" "$next_plan_tmp"
+
+_ancestor_agent="$(spawn_frontmatter_field "$next_plan_tmp" "agent")"
+_ancestor_model="$(spawn_frontmatter_field "$next_plan_tmp" "model")"
+
+# Determine if ancestor.md was explicitly steered by the previous child.
+# Steering requires: (a) ancestor has a non-empty agent, (b) it differs from
+# the session seed, and (c) ancestor.md mtime changed since session start
+# (or no stored mtime exists for backward compat).
+_ancestor_steered=0
+if [[ -n "$_ancestor_agent" && -n "$_seed_agent" && "$_ancestor_agent" != "$_seed_agent" ]]; then
+  _current_ancestor_mtime="$(spawn_ancestor_mtime_iso "$ancestor_plan")"
+  if [[ -z "$_stored_ancestor_mtime" ]]; then
+    # No stored mtime — trust the diff (backward compat with older state files)
+    _ancestor_steered=1
+  elif [[ "$_current_ancestor_mtime" != "$_stored_ancestor_mtime" ]]; then
+    _ancestor_steered=1
+  fi
+fi
 
 next_agent=""
-if [[ -n "$_ancestor_agent" && -n "$_seed_agent" && "$_ancestor_agent" != "$_seed_agent" ]]; then
-  # Ancestor was explicitly steered by the previous child
+next_model=""
+_steering_source=""
+
+if (( _ancestor_steered )); then
   next_agent="$_ancestor_agent"
+  next_model="$_ancestor_model"
+  _steering_source="ancestor-override ($next_agent via child steering)"
 elif [[ "$_rotation_mode" != "single" && -n "$_rotation_mode" ]]; then
-  # Rotation schedule applies when ancestor was not explicitly steered
   _rotation_base="${_seed_agent:-${_ancestor_agent:-$current_agent}}"
   next_agent="$(spawn_rotation_schedule_agent "$_rotation_mode" "$_rotation_base" "$next")"
+  next_model="$_ancestor_model"
+  _steering_source="rotation-${_rotation_mode} (base=$_rotation_base, loop=$next → $next_agent)"
+else
+  next_model="$_ancestor_model"
+  _steering_source="seed-fallback"
 fi
+
 # Fallbacks: ancestor raw agent, then current agent
-[[ -n "$next_agent" ]] || next_agent="$_ancestor_agent"
-[[ -n "$next_agent" ]] || next_agent="$current_agent"
+if [[ -z "$next_agent" ]]; then
+  next_agent="${_ancestor_agent:-$current_agent}"
+  [[ -n "$_steering_source" && "$_steering_source" != "seed-fallback" ]] || \
+    _steering_source="seed ($next_agent)"
+fi
+
+printf '    ↳ steering: %s\n' "$_steering_source"
+
+# Consume the mtime signal so the next round sees only changes made by this child.
+_consume_ancestor_mtime_signal
 
 if [[ ! "$next_agent" =~ ^(claude|codex|gemini)$ ]]; then
+  rm -f "$next_plan_tmp"
   _write_invalid_ancestor_failure "$next" "$next_agent"
   exit 0
 fi
 
-next_plan="$(_loop_child_plan "$next")"
+_rewrite_loop_plan_frontmatter "$next_plan_tmp" "$next_agent" "$next_model"
+mv "$next_plan_tmp" "$next_plan"
+
 launch_rc=0
 _launch_next_loop "$next" "$next_agent" "$next_model" "$next_plan" || launch_rc=$?
 if (( launch_rc != 0 )); then

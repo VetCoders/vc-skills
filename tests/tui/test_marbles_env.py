@@ -233,6 +233,36 @@ def test_rotation_schedule_trio() -> None:
     ]
 
 
+def test_rotation_schedule_trio_respects_seed_agent() -> None:
+    """Trio mode keeps the requested seed agent at the front of the cycle."""
+    result = subprocess.run(
+        [
+            "bash",
+            "-lc",
+            "\n".join(
+                [
+                    "set -euo pipefail",
+                    f'source "{SCRIPTS_DIR / "common.sh"}"',
+                    "for loop_nr in 1 2 3 4; do",
+                    '  spawn_rotation_schedule_agent "trio" "gemini" "$loop_nr"',
+                    "done",
+                ]
+            ),
+        ],
+        check=True,
+        cwd=REPO_ROOT,
+        capture_output=True,
+        text=True,
+    )
+
+    assert result.stdout.splitlines() == [
+        "gemini",
+        "codex",
+        "claude",
+        "gemini",
+    ]
+
+
 # -- 5. Ancestor frontmatter parsing -------------------------------------------
 
 

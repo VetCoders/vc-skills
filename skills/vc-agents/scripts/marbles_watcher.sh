@@ -674,6 +674,20 @@ for ((loop_nr = 1; loop_nr <= total_count; loop_nr++)); do
     loop_focus="$(spawn_frontmatter_field "$ln_plan" "focus")"
     loop_model="$(spawn_frontmatter_field "$ln_plan" "model")"
   fi
+  # When child plan has no agent, consult state.json loop records before
+  # falling back to ancestor.md — keeps watcher aligned with marbles_next.sh
+  if [[ -z "$loop_agent" && -f "$state_file" ]] && command -v python3 >/dev/null 2>&1; then
+    loop_agent="$(python3 - "$state_file" "$loop_nr" <<'PY'
+import json, sys
+with open(sys.argv[1], encoding="utf-8") as f:
+    d = json.load(f)
+for loop in d.get("loops", []):
+    if loop.get("loop") == int(sys.argv[2]) and loop.get("agent"):
+        print(loop["agent"], end="")
+        raise SystemExit(0)
+PY
+    )"
+  fi
   if [[ -z "$loop_agent" ]]; then
     loop_agent="$(spawn_frontmatter_field "$ancestor_plan" "agent")"
   fi

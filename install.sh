@@ -224,13 +224,12 @@ fi
 post_install_banner() {
   printf '\n'
   info "---------------------------------------------------------------"
-  info " Installed: vibecrafted $_installed_version"
+  info " Staged: vibecrafted $_installed_version"
   info " Channel:   tarball (no self-update)"
   info ""
-  info " To upgrade, re-run the install command — the channel manifest"
-  info " will resolve the latest version automatically when available."
-  info " There is currently no in-place 'vibecrafted update' for"
-  info " tarball installs."
+  info " The archive has been extracted and symlinked."
+  info " Shell integration runs next — if the step below fails,"
+  info " re-run the install command."
   info ""
   info " Run 'vibecrafted doctor' to check installation health."
   info "---------------------------------------------------------------"

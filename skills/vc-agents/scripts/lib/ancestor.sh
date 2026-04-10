@@ -16,7 +16,7 @@ try:
 except OSError:
     raise SystemExit(0)
 
-print(datetime.fromtimestamp(stat.st_mtime, timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"))
+print(datetime.fromtimestamp(stat.st_mtime, timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.%fZ"))
 PY
 }
 
