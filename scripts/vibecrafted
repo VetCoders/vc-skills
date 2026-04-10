@@ -682,11 +682,13 @@ cmd_update() {
   for candidate in \
     "${repo_source:+$repo_source/Makefile}" \
     "$crafted_tools/Makefile" \
-    "$(_repo_root)/Makefile"; do
-    [[ -f "$candidate" ]] && makefile="$candidate" && break
+    "$(_repo_root 2>/dev/null)/Makefile"; do
+    [[ -n "$candidate" && -f "$candidate" ]] && makefile="$candidate" && break
   done
   [[ -n "$makefile" ]] || {
-    printf '%b[error]%b Makefile not found. Re-run the install command instead.\n' "$_red" "$_reset" >&2
+    printf '%b[error]%b Makefile not found.\n' "$_red" "$_reset" >&2
+    printf '  If this is a tarball install, re-run: curl -fsSL https://vibecrafted.io/install.sh | bash\n' >&2
+    printf '  If this is a git checkout, run from the repo root.\n' >&2
     return 1
   }
   make -C "$(dirname "$makefile")" update
