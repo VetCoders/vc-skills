@@ -230,6 +230,33 @@ _vetcoders_generate_run_id() {
   printf '%s-%s\n' "$prefix" "$(date +%H%M%S)"
 }
 
+_vetcoders_spawn_timestamp() {
+  if [[ -n "${VIBECRAFTED_SPAWN_TS:-}" ]]; then
+    printf '%s\n' "${VIBECRAFTED_SPAWN_TS}"
+  else
+    date +%Y%m%d_%H%M
+  fi
+}
+
+_vetcoders_marbles_store_dir() {
+  local root="$1"
+  if cd "$root" && git remote get-url origin >/dev/null 2>&1; then
+    printf '%s/marbles\n' "$(_vetcoders_store_dir "$root")"
+  else
+    printf '%s/.vibecrafted/marbles\n' "$root"
+  fi
+}
+
+_vetcoders_marbles_l1_report_path() {
+  local root="$1"
+  local stamp="$2"
+  local tool="$3"
+  printf '%s/reports/%s_marbles-ancestor_L1_%s.md\n' \
+    "$(_vetcoders_marbles_store_dir "$root")" \
+    "$stamp" \
+    "$tool"
+}
+
 _vetcoders_has_ambient_spawn_context() {
   [[ -n "${SPAWN_AGENT:-}" ]] || return 1
   [[ -n "${SPAWN_RUN_ID:-}" ]] || return 1
@@ -1506,7 +1533,8 @@ gemini-hydrate() { _vetcoders_skill gemini hydrate "$@"; }
 _vetcoders_marbles() {
   local tool="$1"
   shift
-  local script marbles_cmd quoted_args operator_session root_dir marbles_run_id
+  local script marbles_cmd quoted_args quoted_env operator_session root_dir marbles_run_id runtime launch_ts launch_report
+  local -a marbles_env
   script="$(_vetcoders_spawn_script "$tool" "marbles_spawn.sh")" || return 1
   _vetcoders_parse_contract "$@" || return 1
   [[ -z "$_vetcoders_contract_session" ]] || {
@@ -1532,20 +1560,32 @@ _vetcoders_marbles() {
 
   root_dir="${_vetcoders_contract_root:-$(_vetcoders_repo_root)}"
   marbles_run_id="${VIBECRAFTED_MARBLES_RUN_ID:-$(_vetcoders_generate_run_id "marb")}"
-  local marbles_args=(--agent "$tool" --runtime "$(_vetcoders_effective_runtime)")
+  runtime="$(_vetcoders_effective_runtime)"
+  marbles_env=(VIBECRAFTED_MARBLES_RUN_ID="$marbles_run_id")
+  local marbles_args=(--agent "$tool" --runtime "$runtime")
+  local source_args=()
   [[ -n "$_vetcoders_contract_root" ]] && marbles_args+=(--root "$_vetcoders_contract_root")
   [[ -n "$_vetcoders_contract_count" ]] && marbles_args+=(--count "$_vetcoders_contract_count")
 
   if [[ -n "$_vetcoders_contract_file" ]]; then
-    marbles_args+=(--file "$_vetcoders_contract_file")
+    source_args=(--file "$_vetcoders_contract_file")
   elif [[ -n "$_vetcoders_contract_prompt" ]]; then
-    marbles_args+=(--prompt "$_vetcoders_contract_prompt")
+    source_args=(--prompt "$_vetcoders_contract_prompt")
   else
-    marbles_args+=(--depth "${_vetcoders_contract_depth:-3}")
+    source_args=(--depth "${_vetcoders_contract_depth:-3}")
   fi
+  if [[ "$runtime" == "headless" ]]; then
+    marbles_args+=(--no-watch)
+    launch_ts="$(_vetcoders_spawn_timestamp)"
+    launch_report="$(_vetcoders_marbles_l1_report_path "$root_dir" "$launch_ts" "$tool")"
+    marbles_env+=(VIBECRAFTED_SPAWN_TS="$launch_ts" VIBECRAFTED_SUPPRESS_REPORT_HINT=1)
+    printf 'Agent launched. Report will land at: %s\n' "$launch_report"
+  fi
+  marbles_args+=("${source_args[@]}")
 
+  quoted_env="$(_vetcoders_shell_quote_join "${marbles_env[@]}")"
   quoted_args="$(_vetcoders_shell_quote_join "${marbles_args[@]}")"
-  marbles_cmd="VIBECRAFTED_MARBLES_RUN_ID=$(_vetcoders_shell_quote "$marbles_run_id") bash $(_vetcoders_shell_quote "$script") ${quoted_args}"
+  marbles_cmd="env ${quoted_env} bash $(_vetcoders_shell_quote "$script") ${quoted_args}"
   operator_session="${VIBECRAFTED_OPERATOR_SESSION:-}"
   if [[ -z "$operator_session" ]] && _vetcoders_in_zellij; then
     operator_session="$(_vetcoders_current_zellij_session_name)"
@@ -1556,7 +1596,7 @@ _vetcoders_marbles() {
 
   # Inside zellij: marbles gets its own tab — operator's workspace stays clean.
   # Temp script keeps zellij args ASCII-safe (no inline UTF-8 prompt bytes).
-  if _vetcoders_in_zellij && command -v zellij >/dev/null 2>&1; then
+  if [[ "$runtime" =~ ^(terminal|visible)$ ]] && _vetcoders_in_zellij && command -v zellij >/dev/null 2>&1; then
     local cmd_script
     local tmp_root="${TMPDIR:-/tmp}"
     export VIBECRAFTED_OPERATOR_SESSION="$(_vetcoders_current_zellij_session_name)"
@@ -1568,16 +1608,16 @@ _vetcoders_marbles() {
       --cwd "$root_dir" \
       -- "$cmd_script" >/dev/null || return 1
     _vetcoders_tail_marbles_l1_transcript "$root_dir" "$marbles_run_id"
-  elif [[ "$(_vetcoders_effective_runtime)" =~ ^(terminal|visible)$ ]]; then
-    _vetcoders_prepare_operator_runtime "$(_vetcoders_effective_runtime)" || return 1
+  elif [[ "$runtime" =~ ^(terminal|visible)$ ]]; then
+    _vetcoders_prepare_operator_runtime "$runtime" || return 1
     if [[ -n "${VIBECRAFTED_OPERATOR_SESSION:-}" ]]; then
       _vetcoders_spawn_into_operator_session "marbles" "$marbles_cmd" || return 1
       _vetcoders_tail_marbles_l1_transcript "$root_dir" "$marbles_run_id"
     else
-      VIBECRAFTED_MARBLES_RUN_ID="$marbles_run_id" bash "$script" "${marbles_args[@]}"
+      env "${marbles_env[@]}" bash "$script" "${marbles_args[@]}"
     fi
   else
-    VIBECRAFTED_MARBLES_RUN_ID="$marbles_run_id" bash "$script" "${marbles_args[@]}"
+    env "${marbles_env[@]}" bash "$script" "${marbles_args[@]}"
   fi
 }
 

@@ -1272,6 +1272,7 @@ LAUNCHER_WRAPPERS = [
     "vc-dashboard",
     "vc-resume",
     "vc-agents",
+    "telemetry",
     *[f"vc-{name}" for name in SKILL_WRAPPER_NAMES],
 ]
 

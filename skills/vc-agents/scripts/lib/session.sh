@@ -94,6 +94,7 @@ spawn_prepare_paths() {
   local skill_name="${VIBECRAFTED_SKILL_NAME:-$mode}"
   local lock_file=""
   local discovered_session=""
+  local ambient_store_root="${VIBECRAFTED_STORE_ROOT:-${SPAWN_ROOT:-}}"
 
   if [[ -n "$root" ]]; then
     SPAWN_ROOT="$(spawn_abspath "$root")"
@@ -142,7 +143,7 @@ spawn_prepare_paths() {
 
   # Central store path (falls back to per-repo if no git remote)
   local store_base
-  store_base="$(spawn_effective_store_dir "$SPAWN_ROOT")"
+  store_base="$(spawn_effective_store_dir "$SPAWN_ROOT" "$ambient_store_root")"
 
   SPAWN_PLAN_DIR="$store_base/plans"
   SPAWN_REPORT_DIR="$store_base/reports"

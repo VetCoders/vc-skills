@@ -25,11 +25,18 @@ spawn_store_dir() {
 
 spawn_effective_store_dir() {
   local root="${1:-$(spawn_repo_root)}"
+  local store_root_hint="${2:-}"
+  local resolved_root resolved_store_root=""
+
+  resolved_root="$(spawn_abspath "$root")"
   if [[ -n "${VIBECRAFTED_STORE_DIR:-}" ]]; then
-    spawn_abspath "$VIBECRAFTED_STORE_DIR"
-    return 0
+    resolved_store_root="${VIBECRAFTED_STORE_ROOT:-$store_root_hint}"
+    if [[ -n "$resolved_store_root" ]] && [[ "$resolved_root" == "$(spawn_abspath "$resolved_store_root")" ]]; then
+      spawn_abspath "$VIBECRAFTED_STORE_DIR"
+      return 0
+    fi
   fi
-  spawn_store_dir "$root"
+  spawn_store_dir "$resolved_root"
 }
 
 spawn_marbles_store_dir() {

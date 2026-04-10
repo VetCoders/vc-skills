@@ -394,6 +394,109 @@ cmd_resume_help() {
   printf '\n'
 }
 
+cmd_telemetry_help() {
+  printf '\n'
+  printf '%b⚒%b  %btelemetry%b\n' "$_copper" "$_reset" "$_bold" "$_reset"
+  printf '%b─────────────────────────────────────────%b\n' "$_steel" "$_reset"
+  printf '  Smoke the marbles telemetry path through the installed command deck.\n'
+  printf '\n'
+  printf '%bUsage:%b\n' "$_bold" "$_reset"
+  printf '  telemetry smoke [--agent <claude|codex|gemini>] [--count <n>] [--root <path>] [--no-watch|--watch]\n'
+  printf '  vibecrafted telemetry smoke [--agent <claude|codex|gemini>] [--count <n>] [--root <path>] [--no-watch|--watch]\n'
+  printf '\n'
+  printf '%bExamples:%b\n' "$_bold" "$_reset"
+  printf '  telemetry smoke --count 1 --no-watch\n'
+  printf '  telemetry smoke --agent claude --count 2 --watch\n'
+  printf '\n'
+}
+
+cmd_telemetry_smoke() {
+  local agent="codex"
+  local count="1"
+  local root=""
+  local runtime="headless"
+  local marbles_script=""
+  local telemetry_args=()
+
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      --agent)
+        shift
+        [[ $# -gt 0 ]] || {
+          echo "Missing value for --agent" >&2
+          return 1
+        }
+        agent="$1"
+        ;;
+      --count)
+        shift
+        [[ $# -gt 0 ]] || {
+          echo "Missing value for --count" >&2
+          return 1
+        }
+        count="$1"
+        ;;
+      --root)
+        shift
+        [[ $# -gt 0 ]] || {
+          echo "Missing value for --root" >&2
+          return 1
+        }
+        root="$1"
+        ;;
+      --watch)
+        runtime="terminal"
+        ;;
+      --no-watch)
+        runtime="headless"
+        ;;
+      --help|-h|help)
+        cmd_telemetry_help
+        return 0
+        ;;
+      *)
+        printf '%b[error]%b Unknown telemetry smoke flag: %s\n' "$_red" "$_reset" "$1" >&2
+        printf '\n' >&2
+        cmd_telemetry_help >&2
+        return 1
+        ;;
+    esac
+    shift
+  done
+
+  _has_agent "$agent" || {
+    printf '%b[error]%b Unknown agent: %s\n' "$_red" "$_reset" "$agent" >&2
+    return 1
+  }
+  _ensure_helpers_loaded || return 1
+  marbles_script="$(_vetcoders_spawn_script "$agent" "marbles_spawn.sh")" || return 1
+  telemetry_args=(--agent "$agent" --runtime "$runtime" --count "$count")
+  [[ -n "$root" ]] && telemetry_args+=(--root "$root")
+  [[ "$runtime" == "headless" ]] && telemetry_args+=(--no-watch)
+  telemetry_args+=(--prompt "telemetry smoke")
+  bash "$marbles_script" "${telemetry_args[@]}"
+}
+
+cmd_telemetry() {
+  local subcommand="${1:-help}"
+  shift || true
+
+  case "$subcommand" in
+    help|-h|--help)
+      cmd_telemetry_help
+      ;;
+    smoke)
+      cmd_telemetry_smoke "$@"
+      ;;
+    *)
+      printf '%b[error]%b Unknown telemetry subcommand: %s\n' "$_red" "$_reset" "$subcommand" >&2
+      printf '\n' >&2
+      cmd_telemetry_help >&2
+      return 1
+      ;;
+  esac
+}
+
 cmd_help() {
   local topic="${1:-}"
   case "$topic" in
@@ -407,6 +510,10 @@ cmd_help() {
       ;;
     dashboard|mc|mission-control)
       cmd_dashboard_help
+      return
+      ;;
+    telemetry)
+      cmd_telemetry_help
       return
       ;;
     resume)
@@ -440,6 +547,7 @@ cmd_help() {
   printf '  %bvibecrafted help%b <topic>              Help for a skill, agent, or command\n' "$_cyan" "$_reset"
   printf '  %bvibecrafted init%b [agent]              Start an interactive init session\n' "$_cyan" "$_reset"
   printf '  %bvibecrafted dashboard%b [layout]        Launch an optional repo-owned Zellij dashboard\n' "$_cyan" "$_reset"
+  printf '  %btelemetry smoke%b [flags]              Smoke the marbles telemetry path\n' "$_cyan" "$_reset"
   printf '  %bvibecrafted%b <skill> <agent> [flags]   Run a framework skill\n' "$_cyan" "$_reset"
   printf '  %bvibecrafted resume%b <agent> [flags]    Resume an existing agent session\n' "$_cyan" "$_reset"
   printf '  %bvibecrafted%b <agent> <mode> [args]     implement/research/review/plan/prompt/observe\n' "$_cyan" "$_reset"
@@ -459,6 +567,7 @@ cmd_help() {
   printf '%bExamples:%b\n' "$_bold" "$_reset"
   printf '  vibecrafted init claude\n'
   printf '  vibecrafted dashboard vc-marbles\n'
+  printf '  telemetry smoke --count 1 --no-watch\n'
   printf '  vibecrafted workflow claude --prompt "Plan and implement auth"\n'
   printf '  vibecrafted justdo codex --prompt "Ship the feature"\n'
   printf '  vibecrafted codex implement .vibecrafted/plans/my-plan.md\n'
@@ -517,6 +626,11 @@ cmd_help_full() {
   printf '  %bvibecrafted <agent> prompt%b    <plan.md>   Free-form prompt with context\n' "$_cyan" "$_reset"
   printf '  %bvibecrafted <agent> observe%b   --last      Check last agent report/transcript\n' "$_cyan" "$_reset"
   printf '\n'
+  printf '%b=== TELEMETRY ===%b\n' "$_bold" "$_reset"
+  printf '\n'
+  printf '  %btelemetry smoke%b [flags]                Smoke the headless marbles telemetry path\n' "$_cyan" "$_reset"
+  printf '  %bvibecrafted telemetry smoke%b [flags]    Same entrypoint through the main deck\n' "$_cyan" "$_reset"
+  printf '\n'
   printf '%b=== OPERATOR SURFACE ===%b\n' "$_bold" "$_reset"
   printf '\n'
   printf '  %bvibecrafted dashboard%b [layout]        Open/switch to a Zellij dashboard\n' "$_cyan" "$_reset"
@@ -540,6 +654,7 @@ cmd_help_full() {
   printf '  %bvibecrafted help%b                      Compact command deck\n' "$_cyan" "$_reset"
   printf '  %bvibecrafted help --full%b               This full reference\n' "$_cyan" "$_reset"
   printf '  %bvibecrafted init%b [agent]              Interactive init session\n' "$_cyan" "$_reset"
+  printf '  %btelemetry smoke%b [flags]              Smoke the marbles telemetry path\n' "$_cyan" "$_reset"
   printf '  %bvibecrafted resume%b <agent> [flags]    Resume an existing agent session\n' "$_cyan" "$_reset"
   printf '  %bvibecrafted status%b                    Today'"'"'s agent activity\n' "$_cyan" "$_reset"
   printf '  %bvibecrafted update%b                     Pull latest + reinstall\n' "$_cyan" "$_reset"
@@ -575,6 +690,7 @@ cmd_help_full() {
   printf '\n'
   printf '  vibecrafted init claude\n'
   printf '  vibecrafted dashboard vc-workflow\n'
+  printf '  telemetry smoke --count 1 --no-watch\n'
   printf '  vibecrafted workflow claude --prompt "Plan and implement auth"\n'
   printf '  vibecrafted workflow claude --file /path/to/brief.md\n'
   printf '  vibecrafted marbles codex --count 3 --depth 3\n'
@@ -981,6 +1097,10 @@ run_wrapper() {
     cmd_dashboard "$@"
     return
   fi
+  if [[ "$wrapper" == "telemetry" ]]; then
+    cmd_telemetry "$@"
+    return
+  fi
   local skill="${wrapper#vc-}"
   [[ "$skill" != "implement" ]] || skill="justdo"
   _has_skill "$skill" || {
@@ -1027,6 +1147,7 @@ main() {
     resume) cmd_resume "$@" ;;
     doctor|check) cmd_doctor ;;
     dashboard|mc|mission-control|sessions) cmd_dashboard "$@" ;;
+    telemetry) cmd_telemetry "$@" ;;
     stats|status) cmd_stats ;;
     update|upgrade) cmd_update "$@" ;;
     uninstall|remove) cmd_uninstall ;;

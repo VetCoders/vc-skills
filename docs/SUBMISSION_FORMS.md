@@ -12,8 +12,8 @@ Official submit/help surfaces below were re-checked on 2026-04-10 before this pa
 - Core promise: Take the repo your AI agents already produced and force it through structural mapping, convergence loops, install truth, packaging, and launch-readiness checks until it is fit to ship.
 - Website: https://vibecrafted.io/
 - Repository: https://github.com/VetCoders/vibecrafted
-- Docs: https://vibecrafted.io/presence/quickstart.html
-- FAQ: https://vibecrafted.io/presence/faq.html
+- Docs: https://vibecrafted.io/en/quickstart/
+- FAQ: https://vibecrafted.io/en/faq/
 - Contact: info@vibecrafted.io
 
 ## Recommended launch order

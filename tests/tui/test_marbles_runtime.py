@@ -346,6 +346,66 @@ def test_vc_marbles_preserves_prompt_as_single_argument_inside_zellij(
     )
 
 
+def test_vc_marbles_uses_no_watch_for_headless_runtime(tmp_path: Path) -> None:
+    home = tmp_path / "home"
+    crafted_home = home / ".vibecrafted"
+    fake_bin = tmp_path / "bin"
+    isolated_root = tmp_path / "isolated-root"
+    capture_file = tmp_path / "marbles-args.txt"
+    zellij_capture = tmp_path / "zellij-args.txt"
+    spawn_script = (
+        crafted_home / "skills" / "vc-agents" / "scripts" / "marbles_spawn.sh"
+    )
+
+    home.mkdir()
+    fake_bin.mkdir()
+    isolated_root.mkdir()
+    spawn_script.parent.mkdir(parents=True)
+    _write_fake_marbles_spawn(spawn_script)
+    (fake_bin / "zellij").write_text(
+        '#!/usr/bin/env bash\nset -euo pipefail\nprintf \'%s\\n\' "$@" > "$ZELLIJ_CAPTURE_FILE"\n',
+        encoding="utf-8",
+    )
+    (fake_bin / "zellij").chmod(0o755)
+
+    env = os.environ.copy()
+    env["HOME"] = str(home)
+    env["PATH"] = f"{fake_bin}:{env.get('PATH', '')}"
+    env["VIBECRAFTED_HOME"] = str(crafted_home)
+    env["VIBECRAFTED_ROOT"] = str(isolated_root)
+    env["CAPTURE_FILE"] = str(capture_file)
+    env["ZELLIJ_CAPTURE_FILE"] = str(zellij_capture)
+    env["VETCODERS_SPAWN_RUNTIME"] = "headless"
+    env["ZELLIJ"] = "operator"
+    env["ZELLIJ_PANE_ID"] = "terminal_7"
+    env["ZELLIJ_SESSION_NAME"] = "ambient-session"
+    env.pop("VIBECRAFTED_OPERATOR_SESSION", None)
+
+    result = subprocess.run(
+        [
+            "bash",
+            "-lc",
+            f'source "{HELPER_SCRIPT}"; codex-marbles --count 1 --prompt "telemetry smoke"',
+        ],
+        check=True,
+        cwd=REPO_ROOT,
+        env=env,
+        capture_output=True,
+        text=True,
+    )
+
+    payload = capture_file.read_text(encoding="utf-8").splitlines()
+    assert "--runtime" in payload
+    assert "headless" in payload
+    assert "--no-watch" in payload
+    assert payload.index("--no-watch") < payload.index("--prompt")
+    assert not zellij_capture.exists()
+    assert re.search(
+        r"Agent launched\. Report will land at: .*/marbles/reports/\d{8}_\d{4}_marbles-ancestor_L1_codex\.md",
+        result.stdout,
+    )
+
+
 def test_vc_marbles_preserves_prompt_as_single_argument_in_operator_session(
     tmp_path: Path,
 ) -> None:

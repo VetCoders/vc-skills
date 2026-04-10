@@ -49,7 +49,11 @@ spawn_org_repo() {
 }
 
 spawn_timestamp() {
-  date +%Y%m%d_%H%M
+  if [[ -n "${VIBECRAFTED_SPAWN_TS:-}" ]]; then
+    printf '%s\n' "${VIBECRAFTED_SPAWN_TS}"
+  else
+    date +%Y%m%d_%H%M
+  fi
 }
 
 spawn_framework_version() {

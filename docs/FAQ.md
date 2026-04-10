@@ -2,7 +2,7 @@
 
 Public-facing answers for the questions people ask before they trust the framework.
 
-For the public HTML version, see https://vibecrafted.io/presence/faq.html.
+For the public HTML version, see https://vibecrafted.io/en/faq/.
 For the long-form answer bank, see [FAQ-ANSWERED.md](FAQ-ANSWERED.md).
 
 ## Installation

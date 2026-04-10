@@ -132,4 +132,6 @@ spawn_generate_launcher "$SPAWN_LAUNCHER" \
 chmod +x "$SPAWN_LAUNCHER"
 spawn_print_launch codex "$mode" "$runtime"
 spawn_launch "$SPAWN_LAUNCHER" "$runtime" "$dry_run" "codex-${VIBECRAFTED_SKILL_NAME:-$mode}"
-printf 'Agent launched. Report will land at: %s\n' "$SPAWN_REPORT"
+if [[ "${VIBECRAFTED_SUPPRESS_REPORT_HINT:-0}" != "1" ]]; then
+  printf 'Agent launched. Report will land at: %s\n' "$SPAWN_REPORT"
+fi
