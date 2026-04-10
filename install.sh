@@ -225,13 +225,14 @@ post_install_banner() {
   printf '\n'
   info "---------------------------------------------------------------"
   info " Staged: vibecrafted $_installed_version"
-  info " Channel:   tarball (no self-update)"
+  info " Channel:   tarball"
   info ""
   info " The archive has been extracted and symlinked."
   info " Shell integration runs next — if the step below fails,"
   info " re-run the install command."
   info ""
-  info " Run 'vibecrafted doctor' to check installation health."
+  info " Update:  vibecrafted update"
+  info " Health:  vibecrafted doctor"
   info "---------------------------------------------------------------"
 }
 

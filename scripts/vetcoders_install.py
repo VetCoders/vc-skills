@@ -1755,9 +1755,9 @@ def run_doctor(store_path: Path, state: InstallState) -> List[DoctorFinding]:
     else:
         findings.append(
             DoctorFinding(
-                "warn",
+                "ok",
                 "channel",
-                "tarball — no in-place upgrade; re-run install.sh to update",
+                "tarball — run 'vibecrafted update' to fetch latest release",
             )
         )
 
@@ -1988,7 +1988,90 @@ def run_doctor(store_path: Path, state: InstallState) -> List[DoctorFinding]:
             )
         )
 
-    # 7. Shell smoke check: interactive shells should suppress UI noise under TERM=dumb
+    # 7. Spawn pipeline smoke: validate common.sh sources cleanly and key functions exist
+    common_sh = None
+    for cand in [
+        current_link.resolve() / "skills" / "vc-agents" / "scripts" / "common.sh"
+        if current_link.exists()
+        else None,
+        store_path / "vc-agents" / "scripts" / "common.sh",
+    ]:
+        if cand is not None and cand.is_file():
+            common_sh = cand
+            break
+
+    if common_sh is not None:
+        spawn_ok, spawn_detail = _run_smoke_command(
+            [
+                "bash",
+                "-c",
+                'source "$1" && '
+                "type spawn_write_meta >/dev/null 2>&1 && "
+                "type spawn_init_session >/dev/null 2>&1 && "
+                "type spawn_generate_launcher >/dev/null 2>&1 && "
+                "type spawn_rotation_schedule_agent >/dev/null 2>&1 && "
+                'printf "spawn-pipeline-ok\\n"',
+                "_",
+                str(common_sh),
+            ],
+            env=os.environ.copy(),
+            expected_text="spawn-pipeline-ok",
+        )
+        findings.append(
+            DoctorFinding(
+                "ok" if spawn_ok else "fail",
+                "spawn-pipeline",
+                "common.sh sources cleanly and exports key functions"
+                if spawn_ok
+                else f"spawn pipeline broken: {spawn_detail}",
+            )
+        )
+    else:
+        findings.append(
+            DoctorFinding(
+                "warn",
+                "spawn-pipeline",
+                "common.sh not found — cannot validate spawn pipeline",
+            )
+        )
+
+    # 7b. Version channel check: compare installed vs available
+    installed_ver = fw_ver
+    try:
+        channel_raw = subprocess.run(
+            [
+                "curl",
+                "-fsSL",
+                "--max-time",
+                "5",
+                "https://vibecrafted.io/channel/main.json",
+            ],
+            capture_output=True,
+            text=True,
+        )
+        if channel_raw.returncode == 0 and channel_raw.stdout.strip():
+            import json as _json
+
+            channel_data = _json.loads(channel_raw.stdout)
+            available_ver = channel_data.get("version", "")
+            if available_ver and available_ver != installed_ver:
+                findings.append(
+                    DoctorFinding(
+                        "warn",
+                        "update-available",
+                        f"installed {installed_ver}, available {available_ver} — run 'vibecrafted update'",
+                    )
+                )
+            elif available_ver:
+                findings.append(
+                    DoctorFinding(
+                        "ok", "update-available", f"{installed_ver} is current"
+                    )
+                )
+    except (OSError, ValueError):
+        pass  # network unavailable — skip silently
+
+    # 8. Shell smoke check: interactive shells should suppress UI noise under TERM=dumb
     zsh_path = shutil.which("zsh")
     if zsh_path:
         env = os.environ.copy()
