@@ -243,6 +243,7 @@ _print_skill_specific_flags() {
 
 _print_ship_path() {
   printf '  %bvibecrafted dou claude --prompt "Audit launch readiness"%b\n' "$_cyan" "$_reset"
+  printf '  %bvibecrafted decorate codex --prompt "Polish the release surface"%b\n' "$_cyan" "$_reset"
   printf '  %bvibecrafted hydrate codex --prompt "Package the product"%b\n' "$_cyan" "$_reset"
   printf '  %bvibecrafted release codex --prompt "Prepare release steps"%b\n' "$_cyan" "$_reset"
 }
@@ -595,8 +596,8 @@ cmd_help() {
   printf '\n'
   printf '%b⚒  𝚅𝚒𝚋𝚎𝚌𝚛𝚊𝚏𝚝𝚎𝚍. %s%b\n' "$_bold$_copper" "$ver" "$_reset"
   printf '%b─────────────────────────────────────────%b\n' "$_steel" "$_reset"
-  printf '  The Founders'"'"' Framework\n'
-  printf '  A convergence-driven system for shipping software with AI agents.\n'
+  printf '  Release engine for AI-built software.\n'
+  printf '  Ship AI-built software without the vibe hangover.\n'
   printf '\n'
   printf '%bFront door:%b\n' "$_bold" "$_reset"
   printf '  %bvibecrafted help%b                      Show the command deck\n' "$_cyan" "$_reset"
@@ -651,8 +652,8 @@ cmd_help_full() {
   printf '\n'
   printf '%b⚒  𝚅𝚒𝚋𝚎𝚌𝚛𝚊𝚏𝚝𝚎𝚍. %s%b (Full Reference)\n' "$_bold$_copper" "$ver" "$_reset"
   printf '%b─────────────────────────────────────────%b\n' "$_steel" "$_reset"
-  printf '  The Founders'"'"' Framework\n'
-  printf '  A convergence-driven system for shipping software with AI agents.\n'
+  printf '  Release engine for AI-built software.\n'
+  printf '  Ship AI-built software without the vibe hangover.\n'
   printf '\n'
   printf '%b=== PIPELINE (canonical order) ===%b\n' "$_bold" "$_reset"
   printf '\n'
@@ -753,6 +754,7 @@ cmd_help_full() {
   printf '  vibecrafted marbles codex --count 3 --depth 3\n'
   printf '  vibecrafted justdo codex --prompt "Ship the feature"\n'
   printf '  vibecrafted dou claude\n'
+  printf '  vibecrafted decorate codex\n'
   printf '  vibecrafted hydrate codex\n'
   printf '  vibecrafted release codex\n'
   printf '  vibecrafted prune codex\n'

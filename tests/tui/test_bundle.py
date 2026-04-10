@@ -48,6 +48,8 @@ def test_write_bundle_uses_current_metadata_and_skill_inventory(tmp_path: Path) 
     assert "skills/vc-ship/SKILL.md" not in members
     assert "skills/vc-ownership/SKILL.md" not in members
     assert "skills/vc-screenscribe/SKILL.md" not in members
+    assert "docs/RELEASE_KICKOFF.md" in members
+    assert "docs/SUBMISSION_FORMS.md" in members
 
 
 def test_framework_playground_uses_vibecrafted_command_deck() -> None:

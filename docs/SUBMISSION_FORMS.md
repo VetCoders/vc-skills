@@ -39,7 +39,7 @@ Official submit/help surfaces below were re-checked on 2026-04-10 before this pa
    Why fifth: lower-friction directory with fast editorial review and solid discovery value.
 
 6. Product Hunt
-   Submission flow: https://help.producthunt.com/en/articles/479557-how-to-post-a-product
+   Posting access: https://help.producthunt.com/en/articles/481909-how-can-i-get-access-to-post
    Launch prep: https://www.producthunt.com/launch/before-launch
    Why sixth: not a directory, but the best single public launch spike once the landing page and demo are fully sharp.
 
@@ -48,15 +48,22 @@ Official submit/help surfaces below were re-checked on 2026-04-10 before this pa
 These directories already surface tools that sit close to Vibecrafted's
 territory, which is useful for positioning:
 
-- There’s An AI For That currently lists Cursor under AI coding / pair-programming.
-- Futurepedia currently surfaces Devin / Cognition AI as AI software-engineering
-  infrastructure.
-- Toolify regularly surfaces Cline and similar AI coding-assistant narratives.
-- TopAI.tools currently carries Windsurf and comparison surfaces against Claude
-  Code and Codex CLI.
-- Future Tools broadly curates AI builders, agent platforms, and developer
-  tooling, even when the taxonomy is less precise than the developer-tool-first
-  directories.
+- There’s An AI For That lists Cursor at
+  `https://theresanaiforthat.com/ai/cursor-ai/`.
+- Future Tools currently lists both Cursor and Devin at
+  `https://www.futuretools.io/tools/cursor` and
+  `https://futuretools.io/tools/devin-ai`.
+- Future Tools also lists Bolt.new at
+  `https://www.futuretools.io/tools/bolt-new`, which sharpens the contrast
+  between "AI builds the draft" and "Vibecrafted makes the draft shippable."
+- Futurepedia surfaces Cognition AI / Devin at
+  `https://www.futurepedia.io/tool/cognition-ai` and Build AI at
+  `https://www.futurepedia.io/tool/build-ai`.
+- Toolify currently carries Cursor and Windsurf at
+  `https://www.toolify.ai/tool/cursor` and
+  `https://www.toolify.ai/tool/windsurf`.
+- TopAI.tools carries Windsurf at
+  `https://topai.tools/t/windsurf-ai-ide-codeium`.
 
 That means the positioning has to stay sharp:
 
@@ -162,10 +169,9 @@ Every public surface should agree on:
 
 - Submit URL: https://theresanaiforthat.com/launch/
 - Notes from the current page:
-  The current launch page positions this as a launch surface for creators, not just a static directory listing.
-  It says the submission fee is one-off.
-  It says unpublished tools get a full automatic refund if the editorial review rejects them.
-  The get-featured surface says launching on TAAFT first can unlock a $300 PPC bonus, which makes this the best first directory if the portal and install path are ready.
+  The current launch page pitches this as a real launch surface, not a passive directory: 4M+ monthly users and 2.5M+ newsletter readers.
+  The featured flow still says the submission fee is one-off ($347), listings are reviewed manually, unpublished tools get a full refund, and launching on TAAFT first can unlock a $300 PPC bonus.
+  The current guidance also says average processing time is 1-2 days, which makes this the best first directory if the portal and install path are already sharp.
 - Suggested task/category tags:
   developer tools, coding, workflow automation, ai agents, release engineering
 - Paste-ready emphasis:
@@ -176,8 +182,8 @@ Every public surface should agree on:
 - Submit URL: https://futuretools.io/submit-a-tool
 - FAQ surface: https://www.futuretools.io/faq
 - Notes from the current page:
-  The tool is reviewed manually by Matt Wolfe's team, so this is curated, not guaranteed.
-  The FAQ still treats delayed approval as normal, so submit early and treat this as a credibility surface rather than launch-day distribution.
+  The page still says "Matt will review it," so this is curated, not guaranteed.
+  Future Tools also positions itself as a media/discovery surface tied to 230,000+ subscribers, so submit early and treat this as a credibility surface rather than a same-day traffic spike.
 - Suggested emphasis:
   founders, software teams, shipping AI-coded products, command deck, convergence loops
 - Paste-ready emphasis:
@@ -187,8 +193,9 @@ Every public surface should agree on:
 
 - Submit URL: https://www.futurepedia.io/submit-tool
 - Notes from the current page:
-  The submit page currently pitches Futurepedia as a large AI-tools surface for work and asks you to choose the listing option that fits your product.
-  Their public surfaces lean toward professionals adopting AI at work, so lead with release readiness and concrete workflow outcomes, not framework mythology.
+  The submit page currently positions Futurepedia as a work-focused AI-tools surface for 400k+ proactive professionals per month and asks you to choose the listing option that fits your product.
+  Their verified listing surface currently advertises a $497 one-time review tier with refund on denial, which reinforces that this audience expects business-readiness and clear value.
+  Lead with release readiness and concrete workflow outcomes, not framework mythology.
 - Suggested emphasis:
   move from AI draft to shippable product, structural truth, launch readiness, product surface completion
 - Paste-ready emphasis:
@@ -198,10 +205,10 @@ Every public surface should agree on:
 
 - Submit URL: https://www.toolify.ai/submit
 - Notes from the current page:
-  Toolify explicitly frames the listing around visibility, trials, and paying users.
-  Their submit page also highlights update tooling, GPT submission, and AI certification, so use strong keyword/category coverage and keep the product entry maintained after listing.
+  Toolify still frames the listing around visibility, trial rate, and paying users, and says the tool stays permanently on the list once accepted.
+  The submit surface also pushes GPT submission, AI certification, update tooling, and launch embeds, so treat it as an SEO/distribution engine rather than a one-day launch board.
 - Suggested tags:
-  developer tools, prompt engineering, low-code/no-code, workflow, test automation
+  developer tools, ai agents, workflow automation, release engineering, test automation
 - Paste-ready emphasis:
   Use strong keywords, pricing clarity, and the guided-install / direct-install split. Toolify leans heavily toward discoverability and conversion mechanics.
 
@@ -209,9 +216,8 @@ Every public surface should agree on:
 
 - Submit URL: https://topai.tools/submit
 - Notes from the current page:
-  The current submit page says the tool must be AI-powered, functional, accessible, and clearly valuable.
-  It promises review within 48 hours and a full refund if the listing is not accepted.
-  It also says one payment keeps the listing in the directory indefinitely, so this is a good durable SEO/discovery surface.
+  The current submit page says listings are permanent, secured with one payment, and eligible for fast-track review within 24-48 hours.
+  It still emphasizes permanent placement, update service, and durable directory presence, which makes it a good SEO/discovery surface for Vibecrafted after the portal is stable.
 - Suggested emphasis:
   AI-generated repo hardening, release engineering, verification loops, install path, docs and trust surface
 - Paste-ready emphasis:
@@ -219,11 +225,12 @@ Every public surface should agree on:
 
 ### Product Hunt
 
-- Posting guide: https://help.producthunt.com/en/articles/479557-how-to-post-a-product
+- Posting access guide: https://help.producthunt.com/en/articles/481909-how-can-i-get-access-to-post
 - Launch prep: https://www.producthunt.com/launch/before-launch
 - Notes from the current docs:
-  New accounts need a one-week wait before posting, and Product Hunt recommends building real community presence well ahead of launch.
-  Their current launch guide says self-hunting is normal and paying hunters/promoters goes against policy.
+  Product Hunt currently requires a personal account to post; new accounts wait one week before posting unless Product Hunt grants earlier access through the newsletter shortcut.
+  The current before-launch guide still says to get familiar with the community first, fill out the maker profile, and invite your team/community early so they are ready to engage.
+  Self-posting is normal; do not plan around paid hunters/promoters.
   Prepare the first maker comment in advance and only launch once the portal, guided install, and demo are all ready for real strangers.
 - Submission package to prepare:
   5 screenshots
@@ -231,6 +238,28 @@ Every public surface should agree on:
   1 founder-first comment explaining the vibe hangover problem and why Vibecrafted exists
 - Paste-ready emphasis:
   Present Vibecrafted as the release engine that comes after Cursor / Claude / Codex / Lovable have already produced the draft. Product Hunt needs a clear "why this exists" contrast more than a long feature list.
+
+## Proposed form presets
+
+Use the canonical packet above, then bias each marketplace form this way:
+
+- There’s An AI For That
+  Lead with the guided installer as the human front door and category it under developer tools / coding / workflow automation.
+
+- Future Tools
+  Keep the description founder-readable: before AI draft, after Vibecrafted release pass.
+
+- Futurepedia
+  Emphasize business readiness, production hardening, and the move from draft-shaped repo to shippable product.
+
+- Toolify
+  Max out keyword clarity: AI agents, release engineering, workflow automation, install truth, launch readiness.
+
+- TopAI.tools
+  Focus on usefulness now: public install path, real docs, real verification loop, real release outcome.
+
+- Product Hunt
+  Lead with the vibe hangover story, show the guided install and command deck, and make the maker comment do the positioning work.
 
 ## Suggested screenshots and assets
 
@@ -253,14 +282,19 @@ Every public surface should agree on:
 
 - There’s An AI For That: `https://theresanaiforthat.com/launch/`, `https://theresanaiforthat.com/get-featured/`
 - Future Tools: `https://futuretools.io/submit-a-tool`, `https://www.futuretools.io/faq`
-- Futurepedia: `https://www.futurepedia.io/submit-tool`
+- Futurepedia: `https://www.futurepedia.io/submit-tool`, `https://www.futurepedia.io/verified`
 - Toolify: `https://www.toolify.ai/submit`
 - TopAI.tools: `https://topai.tools/submit`
-- Product Hunt: `https://help.producthunt.com/en/articles/479557-how-to-post-a-product`, `https://www.producthunt.com/launch/before-launch`
+- Product Hunt: `https://help.producthunt.com/en/articles/481909-how-can-i-get-access-to-post`, `https://www.producthunt.com/launch/before-launch`
 - Adjacent-tool signal checks:
   `https://theresanaiforthat.com/ai/cursor-ai/`
+  `https://www.futuretools.io/tools/cursor`
+  `https://futuretools.io/tools/devin-ai`
+  `https://www.futuretools.io/tools/bolt-new`
   `https://www.futurepedia.io/tool/cognition-ai`
-  `https://www.toolify.ai/ai-news/cline-a-free-ai-code-editor-alternative-to-cursor-3717817`
+  `https://www.futurepedia.io/tool/build-ai`
+  `https://www.toolify.ai/tool/cursor`
+  `https://www.toolify.ai/tool/windsurf`
   `https://topai.tools/t/windsurf-ai-ide-codeium`
 
 ## First Product Hunt comment draft

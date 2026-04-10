@@ -11,12 +11,15 @@ Format follows [Keep a Changelog](https://keepachangelog.com/).
 - `install.sh --gui` bootstrap path for the guided installer
 - `make gui-install` for launching the guided installer from source
 - Marketplace submission pack in `docs/SUBMISSION_FORMS.md`
+- Release kickoff docs now ship inside the marketplace bundle artifact
+- Release-contract pytest guard for promise / CTA drift across public surfaces
 
 ### Changed
 
 - Product positioning now leads with the release-engine promise instead of generic framework language
 - Public install docs now explicitly show the guided GUI path for founders and non-terminal operators
 - `install.sh` help text now matches the actual bootstrap paths instead of promising a TUI that was not wired in
+- Submission forms now cite current adjacent-tool directory evidence and official launch surfaces
 
 ## 1.2.1 — 2026-04-01
 

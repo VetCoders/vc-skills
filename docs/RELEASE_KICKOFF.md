@@ -46,11 +46,12 @@ about what the product is.
    - `doctor` remains the first verification step after install
 
 3. Portal truth
-   Rebuild and redeploy the portal/deployment mirror before launch if any of its
-   root files still advertise the old direct-only install path or the older
-   self-referential promise. The homepage, quickstart, FAQ, `install.sh`, and
-   README must all match the release-engine narrative and the guided installer
-   CTA.
+   Treat `vibecrafted-io/site/src` as the portal source of truth and its repo
+   root / generated `docs/` files as the deploy mirror. Rebuild and redeploy
+   that mirror before launch if any derived file still advertises the old
+   direct-only install path or the older self-referential promise. The
+   homepage, quickstart, FAQ, `install.sh`, and README must all match the
+   release-engine narrative and the guided installer CTA.
 
 4. Asset truth
    Capture and store these before submission day:
@@ -72,7 +73,7 @@ about what the product is.
 
 6. Product Hunt day
    Do not schedule Product Hunt until:
-   - the maker account is old enough to post
+   - the maker posting account has Product Hunt post access
    - the founder comment is prewritten
    - the portal and installer are both ready for real strangers
    - someone is available to answer comments for the full launch window
