@@ -102,13 +102,13 @@ spawn_in_zellij_pane() {
       zellij action new-tab \
         --name "$pane_name" \
         --cwd "${SPAWN_ROOT:-$(pwd)}" \
-        -- "$cmd_script"
+        -- "$cmd_script" >/dev/null
     else
       zellij action new-pane \
         --direction "$direction" \
         --name "$pane_name" \
         --cwd "${SPAWN_ROOT:-$(pwd)}" \
-        -- "$cmd_script"
+        -- "$cmd_script" >/dev/null
     fi
     return 0
   fi
@@ -154,13 +154,12 @@ spawn_in_operator_session() {
     zellij --session "$session_name" action new-tab \
       --name "$pane_name" \
       --cwd "${SPAWN_ROOT:-$(pwd)}" \
-      -- "$cmd_script"
+      -- "$cmd_script" >/dev/null
   else
     zellij --session "$session_name" action new-pane \
       --direction "$effective_direction" \
       --name "$pane_name" \
       --cwd "${SPAWN_ROOT:-$(pwd)}" \
-      -- "$cmd_script"
+      -- "$cmd_script" >/dev/null
   fi
 }
-

@@ -152,6 +152,15 @@ def _prepare_fake_marbles_bundle(tmp_path: Path) -> tuple[Path, Path]:
           p0=0
         fi
 
+        report_status="completed"
+        meta_status="completed"
+        final_exit_code=0
+        if [[ -n "${MARBLES_TEST_FAIL_WITH_REPORT_LOOP:-}" && "${SPAWN_LOOP_NR:-0}" == "${MARBLES_TEST_FAIL_WITH_REPORT_LOOP}" ]]; then
+          report_status="failed"
+          meta_status="failed"
+          final_exit_code=17
+        fi
+
         cat > "$SPAWN_REPORT" <<EOF
         ---
         run_id: ${SPAWN_RUN_ID}
@@ -159,7 +168,7 @@ def _prepare_fake_marbles_bundle(tmp_path: Path) -> tuple[Path, Path]:
         agent: ${SPAWN_AGENT}
         skill: marb
         model: ${model:-unknown}
-        status: completed
+        status: ${report_status}
         ---
 
         P0: ${p0}
@@ -167,7 +176,9 @@ def _prepare_fake_marbles_bundle(tmp_path: Path) -> tuple[Path, Path]:
         P2: 0
         EOF
 
-        cp "$SPAWN_REPORT" "${SPAWN_REPORT%.md}_verified.md"
+        if [[ "$report_status" == "completed" ]]; then
+          cp "$SPAWN_REPORT" "${SPAWN_REPORT%.md}_verified.md"
+        fi
 
         if [[ "${MARBLES_TEST_EDIT_ANCESTOR:-}" == "1" && "${SPAWN_LOOP_NR:-0}" == "1" ]]; then
           base_run_id="${SPAWN_RUN_ID%-???}"
@@ -184,7 +195,14 @@ def _prepare_fake_marbles_bundle(tmp_path: Path) -> tuple[Path, Path]:
         EOF_ANCESTOR
         fi
 
-        spawn_finish_meta "$SPAWN_META" "completed" "0"
+        spawn_finish_meta "$SPAWN_META" "$meta_status" "$final_exit_code"
+
+        if [[ "$meta_status" == "failed" ]]; then
+          if [[ -n "$failure_hook" ]]; then
+            bash -lc "$failure_hook"
+          fi
+          exit "$final_exit_code"
+        fi
 
         if [[ -n "$success_hook" ]]; then
           bash -lc "$success_hook"
@@ -620,3 +638,59 @@ def test_marbles_materializes_failed_loop_when_child_spawn_dies_before_meta(
     )
     assert "failed" in meta_records.stdout.splitlines()
     assert "no meta.json within" not in result.stdout
+
+
+def test_marbles_watcher_does_not_consume_failed_fallback_report(
+    tmp_path: Path,
+) -> None:
+    scripts_dir, capture_file = _prepare_fake_marbles_bundle(tmp_path)
+    home = tmp_path / "home"
+    crafted_home = home / ".vibecrafted"
+    home.mkdir()
+
+    env = os.environ.copy()
+    env["HOME"] = str(home)
+    env["VIBECRAFTED_HOME"] = str(crafted_home)
+    env["MARBLES_SPAWN_CAPTURE"] = str(capture_file)
+    env["MARBLES_TEST_FAIL_WITH_REPORT_LOOP"] = "1"
+    env["VIBECRAFTED_MARBLES_META_TIMEOUT_S"] = "2"
+    env["VIBECRAFTED_MARBLES_REPORT_TIMEOUT_S"] = "2"
+    env.pop("ZELLIJ", None)
+    env.pop("ZELLIJ_PANE_ID", None)
+    env.pop("ZELLIJ_SESSION_NAME", None)
+    env.pop("VIBECRAFTED_OPERATOR_SESSION", None)
+
+    result = subprocess.run(
+        [
+            "bash",
+            str(scripts_dir / "marbles_spawn.sh"),
+            "--agent",
+            "codex",
+            "--count",
+            "2",
+            "--runtime",
+            "headless",
+            "--prompt",
+            "Stabilize runtime truth",
+        ],
+        check=False,
+        cwd=REPO_ROOT,
+        env=env,
+        capture_output=True,
+        text=True,
+    )
+
+    state_dirs = list((crafted_home / "marbles").iterdir())
+    assert len(state_dirs) == 1
+    state = json.loads((state_dirs[0] / "state.json").read_text(encoding="utf-8"))
+
+    assert state["status"] == "failed"
+    assert [loop["status"] for loop in state["loops"]] == ["failed"]
+    failed_loop = state["loops"][0]
+    assert failed_loop["failure_reason"] == "spawn-failed"
+    assert failed_loop["report"]
+    assert "report ✓" not in result.stdout
+    assert "failed" in result.stdout
+
+    events = _load_spawn_events(capture_file)
+    assert len(events) == 1
