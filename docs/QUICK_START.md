@@ -111,6 +111,10 @@ remaining accusation.
 Type `vibecrafted help` for the command deck. Once shell helpers are loaded,
 `vc-` wrappers stay available as shortcuts.
 
+Preparing the public launch surface and directory submissions?
+Use [Release Kickoff](./RELEASE_KICKOFF.md) together with
+[Submission Forms](./SUBMISSION_FORMS.md).
+
 ---
 
 `//𝚟𝚒𝚋𝚎𝚌𝚛𝚊𝚏𝚝𝚎𝚍.`

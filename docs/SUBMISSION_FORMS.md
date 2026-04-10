@@ -40,8 +40,30 @@ Official submit/help surfaces below were re-checked on 2026-04-10 before this pa
 
 6. Product Hunt
    Submission flow: https://help.producthunt.com/en/articles/479557-how-to-post-a-product
-   Launch prep: https://www.producthunt.com/launch/preparing-for-launch
+   Launch prep: https://www.producthunt.com/launch/before-launch
    Why sixth: not a directory, but the best single public launch spike once the landing page and demo are fully sharp.
+
+## Marketplace fit from adjacent tools
+
+These directories already surface tools that sit close to Vibecrafted's
+territory, which is useful for positioning:
+
+- There’s An AI For That currently lists Cursor under AI coding / pair-programming.
+- Futurepedia currently surfaces Devin / Cognition AI as AI software-engineering
+  infrastructure.
+- Toolify regularly surfaces Cline and similar AI coding-assistant narratives.
+- TopAI.tools currently carries Windsurf and comparison surfaces against Claude
+  Code and Codex CLI.
+- Future Tools broadly curates AI builders, agent platforms, and developer
+  tooling, even when the taxonomy is less precise than the developer-tool-first
+  directories.
+
+That means the positioning has to stay sharp:
+
+- Adjacent tools help write code, generate apps, or act inside the IDE.
+- Vibecrafted is the release layer after that draft exists.
+- Pitch the product as "ship AI-built software" rather than "generate software
+  with AI."
 
 ## Canonical short-form fields
 
@@ -123,6 +145,17 @@ Use this for "What does it do?" text areas:
 
 Vibecrafted starts where code generation stops. It takes the repo your AI agents already produced and forces it through structural mapping, convergence loops, install truth, packaging, and launch-readiness checks until the product is fit to ship. Instead of promising that AI will write your code, it promises something harder: the repo will be pushed toward production truth, not left in a demo-ready but release-fragile state.
 
+## Kickoff guardrail
+
+Do not launch any directory listing while the portal or deployment mirror still
+shows the old direct-only install CTA or the older self-referential promise.
+Every public surface should agree on:
+
+- promise: `Release engine for AI-built software.`
+- primary CTA: `curl -fsSL https://vibecrafted.io/install.sh | bash -s -- --gui`
+- secondary CTA: `curl -fsSL https://vibecrafted.io/install.sh | bash`
+- audience: founders and teams shipping AI-generated repos into production
+
 ## Directory-specific notes
 
 ### There's An AI For That
@@ -135,6 +168,8 @@ Vibecrafted starts where code generation stops. It takes the repo your AI agents
   The get-featured surface says launching on TAAFT first can unlock a $300 PPC bonus, which makes this the best first directory if the portal and install path are ready.
 - Suggested task/category tags:
   developer tools, coding, workflow automation, ai agents, release engineering
+- Paste-ready emphasis:
+  Launch the guided install path first and frame Vibecrafted as the missing layer between AI-generated code and something a stranger can trust.
 
 ### Future Tools
 
@@ -145,6 +180,8 @@ Vibecrafted starts where code generation stops. It takes the repo your AI agents
   The FAQ still treats delayed approval as normal, so submit early and treat this as a credibility surface rather than launch-day distribution.
 - Suggested emphasis:
   founders, software teams, shipping AI-coded products, command deck, convergence loops
+- Paste-ready emphasis:
+  Keep the writeup founder-readable and concrete. This audience responds better to a crisp before/after story than to framework lore.
 
 ### Futurepedia
 
@@ -154,6 +191,8 @@ Vibecrafted starts where code generation stops. It takes the repo your AI agents
   Their public surfaces lean toward professionals adopting AI at work, so lead with release readiness and concrete workflow outcomes, not framework mythology.
 - Suggested emphasis:
   move from AI draft to shippable product, structural truth, launch readiness, product surface completion
+- Paste-ready emphasis:
+  Lead with business readiness and production hardening. Treat this as a professional-work surface, not a hacker launch board.
 
 ### Toolify
 
@@ -163,6 +202,8 @@ Vibecrafted starts where code generation stops. It takes the repo your AI agents
   Their submit page also highlights update tooling, GPT submission, and AI certification, so use strong keyword/category coverage and keep the product entry maintained after listing.
 - Suggested tags:
   developer tools, prompt engineering, low-code/no-code, workflow, test automation
+- Paste-ready emphasis:
+  Use strong keywords, pricing clarity, and the guided-install / direct-install split. Toolify leans heavily toward discoverability and conversion mechanics.
 
 ### TopAI.tools
 
@@ -173,6 +214,8 @@ Vibecrafted starts where code generation stops. It takes the repo your AI agents
   It also says one payment keeps the listing in the directory indefinitely, so this is a good durable SEO/discovery surface.
 - Suggested emphasis:
   AI-generated repo hardening, release engineering, verification loops, install path, docs and trust surface
+- Paste-ready emphasis:
+  Stress that the product is AI-powered, functional now, and directly usable from the public install path.
 
 ### Product Hunt
 
@@ -186,6 +229,8 @@ Vibecrafted starts where code generation stops. It takes the repo your AI agents
   5 screenshots
   1 short walkthrough video or interactive demo
   1 founder-first comment explaining the vibe hangover problem and why Vibecrafted exists
+- Paste-ready emphasis:
+  Present Vibecrafted as the release engine that comes after Cursor / Claude / Codex / Lovable have already produced the draft. Product Hunt needs a clear "why this exists" contrast more than a long feature list.
 
 ## Suggested screenshots and assets
 
@@ -212,6 +257,11 @@ Vibecrafted starts where code generation stops. It takes the repo your AI agents
 - Toolify: `https://www.toolify.ai/submit`
 - TopAI.tools: `https://topai.tools/submit`
 - Product Hunt: `https://help.producthunt.com/en/articles/479557-how-to-post-a-product`, `https://www.producthunt.com/launch/before-launch`
+- Adjacent-tool signal checks:
+  `https://theresanaiforthat.com/ai/cursor-ai/`
+  `https://www.futurepedia.io/tool/cognition-ai`
+  `https://www.toolify.ai/ai-news/cline-a-free-ai-code-editor-alternative-to-cursor-3717817`
+  `https://topai.tools/t/windsurf-ai-ide-codeium`
 
 ## First Product Hunt comment draft
 
