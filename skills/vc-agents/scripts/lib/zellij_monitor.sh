@@ -86,5 +86,5 @@ spawn_open_startup_monitor_pane() {
     --height 30% \
     --name "startup-monitor" \
     --cwd "$root_dir" \
-    -- "$cmd_script"
+    -- "$cmd_script" >/dev/null
 }

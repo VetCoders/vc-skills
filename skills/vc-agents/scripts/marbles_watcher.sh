@@ -464,6 +464,12 @@ _extract_metrics() {
   printf '%s %s %s %s' "${p0:-}" "${p1:-}" "${p2:-}" "${score:-}"
 }
 
+_report_frontmatter_status() {
+  local report="$1"
+  [[ -f "$report" ]] || return 0
+  spawn_frontmatter_field "$report" "status"
+}
+
 _wait_for_loop_meta() {
   local loop_nr="$1"
   local timeout_s="$2"
@@ -742,6 +748,25 @@ for ((loop_nr = 1; loop_nr <= total_count; loop_nr++)); do
   loop_end=$(date +%s)
   duration=$((loop_end - loop_start))
   duration_fmt="$(printf '%dm %02ds' $((duration/60)) $((duration%60)))"
+
+  actual_meta_status="$(spawn_read_meta_field "$meta_path" "status")"
+  report_status="$(_report_frontmatter_status "$actual_report")"
+  if [[ "$actual_meta_status" == "failed" || "$report_status" == "failed" ]]; then
+    exit_code_hint="$(spawn_read_meta_field "$meta_path" "exit_code")"
+    failure_reason="spawn-failed"
+    if [[ "$report_status" == "failed" && "$actual_meta_status" != "failed" ]]; then
+      failure_reason="report-failed"
+    fi
+    _record_loop_failed "$loop_nr" "$failure_reason" "$duration" "$actual_report" "$exit_code_hint"
+    detail="$duration_fmt  failed before convergence report"
+    if [[ -n "$exit_code_hint" ]]; then
+      detail="$detail  exit ${exit_code_hint}"
+    fi
+    _render_loop_phase "$loop_nr" "failed" "$detail"
+    failed=1
+    failed_loop=$loop_nr
+    break
+  fi
 
   read -r p0 p1 p2 score <<< "$(_extract_metrics "$actual_report")"
   _record_loop_done "$loop_nr" "$actual_report" "$duration" "$p0" "$p1" "$p2" "$score"

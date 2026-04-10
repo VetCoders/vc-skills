@@ -67,7 +67,7 @@ if [[ -n "\${SPAWN_ROOT:-}" ]]; then
 fi
 EOF_LAUNCH
 
-  if [[ -n "$pre_hook" ]]; then
+if [[ -n "$pre_hook" ]]; then
     printf '%s\n' "$pre_hook" >> "$launcher"
   fi
 
@@ -75,7 +75,7 @@ EOF_LAUNCH
 spawn_export_frontier_sidecars
 export PATH="${PATH:-/usr/local/bin:/usr/bin:/bin}"
 if [[ "${VIBECRAFTED_INLINE_STARTUP_WATCH:-1}" != "0" ]]; then
-  spawn_watch_startup "$meta" "$transcript" "$report" &
+  VIBECRAFTED_STARTUP_WATCH_ECHO=0 spawn_watch_startup "$meta" "$transcript" "$report" &
   startup_watch_pid=$!
 fi
 
@@ -83,10 +83,10 @@ if bash -c "$SPAWN_CMD"; then
 EOF_LAUNCH
 
   cat >> "$launcher" <<'EOF_LAUNCH'
+  spawn_finish_meta "$meta" "completed" "0"
   if [[ -n "$startup_watch_pid" ]]; then
     wait "$startup_watch_pid" 2>/dev/null || true
   fi
-  spawn_finish_meta "$meta" "completed" "0"
 EOF_LAUNCH
 
   if [[ -n "$success_hook" ]]; then
@@ -96,6 +96,10 @@ EOF_LAUNCH
   cat >> "$launcher" <<'EOF_LAUNCH'
 else
   exit_code=$?
+  spawn_finish_meta "$meta" "failed" "$exit_code"
+  if [[ -n "$startup_watch_pid" ]]; then
+    wait "$startup_watch_pid" 2>/dev/null || true
+  fi
 EOF_LAUNCH
 
   if [[ -n "$failure_hook" ]]; then
@@ -103,10 +107,6 @@ EOF_LAUNCH
   fi
 
   cat >> "$launcher" <<'EOF_LAUNCH'
-  if [[ -n "$startup_watch_pid" ]]; then
-    wait "$startup_watch_pid" 2>/dev/null || true
-  fi
-  spawn_finish_meta "$meta" "failed" "$exit_code"
   exit "$exit_code"
 fi
 EOF_LAUNCH
