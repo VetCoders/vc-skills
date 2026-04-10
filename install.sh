@@ -3,16 +3,17 @@ set -euo pipefail
 
 usage() {
   cat <<'EOF_USAGE'
-Usage: install.sh [--ref <branch>] [--archive-url <url> | --archive-file <path>] [--tools-dir <dir>] [make-target]
+Usage: install.sh [--gui] [--ref <branch>] [--archive-url <url> | --archive-file <path>] [--tools-dir <dir>] [make-target]
 
 Bootstrap a local 𝚅𝚒𝚋𝚎𝚌𝚛𝚊𝚏𝚝𝚎𝚍. source snapshot into $VIBECRAFTED_ROOT/.vibecrafted/tools and then
 run a local staged install path from that copy.
 
-Interactive terminals always enter the installer TUI.
-Non-interactive runs bypass TUI and call the compact installer directly.
+Use `--gui` when you want the browser-based guided installer.
+Non-interactive runs without `--gui` bypass the browser and call the compact installer directly.
 
 Examples:
   curl -fsSL https://vibecrafted.io/install.sh | bash
+  curl -fsSL https://vibecrafted.io/install.sh | bash -s -- --gui
   curl -fsSL https://vibecrafted.io/install.sh | bash -s -- --ref develop
   bash install.sh doctor
   bash install.sh --archive-file /tmp/vibecrafted.tar.gz vibecrafted
@@ -54,9 +55,13 @@ archive_url=""
 archive_file=""
 tools_dir="$default_tools_dir"
 target="vibecrafted"
+use_gui=0
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
+    --gui)
+      use_gui=1
+      ;;
     --ref)
       shift
       [[ $# -gt 0 ]] || die "Missing value for --ref"
@@ -96,6 +101,10 @@ esac
 
 if [[ -n "$archive_url" && -n "$archive_file" ]]; then
   die "Use either --archive-url or --archive-file, not both"
+fi
+
+if [[ "$use_gui" == "1" && "$target" != "vibecrafted" ]]; then
+  die "--gui can only be used with the default vibecrafted install target"
 fi
 
 if [[ -z "$archive_url" && -z "$archive_file" ]]; then
@@ -236,11 +245,21 @@ post_install_banner() {
   info "---------------------------------------------------------------"
 }
 
+if [[ "$target" == "vibecrafted" && "$use_gui" == "1" ]]; then
+  gui_installer="$current_link/scripts/installer_gui.py"
+  [[ -f "$gui_installer" ]] || die "Guided installer not found: $gui_installer"
+  post_install_banner
+  info "Launching guided installer UI:"
+  info "  python3 $gui_installer --source $current_link"
+  printf '\n'
+  exec python3 "$gui_installer" --source "$current_link"
+fi
+
 if [[ "$target" == "vibecrafted" ]] && ! is_interactive_session; then
   installer="$current_link/scripts/vetcoders_install.py"
   [[ -f "$installer" ]] || die "Installer not found: $installer"
   info "Non-interactive bootstrap detected:"
-  info "  bypassing TUI and running compact installer"
+  info "  bypassing the browser UI and running compact installer"
 
   # Install foundations (loctree, aicx) from GH releases before the main installer.
   foundations_script="$current_link/scripts/install-foundations.sh"

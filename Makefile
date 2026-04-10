@@ -2,11 +2,12 @@
 
 PYTHON   ?= python3
 INSTALLER := scripts/vetcoders_install.py
+GUI_INSTALLER := scripts/installer_gui.py
 SHELL_INSTALLER := skills/vc-agents/scripts/install-shell.sh
 SOURCE   := $(CURDIR)
 BRANCH   ?= main
 
-.PHONY: help vibecrafted check test install skills helpers setup-dev dry-run doctor list update uninstall restore migrate migrate-dry init-hooks bundle foundations foundations-check
+.PHONY: help vibecrafted gui-install check test install skills helpers setup-dev dry-run doctor list update uninstall restore migrate migrate-dry init-hooks bundle foundations foundations-check
 
 help:
 	@printf "\n"
@@ -14,6 +15,7 @@ help:
 	@printf "  ─────────────────────────────────────\n"
 	@printf "\n"
 	@printf "  \033[36m▸\033[0m  make vibecrafted   \033[2mSafely install or update the 𝚅𝚒𝚋𝚎𝚌𝚛𝚊𝚏𝚝𝚎𝚍. framework (Orchestrator)\033[0m\n"
+	@printf "  \033[36m▸\033[0m  make gui-install   \033[2mLaunch the browser-based guided installer\033[0m\n"
 	@printf "\n"
 	@printf "  \033[33m◆\033[0m  make install       \033[2mSkills + shell helpers (Direct)\033[0m\n"
 	@printf "  \033[33m◇\033[0m  make skills        \033[2mSkills only\033[0m\n"
@@ -43,6 +45,9 @@ help:
 
 vibecrafted: init-hooks
 	@$(PYTHON) $(INSTALLER) install --source "$(SOURCE)" --with-shell
+
+gui-install:
+	@$(PYTHON) $(GUI_INSTALLER) --source "$(SOURCE)"
 
 install: init-hooks
 	@bash scripts/install-foundations.sh
