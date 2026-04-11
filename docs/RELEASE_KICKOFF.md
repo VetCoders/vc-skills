@@ -59,6 +59,20 @@ about what the product is.
    pnpm --dir ~/Libraxis/01_deployed_libraxis_vm/vibecrafted-io/site build
    ```
 
+   Minimum drift checks before any public launch:
+
+   ```bash
+   rg -n "Interactive terminals always enter the installer TUI|curl -fsSL https://vibecrafted.io/install.sh \\| bash$" \
+     ~/Libraxis/01_deployed_libraxis_vm/vibecrafted-io/README.md \
+     ~/Libraxis/01_deployed_libraxis_vm/vibecrafted-io/docs/install.sh \
+     ~/Libraxis/01_deployed_libraxis_vm/vibecrafted-io/docs/QUICK_START.md \
+     ~/Libraxis/01_deployed_libraxis_vm/vibecrafted-io/site/src
+   ```
+
+   If that grep still finds old TUI-only or direct-only wording in the portal
+   repo root / built `docs/`, the deploy mirror is stale and launch should
+   pause until that separate lane is rebuilt and redeployed.
+
 4. Asset truth
    Capture and store these before submission day:
    - guided installer screenshot
@@ -75,9 +89,17 @@ about what the product is.
    3. Futurepedia
    4. Toolify
    5. TopAI.tools
-   6. Product Hunt
+   6. Uneed
+   7. Product Hunt
 
-6. Product Hunt day
+6. Uneed dry run
+   Treat Uneed as the softer rehearsal launch once AI-directory listings are
+   already live:
+   - use the guided installer screenshot as the hero asset
+   - keep the explanation founder-readable, not taxonomy-heavy
+   - watch which screenshot / blurb combination gets the cleanest conversion
+
+7. Product Hunt day
    Do not schedule Product Hunt until:
    - the maker posting account has Product Hunt post access
    - the founder comment is prewritten
@@ -89,5 +111,6 @@ about what the product is.
 - [Quick Start](./QUICK_START.md)
 - [Marketplace Listing](./MARKETPLACE_LISTING.md)
 - [Submission Forms](./SUBMISSION_FORMS.md)
+- [Installer Reference](./installer/REFERENCE.md)
 
 `//𝚟𝚒𝚋𝚎𝚌𝚛𝚊𝚏𝚝𝚎𝚍.`

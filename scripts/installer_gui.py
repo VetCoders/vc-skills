@@ -480,8 +480,9 @@ def build_html(preflight: dict[str, Any]) -> str:
               body {
                 margin: 0;
                 min-height: 100vh;
+                min-height: 100dvh;
                 padding: 18px;
-                overflow: auto;
+                overflow: hidden;
                 background:
                   radial-gradient(circle at top left, var(--bg-top), transparent 34%),
                   radial-gradient(circle at right, var(--bg-side), transparent 30%),
@@ -502,6 +503,10 @@ def build_html(preflight: dict[str, Any]) -> str:
               .shell {
                 width: min(1220px, 100%);
                 min-height: calc(100vh - 36px);
+                height: calc(100vh - 36px);
+                height: calc(100dvh - 36px);
+                max-height: calc(100vh - 36px);
+                max-height: calc(100dvh - 36px);
                 display: grid;
                 grid-template-columns: minmax(280px, 340px) minmax(0, 1fr);
                 gap: 18px;
@@ -524,6 +529,7 @@ def build_html(preflight: dict[str, Any]) -> str:
                 display: grid;
                 gap: 14px;
                 align-content: start;
+                overflow: auto;
                 background:
                   linear-gradient(180deg, rgba(197, 143, 101, 0.08), transparent 36%),
                   linear-gradient(180deg, rgba(10, 16, 22, 0.96), rgba(10, 16, 22, 0.86));
@@ -746,11 +752,14 @@ def build_html(preflight: dict[str, Any]) -> str:
               .stage {
                 min-height: 0;
                 padding: 0 14px 14px;
+                display: flex;
               }
 
               .slides {
                 min-height: 0;
                 height: 100%;
+                display: flex;
+                flex: 1 1 auto;
               }
 
               .slide {
@@ -760,6 +769,7 @@ def build_html(preflight: dict[str, Any]) -> str:
 
               .slide.is-active {
                 display: flex;
+                flex: 1 1 auto;
                 animation: fade-in 220ms cubic-bezier(0.2, 0.9, 0.2, 1);
               }
 
@@ -776,7 +786,12 @@ def build_html(preflight: dict[str, Any]) -> str:
 
               .slide-body {
                 min-height: 0;
+                flex: 1 1 auto;
                 overflow-y: auto;
+                overscroll-behavior: contain;
+                -webkit-overflow-scrolling: touch;
+                scrollbar-gutter: stable both-edges;
+                touch-action: pan-y;
                 display: grid;
                 gap: 16px;
                 padding-right: 4px;
@@ -970,6 +985,15 @@ def build_html(preflight: dict[str, Any]) -> str:
               .command-box,
               .log-box {
                 min-height: 0;
+                overflow: auto;
+              }
+
+              .command-box {
+                max-height: 144px;
+              }
+
+              .log-box {
+                max-height: min(34vh, 320px);
               }
 
               .command-box code,
@@ -1085,17 +1109,26 @@ def build_html(preflight: dict[str, Any]) -> str:
 
               @media (max-width: 960px) {
                 body {
-                  padding: 10px;
+                  padding: 0;
                 }
 
                 .shell {
                   grid-template-columns: 1fr;
-                  min-height: auto;
+                  grid-template-rows: auto minmax(0, 1fr);
+                  min-height: 100vh;
+                  min-height: 100dvh;
+                  height: 100vh;
+                  height: 100dvh;
+                  max-height: 100vh;
+                  max-height: 100dvh;
+                  border-radius: 0;
                 }
 
                 .rail {
                   border-right: 0;
                   border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+                  max-height: 34vh;
+                  border-radius: 0;
                 }
 
                 .main {
@@ -1114,6 +1147,7 @@ def build_html(preflight: dict[str, Any]) -> str:
                 }
 
                 .footer {
+                  padding: 0 10px 10px;
                   flex-wrap: wrap;
                   justify-content: center;
                 }
