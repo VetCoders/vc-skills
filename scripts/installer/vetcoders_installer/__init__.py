@@ -468,6 +468,9 @@ def _print_summary(
     has_warn = any(s.startswith("warn") for _, s, _ in results)
     has_cancel = any(s in ("cancelled", "skipped") for _, s, _ in results)
     all_ok = not has_fail and not has_warn and not has_cancel
+    # Pure cancel: user said no, nothing installed, nothing to audit.
+    # We do NOT suggest commands that assume the install succeeded.
+    pure_cancel = has_cancel and not has_fail and not has_warn
 
     console.print()
     if HAS_RICH:
@@ -475,6 +478,10 @@ def _print_summary(
             console.rule("[bold green]⚒ Vibecrafted. is ready[/]", style="green")
         elif has_fail:
             console.rule("[bold red]⚒ Install stopped with errors[/]", style="red")
+        elif pure_cancel:
+            console.rule(
+                "[bold yellow]⚒ Install cancelled — nothing changed[/]", style="yellow"
+            )
         else:
             console.rule(
                 "[bold yellow]⚒ Install finished with warnings[/]", style="yellow"
@@ -484,6 +491,8 @@ def _print_summary(
             console.print("=== Vibecrafted. is ready ===")
         elif has_fail:
             console.print("=== Install stopped with errors ===")
+        elif pure_cancel:
+            console.print("=== Install cancelled — nothing changed ===")
         else:
             console.print("=== Install finished with warnings ===")
 
@@ -501,9 +510,8 @@ def _print_summary(
         console.print(f"  {icon} {label:<{widest}}  [dim]{state}[/]")
     console.print()
 
-    # "What now?" — the whole point of the footer. Users coming off a
-    # clean install need the first 2-3 commands they should try, not a
-    # bare log path.
+    # Next-step block. We only suggest commands that actually assume the
+    # install happened on paths where the install actually happened.
     if all_ok:
         console.print("  [bold]Next steps[/]")
         console.print(
@@ -519,32 +527,38 @@ def _print_summary(
             "    [cyan]▸[/] [bold]vibecrafted update[/]      [dim]re-run this installer any time[/]"
         )
         console.print()
+    elif pure_cancel:
+        # User explicitly said no. Do not promote `vibecrafted doctor`
+        # or `vc-start` — the binary is not on PATH and the dashboard
+        # has nothing to show. Just tell them how to come back.
+        console.print("  Nothing was installed. Re-run when you are ready:")
+        console.print(
+            "    [cyan]▸[/] [bold]make vibecrafted[/]        [dim]run the guided installer again[/]"
+        )
+        console.print()
     elif has_fail:
         console.print("  [bold]Recovery[/]")
         console.print("    [cyan]▸[/] Read the log (below) to find the failing step")
-        console.print(
-            "    [cyan]▸[/] [bold]vibecrafted doctor[/]     [dim]audit what is missing[/]"
-        )
         console.print(
             "    [cyan]▸[/] [bold]make vibecrafted[/]        [dim]re-run the installer[/]"
         )
         console.print()
     else:
-        console.print("  [bold]What now?[/]")
+        # Warnings path: install touched the system but a non-fatal step
+        # reported trouble. Doctor is legitimate here; dashboard is not
+        # promised since we do not know how far the install actually got.
+        console.print("  [bold]Finished with warnings[/]")
         console.print(
-            "    [cyan]▸[/] [bold]vibecrafted doctor[/]     [dim]audit the warnings above[/]"
+            "    [cyan]▸[/] [bold]vibecrafted doctor[/]     [dim]audit what succeeded[/]"
         )
         console.print(
-            "    [cyan]▸[/] [bold]vc-start[/]                [dim]launch the dashboard anyway[/]"
+            "    [cyan]▸[/] [bold]make vibecrafted[/]        [dim]re-run the installer if needed[/]"
         )
         console.print()
 
     if log_path:
         console.print(f"  [dim]Log:[/] {log_path}")
-    console.print(
-        "  [dim]Docs:[/] [bold]https://vibecrafted.dev[/]  "
-        "[dim]·[/]  [dim]Updates:[/] [bold]vibecrafted update[/]"
-    )
+    console.print("  [dim]Docs:[/] [bold]https://vibecrafted.io[/]")
     console.print()
 
 
