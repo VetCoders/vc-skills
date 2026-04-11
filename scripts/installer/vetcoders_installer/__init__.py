@@ -339,7 +339,7 @@ def _load_mock_screen(docs_dir: Path, name: str) -> Optional[str]:
     """Return the body of a mock screen from ``docs/installer/<name>``.
 
     Strips only the ``` shell fence — the banner, content, footer hint,
-    navigation bar and FRAMEWRK tag authored by the designer are preserved
+    navigation bar and FRAMEWORK tag authored by the designer are preserved
     exactly as written. The nav bar advertises keys (⇅ Nav, ␣ Sel, ⇥ View)
     that belong to the advanced interactive flow reached via
     ``make setup-dev`` (``vetcoders_install.py install --advanced``); it
