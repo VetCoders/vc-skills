@@ -210,23 +210,31 @@ def _line_style(line: str) -> str:
 def consent(console: Any, label: str, optional: bool, auto_yes: bool) -> str:
     """Return one of 'yes', 'skip', 'quit'.
 
-    Uses ``console.input()`` when Rich is available — it pauses the Live
-    display (Progress bar) automatically while the prompt is shown, so the
-    consent line never collides with the sticky bar renderer.
+    The caller is responsible for pausing any Live/Progress display before
+    calling this — the prompt prints as ordinary stdout and must own the
+    screen while the user reads it. See ``run_installer`` where the
+    sticky bar is stopped around each consent cycle.
     """
     if auto_yes:
         return "yes"
 
-    if optional:
-        hint = "Enter=yes, s=skip, q=quit"
+    # Visible call-to-action rule + hint block. Users were mistaking the
+    # spinning progress bar for work-in-progress, so the prompt now owns
+    # its own space with a jumbo ▶ marker and explicit key list.
+    if HAS_RICH:
+        console.print()
+        console.rule(f"[bold yellow]▶ Ready to run: {label}[/]", style="yellow")
+        console.print("    [bold]ENTER[/]=run   [bold]n[/]/[bold]q[/]=cancel")
+        console.rule(style="yellow")
+        prompt_rich = "  [bold]❯[/] "
     else:
-        hint = "Enter=yes, n/q=cancel"
+        print()
+        hdr = f"▶ Ready to run: {label}"
+        print(hdr)
+        print("─" * len(hdr))
+        print("    ENTER=run   n/q=cancel")
 
-    # Leading newline separates the consent prompt from whatever Rich just
-    # rendered (typically the sticky progress bar), so the question never
-    # sits flush against the bar.
-    prompt_plain = f"\n   {hint}  ❯ Apply {label}? "
-    prompt_rich = f"\n   [dim]{hint}[/]  [bold]❯[/] Apply {label}? "
+    prompt_plain = "  ❯ "
 
     try:
         if HAS_RICH and hasattr(console, "input"):
@@ -239,8 +247,6 @@ def consent(console: Any, label: str, optional: bool, auto_yes: bool) -> str:
 
     if raw in ("", "y", "yes"):
         return "yes"
-    if raw in ("s", "skip") and optional:
-        return "skip"
     if raw in ("n", "no", "q", "quit"):
         return "quit"
     # Unknown → treat as yes (default) to stay out of the user's way
@@ -329,6 +335,105 @@ def run_phase(
 # ---------------------------------------------------------------------------
 
 
+def _load_mock_screen(docs_dir: Path, name: str) -> Optional[str]:
+    """Return the body of a mock screen from ``docs/installer/<name>``.
+
+    Strips only the ``` shell fence — the banner, content, footer hint,
+    navigation bar and FRAMEWRK tag authored by the designer are preserved
+    exactly as written. The nav bar advertises keys (⇅ Nav, ␣ Sel, ⇥ View)
+    that belong to the advanced interactive flow reached via
+    ``make setup-dev`` (``vetcoders_install.py install --advanced``); it
+    is a consistent reference across all screens, not a per-screen promise.
+    """
+    path = docs_dir / name
+    if not path.is_file():
+        return None
+    raw = path.read_text(encoding="utf-8")
+    lines = raw.splitlines()
+    if lines and lines[0].strip().startswith("```"):
+        lines = lines[1:]
+    while lines and not lines[-1].strip():
+        lines.pop()
+    if lines and lines[-1].strip() == "```":
+        lines = lines[:-1]
+    return "\n".join(lines)
+
+
+def _show_mock_screen(console: Any, body: str, prompt: str) -> str:
+    """Print a full mock screen verbatim and wait for navigation input.
+
+    Returns one of:
+      - ``"next"``  — user pressed ENTER (or y/yes).
+      - ``"back"``  — user pressed b / back / p / prev / minus sign.
+      - ``"quit"``  — user pressed q / n / esc or interrupted the prompt.
+    """
+    console.print()
+    for line in body.splitlines():
+        # markup=False so user banner unicode + separator characters pass
+        # through Rich untouched — no square-bracket interpretation.
+        if HAS_RICH:
+            console.print(line, markup=False, highlight=False)
+        else:
+            print(line)
+    console.print()
+    try:
+        raw = input(f"  {prompt}").strip().lower()
+    except (EOFError, KeyboardInterrupt):
+        print()
+        return "quit"
+    if raw in ("q", "quit", "n", "no", "esc", "escape"):
+        return "quit"
+    if raw in ("b", "back", "p", "prev", "-"):
+        return "back"
+    return "next"
+
+
+def _show_intro_flow(console: Any, manifest: Manifest, auto_yes: bool) -> bool:
+    """Show welcome → explain → listing screens before the phase loop.
+
+    Content comes straight from ``docs/installer/*.md``. Supports ENTER to
+    advance, ``b`` to step back to the previous intro screen, and ``q`` to
+    cancel before any work starts. "Back" only applies inside the intro
+    flow — once phase execution begins there is nothing safe to un-do.
+
+    Returns False when the user cancels, True on normal completion. When
+    the docs directory is absent (packaged install without repo next to
+    it), the flow skips silently so the installer still runs.
+    """
+    if auto_yes:
+        return True
+    docs_dir = manifest.path.parent / "docs" / "installer"
+    if not docs_dir.is_dir():
+        return True
+    screens: list[tuple[str, str]] = [
+        ("0_welcome_step.zsh.md", "continue"),
+        ("1_Explain_step.zsh.md", "continue"),
+        ("2_listing.zsh.md", "begin"),
+    ]
+    idx = 0
+    while idx < len(screens):
+        name, verb = screens[idx]
+        body = _load_mock_screen(docs_dir, name)
+        if body is None:
+            idx += 1
+            continue
+        can_back = idx > 0
+        if can_back:
+            prompt = f"❯ ENTER={verb}   b=back   q=quit  "
+        else:
+            prompt = f"❯ ENTER={verb}   q=quit  "
+        action = _show_mock_screen(console, body, prompt)
+        if action == "quit":
+            console.print("\n  [yellow]Cancelled — no changes were made.[/]\n")
+            return False
+        if action == "back" and can_back:
+            idx -= 1
+            continue
+        # "back" on the first screen is a no-op — fall through to "next".
+        idx += 1
+    return True
+
+
 def _print_title(console: Any, manifest: Manifest) -> None:
     if manifest.version:
         title = f"{manifest.title} v{manifest.version}"
@@ -340,10 +445,7 @@ def _print_title(console: Any, manifest: Manifest) -> None:
 
 
 def _print_reason_block(console: Any, phase: Phase) -> None:
-    console.print(
-        f"[bold cyan]{phase.label}[/]"
-        + (" [dim](optional)[/]" if phase.optional else "")
-    )
+    console.print(f"[bold cyan]{phase.label}[/]")
     console.print()
     for line in phase.reason_lines:
         console.print(f"  [dim]{line}[/]")
@@ -358,7 +460,34 @@ def _print_summary(
 ) -> None:
     if not results:
         return
-    console.rule("[dim]summary[/]")
+
+    # Compute verdict so the headline can say something real instead of
+    # just "summary". Users are landing with 3-4 screens of scrollback
+    # above this block, so the footer has to read like a landing page.
+    has_fail = any(s.startswith(("failed", "error")) for _, s, _ in results)
+    has_warn = any(s.startswith("warn") for _, s, _ in results)
+    has_cancel = any(s in ("cancelled", "skipped") for _, s, _ in results)
+    all_ok = not has_fail and not has_warn and not has_cancel
+
+    console.print()
+    if HAS_RICH:
+        if all_ok:
+            console.rule("[bold green]⚒ Vibecrafted. is ready[/]", style="green")
+        elif has_fail:
+            console.rule("[bold red]⚒ Install stopped with errors[/]", style="red")
+        else:
+            console.rule(
+                "[bold yellow]⚒ Install finished with warnings[/]", style="yellow"
+            )
+    else:
+        if all_ok:
+            console.print("=== Vibecrafted. is ready ===")
+        elif has_fail:
+            console.print("=== Install stopped with errors ===")
+        else:
+            console.print("=== Install finished with warnings ===")
+
+    console.print()
     widest = max(len(label) for label, _, _ in results)
     for label, state, _rc in results:
         if state == "ok":
@@ -371,8 +500,52 @@ def _print_summary(
             icon = "[red]✗[/]"
         console.print(f"  {icon} {label:<{widest}}  [dim]{state}[/]")
     console.print()
+
+    # "What now?" — the whole point of the footer. Users coming off a
+    # clean install need the first 2-3 commands they should try, not a
+    # bare log path.
+    if all_ok:
+        console.print("  [bold]Next steps[/]")
+        console.print(
+            "    [cyan]▸[/] [bold]vibecrafted doctor[/]     [dim]verify the install[/]"
+        )
+        console.print(
+            "    [cyan]▸[/] [bold]vc-start[/]                [dim]open the operator dashboard in zellij[/]"
+        )
+        console.print(
+            "    [cyan]▸[/] [bold]vibecrafted --help[/]      [dim]list all commands[/]"
+        )
+        console.print(
+            "    [cyan]▸[/] [bold]vibecrafted update[/]      [dim]re-run this installer any time[/]"
+        )
+        console.print()
+    elif has_fail:
+        console.print("  [bold]Recovery[/]")
+        console.print("    [cyan]▸[/] Read the log (below) to find the failing step")
+        console.print(
+            "    [cyan]▸[/] [bold]vibecrafted doctor[/]     [dim]audit what is missing[/]"
+        )
+        console.print(
+            "    [cyan]▸[/] [bold]make vibecrafted[/]        [dim]re-run the installer[/]"
+        )
+        console.print()
+    else:
+        console.print("  [bold]What now?[/]")
+        console.print(
+            "    [cyan]▸[/] [bold]vibecrafted doctor[/]     [dim]audit the warnings above[/]"
+        )
+        console.print(
+            "    [cyan]▸[/] [bold]vc-start[/]                [dim]launch the dashboard anyway[/]"
+        )
+        console.print()
+
     if log_path:
-        console.print(f"  [dim]Log: {log_path}[/]")
+        console.print(f"  [dim]Log:[/] {log_path}")
+    console.print(
+        "  [dim]Docs:[/] [bold]https://vibecrafted.dev[/]  "
+        "[dim]·[/]  [dim]Updates:[/] [bold]vibecrafted update[/]"
+    )
+    console.print()
 
 
 def _print_cleanup_notice(console: Any, manifest: Manifest, cleanup_flag: bool) -> None:
@@ -433,12 +606,23 @@ def run(
     skip: list[str],
 ) -> int:
     console = _make_console()
-    _print_title(console, manifest)
 
     phases = _filter_phases(manifest.phases, only, skip)
     if not phases:
+        _print_title(console, manifest)
         console.print("[yellow]No phases selected.[/]")
         return 0
+
+    # Intro flow owns its own branding (0_welcome_step.zsh.md has the banner).
+    # We skip the redundant [_print_title] header when it runs so the screen
+    # stays faithful to the mocks. Dry-run and auto_yes still want the title
+    # because the intro flow is skipped in those cases.
+    intro_will_run = not (auto_yes or dry_run)
+    if intro_will_run:
+        if not _show_intro_flow(console, manifest, auto_yes):
+            return 0
+    else:
+        _print_title(console, manifest)
 
     if dry_run:
         console.print("[dim]Dry run — no commands will execute.[/]")
@@ -476,77 +660,75 @@ def run(
 
     try:
         if HAS_RICH:
+            # Cargo-style sticky bar: no cur column (truncates on narrow
+            # terminals, fights with console.input). Subprocess lines scroll
+            # above the bar and carry the real progress narrative.
             progress = Progress(
                 SpinnerColumn(style="yellow"),
-                TextColumn("[bold]{task.description:<18}[/]"),
-                BarColumn(),
+                TextColumn("[bold]{task.description}[/]"),
+                BarColumn(bar_width=None),
                 MofNCompleteColumn(),
                 TimeElapsedColumn(),
-                TextColumn("[dim]{task.fields[cur]}[/]"),
                 console=console,
                 transient=False,
                 expand=True,
-                refresh_per_second=12.5,
+                refresh_per_second=10,
             )
             task_id: Any = None
         else:
             progress = None
             task_id = None
 
-        # Use Progress as its own context — Rich internally drives a Live
-        # display and allows console.print() to scroll above the sticky bar
-        # across the entire multi-phase run.
-        progress_ctx = progress if HAS_RICH else _NullContext()
-        with progress_ctx:
+        # Progress is started manually around working phases so the consent
+        # prompt owns the screen without fighting Rich's Live renderer.
+        if HAS_RICH:
+            task_id = progress.add_task("pending", total=len(phases))
+
+        for idx, phase in enumerate(phases):
+            _print_reason_block(console, phase)
+
+            # Consent is gathered WITHOUT the sticky bar — a spinning bar
+            # next to a still prompt reads as "working", not "waiting for you".
+            verdict = consent(console, phase.label, phase.optional, auto_yes)
+            if verdict == "quit":
+                console.print("\n  [yellow]Cancelled — no further changes.[/]\n")
+                results.append((phase.label, "cancelled", 0))
+                break
+            if verdict == "skip":
+                console.print("  [yellow]· skipped[/]\n")
+                results.append((phase.label, "skipped", 0))
+                if HAS_RICH:
+                    progress.update(task_id, advance=1, description=phase.label)
+                continue
+
+            # User said yes — start the sticky bar so subprocess output
+            # scrolls cleanly above it during the working phase.
             if HAS_RICH:
-                task_id = progress.add_task(
-                    "pending", total=len(phases), cur="awaiting consent"
+                progress.update(task_id, description=phase.label)
+                progress.start()
+
+            rc = run_phase(console, phase, progress, task_id, log_handle, quiet)
+
+            if HAS_RICH:
+                progress.update(task_id, advance=1)
+                progress.stop()
+
+            if rc == 0:
+                results.append((phase.label, "ok", 0))
+                console.print(f"  [green]✓[/] {phase.label}\n")
+            elif phase.optional:
+                # Non-fatal step: flag the warning and keep moving.
+                results.append((phase.label, f"warn (exit {rc})", rc))
+                console.print(
+                    f"  [yellow]![/] {phase.label} [yellow]finished with exit {rc} — continuing[/]\n"
                 )
-
-            for idx, phase in enumerate(phases):
-                _print_reason_block(console, phase)
-
-                if HAS_RICH:
-                    progress.update(
-                        task_id, description=phase.label, cur="awaiting consent"
-                    )
-
-                verdict = consent(console, phase.label, phase.optional, auto_yes)
-                if verdict == "quit":
-                    console.print("\n  [yellow]Cancelled — no further changes.[/]\n")
-                    results.append((phase.label, "cancelled", 0))
-                    break
-                if verdict == "skip":
-                    console.print("  [yellow]· skipped[/]\n")
-                    results.append((phase.label, "skipped", 0))
-                    if HAS_RICH:
-                        progress.update(task_id, advance=1, cur="skipped")
-                    continue
-
-                rc = run_phase(console, phase, progress, task_id, log_handle, quiet)
-
-                if HAS_RICH:
-                    progress.update(
-                        task_id,
-                        advance=1,
-                        cur="✓ done" if rc == 0 else f"✗ exit {rc}",
-                    )
-
-                if rc == 0:
-                    results.append((phase.label, "ok", 0))
-                    console.print(f"  [green]✓[/] {phase.label}\n")
-                elif phase.optional:
-                    results.append((phase.label, f"warn (exit {rc})", rc))
-                    console.print(
-                        f"  [yellow]! optional phase failed (exit {rc}) — continuing[/]\n"
-                    )
-                else:
-                    results.append((phase.label, f"failed (exit {rc})", rc))
-                    console.print(f"  [red]✗ {phase.label} failed (exit {rc})[/]")
-                    if log_path:
-                        console.print(f"  [dim]See log: {log_path}[/]")
-                    exit_code = rc
-                    break
+            else:
+                results.append((phase.label, f"failed (exit {rc})", rc))
+                console.print(f"  [red]✗ {phase.label} failed (exit {rc})[/]")
+                if log_path:
+                    console.print(f"  [dim]See log: {log_path}[/]")
+                exit_code = rc
+                break
     finally:
         if log_handle is not None:
             log_handle.close()
