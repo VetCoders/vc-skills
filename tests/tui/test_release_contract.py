@@ -31,3 +31,17 @@ def test_release_contract_stays_polarized_across_public_surfaces() -> None:
                 errors.append(f"{relative_path} missing: {expected}")
 
     assert not errors, "\n".join(errors)
+
+
+def test_installer_reference_stays_gui_first_and_mock_aligned() -> None:
+    text = (REPO_ROOT / "docs/installer/REFERENCE.md").read_text(encoding="utf-8")
+    normalized = text.casefold()
+
+    for expected in (
+        "twinsweep",
+        "rmcp-memex",
+        "one-page wizard",
+        "progress dots",
+        "no page scroll",
+    ):
+        assert expected in normalized

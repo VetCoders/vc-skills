@@ -149,5 +149,9 @@ def test_build_html_renders_wizard_shell() -> None:
     assert "Launch guided install" in html
     assert "Finish state" in html
     assert "make wizard" in html
+    assert "height: calc(100dvh - 36px);" in html
+    assert "overflow: hidden;" in html
+    assert "-webkit-overflow-scrolling: touch;" in html
+    assert "grid-template-rows: auto minmax(0, 1fr);" in html
     assert "document.addEventListener('keydown'" in html
     assert "activeSlide?.querySelector('.slide-body')?.scrollTo" in html

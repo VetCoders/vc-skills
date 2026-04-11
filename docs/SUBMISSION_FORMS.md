@@ -38,10 +38,16 @@ Official submit/help surfaces below were re-checked on 2026-04-11 before this pa
    Official submit surface: https://topai.tools/submit
    Why fifth: lower-friction directory with fast editorial review and solid discovery value.
 
-6. Product Hunt
+6. Uneed
+   Official submit surface: https://www.uneed.best/submit-a-tool
+   Launch guide: https://www.uneed.best/launch-guide
+   Why sixth: softer launchpad than Product Hunt, useful for testing screenshots,
+   copy, and founder response loops once the AI-directory listings are already live.
+
+7. Product Hunt
    Posting access: https://help.producthunt.com/en/articles/481909-how-can-i-get-access-to-post
    Launch prep: https://www.producthunt.com/launch/before-launch
-   Why sixth: not a directory, but the best single public launch spike once the landing page and demo are fully sharp.
+   Why seventh: not a directory, but the best single public launch spike once the landing page and demo are fully sharp.
 
 ## Marketplace fit from adjacent tools
 
@@ -240,6 +246,19 @@ Every public surface should agree on:
 - Paste-ready emphasis:
   Present Vibecrafted as the release engine that comes after Cursor / Claude / Codex / Lovable have already produced the draft. Product Hunt needs a clear "why this exists" contrast more than a long feature list.
 
+### Uneed
+
+- Submit URL: https://www.uneed.best/submit-a-tool
+- Launch guide: https://www.uneed.best/launch-guide
+- Notes from the current pages:
+  Uneed currently requires an account before you can submit a product, which is useful because launch-day edits stay self-serve afterward.
+  Their launch guide currently says you can join the waiting line for free or pay to choose an exact launch date, and it recommends Tuesday through Thursday over weekends.
+  This is a stronger "launch rehearsal" surface than a pure AI directory, so use it after the AI listings are live but before the all-in Product Hunt spike.
+- Suggested emphasis:
+  founder story, launch-ready onboarding, public install path, screenshots that explain the product in one glance
+- Paste-ready emphasis:
+  Treat Uneed like a launch-day page, not a metadata directory. Lead with the vibe hangover story, show the guided installer, and keep the product explanation plain-language.
+
 ## Proposed form presets
 
 Use the canonical packet above, then bias each marketplace form this way:
@@ -259,8 +278,43 @@ Use the canonical packet above, then bias each marketplace form this way:
 - TopAI.tools
   Focus on usefulness now: public install path, real docs, real verification loop, real release outcome.
 
+- Uneed
+  Treat it as a launchpad: lean on founder-readable pain, strong visuals, and the guided install screenshot rather than a taxonomy-heavy directory pitch.
+
 - Product Hunt
   Lead with the vibe hangover story, show the guided install and command deck, and make the maker comment do the positioning work.
+
+## Fast-fill operator sheet
+
+Use these as the default copy/paste answers when a form asks for the common
+launch fields:
+
+| Field            | Paste-ready answer                                                                                                                                                                                                                                      |
+| ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------- |
+| Product name     | `𝚅𝚒𝚋𝚎𝚌𝚛𝚊𝚏𝚝𝚎𝚍.`                                                                                                                                                                                                                                          |
+| Tagline          | `Release engine for AI-built software.`                                                                                                                                                                                                                 |
+| Secondary line   | `Ship AI-built software without the vibe hangover.`                                                                                                                                                                                                     |
+| Website          | `https://vibecrafted.io/`                                                                                                                                                                                                                               |
+| Repository       | `https://github.com/VetCoders/vibecrafted`                                                                                                                                                                                                              |
+| Docs             | `https://vibecrafted.io/en/quickstart/`                                                                                                                                                                                                                 |
+| Category         | `Developer Tools`, `AI Agents`, `Release Engineering`                                                                                                                                                                                                   |
+| Pricing          | `Free for personal use and startups. Enterprise licensing available.`                                                                                                                                                                                   |
+| Primary CTA      | `curl -fsSL https://vibecrafted.io/install.sh                                                                                                                                                                                                           | bash -s -- --gui` |
+| Backup CTA       | `curl -fsSL https://vibecrafted.io/install.sh                                                                                                                                                                                                           | bash`             |
+| 160-char summary | `Vibecrafted hardens AI-generated repos through structural mapping, convergence loops, install audits, and launch-ready packaging.`                                                                                                                     |
+| 300-char summary | `Vibecrafted is the release engine for AI-built software. It takes the repo your agents already produced and drives it through perception, verification, convergence loops, install truth, and launch-readiness work until the product is fit to ship.` |
+
+## Form-specific fill hints
+
+| Surface                | What the form wants most                        | Best asset stack                                                   | Use this copy block                |
+| ---------------------- | ----------------------------------------------- | ------------------------------------------------------------------ | ---------------------------------- |
+| There’s An AI For That | Clear category fit + immediate usefulness       | Guided installer screenshot + command deck                         | TAAFT blurb                        |
+| Future Tools           | Founder-readable before/after                   | Guided installer screenshot + quickstart screenshot                | Future Tools blurb                 |
+| Futurepedia            | Business-readiness and professional credibility | Guided installer screenshot + quickstart + short walkthrough video | Futurepedia blurb                  |
+| Toolify                | SEO keywords and conversion clarity             | Guided installer screenshot + portal hero + pricing clarity        | Toolify blurb                      |
+| TopAI.tools            | Concise value + discoverability                 | Guided installer screenshot + command deck                         | TopAI.tools blurb                  |
+| Uneed                  | Launch-day story and polished visuals           | Guided installer screenshot + portal hero + short walkthrough      | Uneed emphasis                     |
+| Product Hunt           | Narrative, maker comment, demo                  | 5 screenshots + short walkthrough/demo + maker comment             | Product Hunt blurb + first comment |
 
 ## Paste-ready marketplace blurbs
 
@@ -281,6 +335,9 @@ These are intentionally short so they fit the common "summary" or
 
 - TopAI.tools
   Vibecrafted is usable now from a real public install path and is built for teams shipping AI-generated repos. It focuses on verification, release engineering, onboarding truth, and the gap between "demo works" and "a customer can actually use this."
+
+- Uneed
+  Vibecrafted exists for the vibe hangover: when an AI-built repo looks done until install, trust, or launch reality says otherwise. The product gives teams a guided install path, a sharper command deck, and a release workflow that turns draft-shaped repos into something a stranger can actually use.
 
 - Product Hunt
   We built Vibecrafted for the vibe hangover: the moment an AI-built repo looks done until install, docs, or launch reality says otherwise. Vibecrafted is the release engine that closes that gap and gets the product ready for real users.
@@ -309,6 +366,7 @@ These are intentionally short so they fit the common "summary" or
 - Futurepedia: `https://www.futurepedia.io/submit-tool`, `https://www.futurepedia.io/verified`
 - Toolify: `https://www.toolify.ai/submit`
 - TopAI.tools: `https://topai.tools/submit`
+- Uneed: `https://www.uneed.best/submit-a-tool`, `https://www.uneed.best/launch-guide`
 - Product Hunt: `https://help.producthunt.com/en/articles/481909-how-can-i-get-access-to-post`, `https://www.producthunt.com/launch/before-launch`
 - Adjacent-tool signal checks:
   `https://theresanaiforthat.com/ai/cursor-ai/`
