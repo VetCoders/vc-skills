@@ -112,6 +112,8 @@ curl -fsSL https://vibecrafted.io/install.sh | bash
 
 Inside a local checkout, `make vibecrafted` now opens the same browser-based guided installer. `make install` stays as the direct non-interactive path.
 
+Prefer the terminal-native fallback? Run `make wizard` to keep the same trust-building cadence directly in the terminal.
+
 Verify:
 
 ```bash

@@ -60,6 +60,14 @@ def test_preflight_payload_summarizes_diagnostics(monkeypatch, tmp_path: Path) -
         "agents": {},
         "additional_tools": {},
     }
+    scripts_dir = tmp_path / "scripts"
+    scripts_dir.mkdir(parents=True)
+    (scripts_dir / "vetcoders_install.py").write_text(
+        "#!/usr/bin/env python3\n", encoding="utf-8"
+    )
+    (scripts_dir / "install-foundations.sh").write_text(
+        "#!/usr/bin/env bash\n", encoding="utf-8"
+    )
 
     monkeypatch.setattr(installer_gui, "read_framework_version", lambda _: "1.2.1")
     monkeypatch.setattr(installer_gui, "run_diagnostics", lambda: diagnostics)
@@ -80,7 +88,13 @@ def test_preflight_payload_summarizes_diagnostics(monkeypatch, tmp_path: Path) -
     assert payload["version"] == "1.2.1"
     assert payload["found_count"] == 1
     assert payload["missing_count"] == 1
+    assert payload["found_items"] == ["Frameworks: workflows"]
+    assert payload["missing_items"] == ["Foundations: loctree-mcp"]
     assert payload["needs_install"] == {"foundations": ["loctree-mcp"]}
+    assert [step["label"] for step in payload["install_plan"]] == [
+        "Bootstrap foundations",
+        "Install Vibecrafted",
+    ]
     assert payload["status"]["completed"] is False
 
 
@@ -101,3 +115,37 @@ def test_install_runtime_env_prepends_repo_owned_bins(
     pieces = env["PATH"].split(":")
 
     assert pieces[:3] == [str(cargo_bin), str(node_bin), str(crafted_bin)]
+
+
+def test_build_html_renders_wizard_shell() -> None:
+    html = installer_gui.build_html(
+        {
+            "version": "1.2.1",
+            "source_dir_display": "~/src/vibecrafted",
+            "guide_path_display": "~/.vibecrafted/START_HERE.md",
+            "helper_path_display": "~/.config/vetcoders/vc-skills.sh",
+            "found_count": 3,
+            "missing_count": 2,
+            "found_items": ["Frameworks: workflows"],
+            "missing_items": ["Foundations: loctree-mcp"],
+            "needs_install": {"foundations": ["loctree-mcp"]},
+            "install_plan": [
+                {
+                    "label": "Bootstrap foundations",
+                    "command": "bash scripts/install-foundations.sh",
+                },
+                {
+                    "label": "Install Vibecrafted",
+                    "command": "python3 scripts/vetcoders_install.py install --compact",
+                },
+            ],
+            "categories": [],
+            "status": {"completed": False, "running": False, "output": []},
+        }
+    )
+
+    assert 'id="wizard-progress"' in html
+    assert 'data-step="5"' in html
+    assert "Launch guided install" in html
+    assert "Finish state" in html
+    assert "make wizard" in html

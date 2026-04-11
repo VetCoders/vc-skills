@@ -81,6 +81,17 @@ class InstallStep:
     command: list[str]
 
 
+def _command_display(command: list[str]) -> str:
+    return " ".join(command)
+
+
+def _serialize_install_plan(steps: list[InstallStep]) -> list[dict[str, str]]:
+    return [
+        {"label": step.label, "command": _command_display(step.command)}
+        for step in steps
+    ]
+
+
 def build_install_steps(source_dir: str, *, with_shell: bool) -> list[InstallStep]:
     steps: list[InstallStep] = []
     foundations_path = foundations_script_path(source_dir)
@@ -148,6 +159,7 @@ def _open_target(target: str) -> bool:
 class InstallRun:
     command: list[str] = field(default_factory=list)
     plan: list[list[str]] = field(default_factory=list)
+    plan_labels: list[str] = field(default_factory=list)
     output: list[str] = field(default_factory=list)
     with_shell: bool = True
     running: bool = False
@@ -199,6 +211,13 @@ class InstallController:
         return cards
 
     def preflight_payload(self) -> dict[str, Any]:
+        try:
+            install_plan = _serialize_install_plan(
+                build_install_steps(self.source_dir, with_shell=True)
+            )
+        except FileNotFoundError:
+            install_plan = []
+
         return {
             "brand": {
                 "header": VAPOR_HEADER,
@@ -214,8 +233,11 @@ class InstallController:
             "helper_path_display": _trim_home(str(helper_layer_path())),
             "found_count": len(self.found_items),
             "missing_count": len(self.missing_items),
+            "found_items": self.found_items,
+            "missing_items": self.missing_items,
             "needs_install": self.needs_install,
             "categories": self._category_cards(),
+            "install_plan": install_plan,
             "status": self.status_payload(),
         }
 
@@ -226,7 +248,8 @@ class InstallController:
             return {
                 "command": self._run.command,
                 "plan": plan,
-                "command_display": " && ".join(" ".join(step) for step in plan),
+                "plan_labels": self._run.plan_labels,
+                "command_display": " && ".join(_command_display(step) for step in plan),
                 "with_shell": self._run.with_shell,
                 "running": self._run.running,
                 "completed": self._run.completed,
@@ -263,6 +286,7 @@ class InstallController:
             self._run = InstallRun(
                 command=steps[-1].command,
                 plan=[step.command for step in steps],
+                plan_labels=[step.label for step in steps],
                 with_shell=with_shell,
                 running=True,
                 completed=False,
@@ -428,33 +452,40 @@ def build_html(preflight: dict[str, Any]) -> str:
             <title>Vibecrafted Guided Installer</title>
             <style>
               :root {
-                --bg: #0f1318;
-                --bg-glow: rgba(196, 140, 95, 0.24);
-                --panel: rgba(18, 24, 31, 0.88);
-                --panel-strong: rgba(25, 32, 41, 0.96);
-                --border: rgba(196, 140, 95, 0.26);
+                --bg: #091016;
+                --bg-top: rgba(197, 143, 101, 0.14);
+                --bg-side: rgba(122, 159, 157, 0.12);
+                --panel: rgba(14, 21, 29, 0.9);
+                --panel-strong: rgba(20, 29, 37, 0.96);
+                --panel-soft: rgba(255, 255, 255, 0.03);
+                --border: rgba(197, 143, 101, 0.22);
+                --border-strong: rgba(197, 143, 101, 0.36);
                 --copper: #d79a63;
-                --patina: #88a2a0;
+                --patina: #8cb5b0;
+                --stone: #d9d5c8;
                 --text: #eef2f3;
-                --muted: #9fb0b5;
+                --muted: #96a8ae;
+                --muted-strong: #b8c4c8;
                 --ok: #84d59a;
                 --warn: #f0c36e;
                 --fail: #f48c7f;
-                --shadow: 0 28px 80px rgba(0, 0, 0, 0.35);
+                --shadow: 0 28px 90px rgba(0, 0, 0, 0.38);
+                --radius-xl: 30px;
+                --radius-lg: 24px;
+                --radius-md: 18px;
               }
 
               * { box-sizing: border-box; }
 
               body {
                 margin: 0;
-                height: 100vh;
-                overflow: hidden;
-                display: flex;
-                align-items: center;
-                justify-content: center;
+                min-height: 100vh;
+                padding: 18px;
+                overflow: auto;
                 background:
-                  radial-gradient(circle at top, var(--bg-glow), transparent 38%),
-                  linear-gradient(180deg, #10161d 0%, #0b1015 100%);
+                  radial-gradient(circle at top left, var(--bg-top), transparent 34%),
+                  radial-gradient(circle at right, var(--bg-side), transparent 30%),
+                  linear-gradient(180deg, #0e151c 0%, #081016 100%);
                 color: var(--text);
                 font-family: "SF Mono", "JetBrains Mono", "IBM Plex Mono", monospace;
               }
@@ -463,40 +494,51 @@ def build_html(preflight: dict[str, Any]) -> str:
                 color: inherit;
               }
 
+              button,
+              input {
+                font: inherit;
+              }
+
               .shell {
-                width: min(1180px, calc(100vw - 32px));
-                max-height: calc(100vh - 32px);
-                display: flex;
-                flex-direction: column;
-                overflow: hidden;
+                width: min(1220px, 100%);
+                min-height: calc(100vh - 36px);
+                display: grid;
+                grid-template-columns: minmax(280px, 340px) minmax(0, 1fr);
+                gap: 18px;
                 margin: 0 auto;
-                padding: 20px;
                 border: 1px solid rgba(255, 255, 255, 0.06);
-                border-radius: 28px;
+                border-radius: var(--radius-xl);
                 background: rgba(8, 11, 16, 0.76);
                 box-shadow: var(--shadow);
                 backdrop-filter: blur(18px);
+                overflow: hidden;
               }
 
-              .hero {
+              .rail,
+              .main {
+                min-height: 0;
+              }
+
+              .rail {
+                padding: 18px;
                 display: grid;
                 gap: 14px;
-                grid-template-columns: minmax(0, 1.4fr) minmax(280px, 0.9fr);
-                align-items: stretch;
-                margin-bottom: 14px;
-                flex-shrink: 0;
+                align-content: start;
+                background:
+                  linear-gradient(180deg, rgba(197, 143, 101, 0.08), transparent 36%),
+                  linear-gradient(180deg, rgba(10, 16, 22, 0.96), rgba(10, 16, 22, 0.86));
+                border-right: 1px solid rgba(255, 255, 255, 0.05);
               }
 
-              .hero-copy,
-              .hero-side,
-              .panel {
-                padding: 16px;
+              .rail-card,
+              .main-card,
+              .slide-card,
+              .status-card,
+              .summary-card {
+                padding: 18px;
                 border: 1px solid var(--border);
-                border-radius: 24px;
+                border-radius: var(--radius-lg);
                 background: var(--panel);
-                display: flex;
-                flex-direction: column;
-                overflow: hidden;
               }
 
               .eyebrow {
@@ -506,149 +548,334 @@ def build_html(preflight: dict[str, Any]) -> str:
                 font-size: 12px;
               }
 
-              h1 {
-                margin: 6px 0 10px;
-                font-size: clamp(24px, 4vw, 36px);
-                line-height: 0.92;
-                letter-spacing: -0.06em;
-              }
-
-              .hero-brand {
-                color: var(--copper);
-                display: block;
-                font-size: clamp(18px, 3vw, 24px);
-                letter-spacing: 0.08em;
-                text-transform: uppercase;
-              }
-
-              .hero-lead {
-                margin: 0;
-                font-size: 17px;
-                line-height: 1.65;
-                color: var(--muted);
-                max-width: 58ch;
-              }
-
-              .hero-list,
-              .stats,
-              .category-items,
-              .steps,
-              .next-steps {
-                margin: 0;
-                padding: 0;
-                list-style: none;
-              }
-
-              .hero-list {
-                display: grid;
-                gap: 8px;
-                margin-top: 18px;
-              }
-
-              .hero-list li::before,
-              .next-steps li::before {
-                content: ">";
-                color: var(--copper);
-                margin-right: 10px;
-              }
-
-              .hero-side {
-                display: grid;
-                gap: 16px;
-                align-content: start;
-                background:
-                  linear-gradient(180deg, rgba(196, 140, 95, 0.11), transparent 70%),
-                  var(--panel-strong);
-              }
-
-              .stats {
+              .rail-brand {
                 display: grid;
                 gap: 12px;
               }
 
-              .stats li {
-                display: flex;
-                justify-content: space-between;
-                gap: 16px;
-                padding-bottom: 12px;
-                border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+              .rail-brand h1,
+              .slide-title {
+                margin: 0;
+                font-size: clamp(30px, 4vw, 44px);
+                line-height: 0.94;
+                letter-spacing: -0.06em;
+              }
+
+              .slide-title {
+                font-size: clamp(24px, 3vw, 34px);
+              }
+
+              .rail-brand strong {
+                color: var(--copper);
+                letter-spacing: 0.08em;
+                text-transform: uppercase;
+              }
+
+              .rail-lead,
+              .slide-copy,
+              .slide-note,
+              .status-copy,
+              .summary-copy,
+              .footer-hint,
+              .item-detail {
+                margin: 0;
+                line-height: 1.65;
                 color: var(--muted);
               }
 
-              .stats strong {
-                color: var(--text);
-                font-size: 19px;
+              .rail-mini {
+                display: grid;
+                gap: 10px;
               }
 
-              .page-grid {
+              .fallback-code,
+              .command-box,
+              .log-box {
+                padding: 14px 16px;
+                border-radius: var(--radius-md);
+                border: 1px solid rgba(255, 255, 255, 0.08);
+                background: rgba(4, 8, 12, 0.78);
+                color: var(--stone);
+                overflow: auto;
+              }
+
+              .fallback-code {
+                margin: 0;
+                display: block;
+                white-space: pre-wrap;
+                word-break: break-word;
+              }
+
+              .facts {
+                display: grid;
+                gap: 10px;
+              }
+
+              .fact {
+                display: grid;
+                gap: 4px;
+                padding: 12px 14px;
+                border-radius: 16px;
+                background: rgba(255, 255, 255, 0.02);
+                border: 1px solid rgba(255, 255, 255, 0.06);
+              }
+
+              .fact span {
+                font-size: 11px;
+                letter-spacing: 0.12em;
+                text-transform: uppercase;
+                color: var(--patina);
+              }
+
+              .fact strong {
+                color: var(--text);
+                word-break: break-word;
+              }
+
+              .counts {
+                display: grid;
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+                gap: 10px;
+              }
+
+              .count {
+                padding: 14px;
+                border-radius: 18px;
+                border: 1px solid rgba(255, 255, 255, 0.07);
+                background: rgba(255, 255, 255, 0.03);
+              }
+
+              .count span {
+                display: block;
+                font-size: 11px;
+                letter-spacing: 0.12em;
+                text-transform: uppercase;
+                color: var(--muted);
+              }
+
+              .count strong {
+                display: block;
+                margin-top: 6px;
+                font-size: 28px;
+                color: var(--text);
+              }
+
+              .main {
+                padding: 18px 18px 18px 0;
+                display: grid;
+                grid-template-rows: auto minmax(0, 1fr) auto;
+                gap: 16px;
+              }
+
+              .progress {
+                margin: 0;
+                padding: 0;
+                list-style: none;
+                display: grid;
+                grid-template-columns: repeat(6, minmax(0, 1fr));
+                gap: 10px;
+                padding: 14px;
+              }
+
+              .progress-button {
+                width: 100%;
+                border: 1px solid rgba(255, 255, 255, 0.08);
+                border-radius: 18px;
+                background: rgba(255, 255, 255, 0.03);
+                color: var(--muted);
+                padding: 12px 10px;
+                display: grid;
+                gap: 8px;
+                justify-items: center;
+                cursor: pointer;
+                transition: border-color 160ms ease, transform 160ms ease, background 160ms ease;
+              }
+
+              .progress-button:hover:not(:disabled) {
+                transform: translateY(-1px);
+                border-color: rgba(255, 255, 255, 0.16);
+              }
+
+              .progress-button:disabled {
+                cursor: not-allowed;
+                opacity: 0.62;
+              }
+
+              .progress-dot {
+                width: 14px;
+                height: 14px;
+                border-radius: 999px;
+                border: 2px solid rgba(255, 255, 255, 0.18);
+                background: transparent;
+                transition: background 160ms ease, border-color 160ms ease, transform 160ms ease;
+              }
+
+              .progress-meta {
+                display: grid;
+                gap: 2px;
+                justify-items: center;
+              }
+
+              .progress-meta span:first-child {
+                font-size: 11px;
+                letter-spacing: 0.12em;
+                text-transform: uppercase;
+              }
+
+              .progress-meta strong {
+                font-size: 13px;
+              }
+
+              .progress-button.is-active {
+                border-color: var(--border-strong);
+                color: var(--text);
+                background: linear-gradient(180deg, rgba(215, 154, 99, 0.16), rgba(255, 255, 255, 0.03));
+              }
+
+              .progress-button.is-active .progress-dot,
+              .progress-button.is-complete .progress-dot {
+                border-color: var(--copper);
+                background: var(--copper);
+                transform: scale(1.04);
+              }
+
+              .progress-button.is-complete {
+                color: var(--muted-strong);
+              }
+
+              .stage {
+                min-height: 0;
+                padding: 0 14px 14px;
+              }
+
+              .slides {
+                min-height: 0;
+                height: 100%;
+              }
+
+              .slide {
+                display: none;
+                min-height: 100%;
+              }
+
+              .slide.is-active {
+                display: flex;
+                animation: fade-in 220ms cubic-bezier(0.2, 0.9, 0.2, 1);
+              }
+
+              .slide-card {
+                display: flex;
+                flex-direction: column;
+                gap: 18px;
+                width: 100%;
+                min-height: 0;
+                background:
+                  linear-gradient(180deg, rgba(197, 143, 101, 0.06), transparent 24%),
+                  var(--panel-strong);
+              }
+
+              .slide-body {
+                min-height: 0;
+                overflow-y: auto;
                 display: grid;
                 gap: 16px;
-                grid-template-columns: minmax(0, 1.35fr) minmax(320px, 0.95fr);
-                flex: 1;
-                min-height: 0;
-                overflow: hidden;
+                padding-right: 4px;
               }
 
-              .section-title {
-                margin: 0 0 8px;
-                font-size: 20px;
-              }
-
-              .section-copy,
-              .status-text,
-              .guide-feedback,
-              .panel-copy {
-                color: var(--muted);
-                line-height: 1.6;
-                margin: 0;
-              }
-
-              .steps {
+              .lead-grid,
+              .install-grid {
                 display: grid;
                 gap: 14px;
-                margin-top: 18px;
+                grid-template-columns: repeat(2, minmax(0, 1fr));
               }
 
-              .steps li {
+              .bullet-list,
+              .compact-list,
+              .timeline,
+              .next-steps,
+              .decision-points {
+                margin: 0;
+                padding: 0;
+                list-style: none;
+                display: grid;
+                gap: 10px;
+              }
+
+              .bullet-list li,
+              .compact-list li,
+              .timeline li,
+              .decision-points li {
                 padding: 14px 16px;
                 border-radius: 18px;
                 border: 1px solid rgba(255, 255, 255, 0.07);
-                background: rgba(255, 255, 255, 0.02);
+                background: var(--panel-soft);
               }
 
-              .steps strong {
-                display: block;
-                color: var(--text);
-                margin-bottom: 6px;
+              .compact-list li {
+                padding: 10px 12px;
               }
 
               .category-grid {
                 display: grid;
-                gap: 10px;
-                margin-top: 10px;
-                flex: 1;
-                overflow-y: auto;
-                padding-right: 4px;
+                gap: 12px;
+                grid-template-columns: repeat(2, minmax(0, 1fr));
               }
 
               .category-card {
                 border: 1px solid rgba(255, 255, 255, 0.07);
-                border-radius: 18px;
+                border-radius: 20px;
                 padding: 16px;
                 background: rgba(255, 255, 255, 0.02);
+                display: grid;
+                gap: 12px;
               }
 
-              .category-head {
+              .category-head,
+              .timeline li,
+              .item-line,
+              .button-row,
+              .log-meta,
+              .footer {
                 display: flex;
                 justify-content: space-between;
-                gap: 16px;
-                align-items: baseline;
-                margin-bottom: 10px;
+                gap: 12px;
+                align-items: center;
               }
 
-              .category-head span:last-child {
-                color: var(--patina);
+              .status-pill {
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+                gap: 8px;
+                border-radius: 999px;
+                padding: 6px 11px;
+                border: 1px solid rgba(255, 255, 255, 0.08);
+                background: rgba(255, 255, 255, 0.03);
+                color: var(--muted);
+                font-size: 12px;
+                text-transform: uppercase;
+                letter-spacing: 0.08em;
               }
+
+              .status-pill--ok { color: var(--ok); }
+              .status-pill--warn { color: var(--warn); }
+              .status-pill--fail { color: var(--fail); }
+
+              .chip {
+                display: inline-flex;
+                align-items: center;
+                gap: 8px;
+                border-radius: 999px;
+                padding: 10px 14px;
+                border: 1px solid rgba(255, 255, 255, 0.08);
+                color: var(--muted);
+                background: rgba(255, 255, 255, 0.03);
+                align-self: flex-start;
+              }
+
+              .chip.ok { color: var(--ok); }
+              .chip.warn { color: var(--warn); }
+              .chip.fail { color: var(--fail); }
 
               .category-items {
                 display: grid;
@@ -656,44 +883,38 @@ def build_html(preflight: dict[str, Any]) -> str:
               }
 
               .category-items li {
-                display: grid;
-                gap: 4px;
+                display: flex;
+                justify-content: space-between;
+                gap: 10px;
+                align-items: center;
                 padding: 10px 12px;
                 border-radius: 14px;
                 background: rgba(0, 0, 0, 0.16);
               }
 
-              .item-line {
-                display: flex;
-                justify-content: space-between;
+              .summary-grid {
+                display: grid;
                 gap: 12px;
+                grid-template-columns: repeat(2, minmax(0, 1fr));
               }
 
-              .item-detail {
-                color: var(--muted);
-                font-size: 13px;
-                word-break: break-word;
+              .summary-card {
+                display: flex;
+                flex-direction: column;
+                gap: 12px;
+                min-height: 0;
               }
 
-              .chip {
-                display: inline-flex;
-                align-items: center;
-                gap: 8px;
-                border-radius: 999px;
-                padding: 8px 12px;
-                border: 1px solid rgba(255, 255, 255, 0.08);
-                color: var(--muted);
-                background: rgba(255, 255, 255, 0.03);
+              .summary-card h3,
+              .status-card h3 {
+                margin: 0;
+                font-size: 18px;
               }
 
-              .chip.ok { color: var(--ok); }
-              .chip.warn { color: var(--warn); }
-              .chip.fail { color: var(--fail); }
-
-              .install-form {
+              .install-form,
+              .status-stack {
                 display: grid;
                 gap: 14px;
-                margin-top: 18px;
               }
 
               .toggle {
@@ -713,16 +934,15 @@ def build_html(preflight: dict[str, Any]) -> str:
               .button-row {
                 display: flex;
                 flex-wrap: wrap;
-                gap: 12px;
+                justify-content: flex-start;
               }
 
               button {
-                border: 0;
+                border: 1px solid transparent;
                 border-radius: 999px;
                 padding: 12px 18px;
-                font: inherit;
                 cursor: pointer;
-                transition: transform 120ms ease, opacity 120ms ease;
+                transition: transform 120ms ease, opacity 120ms ease, border-color 120ms ease;
               }
 
               button:hover {
@@ -747,181 +967,437 @@ def build_html(preflight: dict[str, Any]) -> str:
                 border: 1px solid rgba(255, 255, 255, 0.1);
               }
 
-              .status-block {
-                display: grid;
-                gap: 12px;
-              }
-
               .command-box,
               .log-box {
-                margin-top: 12px;
-                padding: 12px;
-                border-radius: 14px;
-                flex: 1;
                 min-height: 0;
-                display: flex;
-                flex-direction: column;
-                overflow: hidden;
-                border: 1px solid rgba(255, 255, 255, 0.07);
-                background: rgba(6, 9, 13, 0.82);
-                color: var(--muted);
-                overflow: auto;
               }
 
               .command-box code,
-              .log-box code,
               .log-box pre {
                 margin: 0;
                 white-space: pre-wrap;
-                flex: 1;
-                overflow-y: auto;
-                display: flex;
-                flex-direction: column;
-                justify-content: flex-end;
                 word-break: break-word;
                 font: inherit;
               }
 
               .log-meta {
-                display: flex;
-                justify-content: space-between;
-                gap: 12px;
-                align-items: center;
-                margin-top: 14px;
                 color: var(--muted);
                 font-size: 13px;
               }
 
-              .success-panel {
-                margin-top: 16px;
-                padding: 18px;
-                border-radius: 18px;
-                border: 1px solid rgba(132, 213, 154, 0.28);
-                background: rgba(132, 213, 154, 0.08);
+              .status-card {
+                display: grid;
+                gap: 14px;
               }
 
-              .success-panel[hidden] {
-                display: none;
+              .timeline li {
+                align-items: flex-start;
+              }
+
+              .timeline li strong {
+                display: block;
+                color: var(--text);
+                margin-bottom: 4px;
+              }
+
+              .timeline-state {
+                flex-shrink: 0;
+              }
+
+              .timeline li[data-state="running"] {
+                border-color: rgba(240, 195, 110, 0.28);
+              }
+
+              .timeline li[data-state="done"] {
+                border-color: rgba(132, 213, 154, 0.24);
+              }
+
+              .timeline li[data-state="failed"] {
+                border-color: rgba(244, 140, 127, 0.28);
+              }
+
+              .success-panel,
+              .locked-panel {
+                padding: 18px;
+                border-radius: 18px;
+                border: 1px solid rgba(132, 213, 154, 0.24);
+                background: rgba(132, 213, 154, 0.08);
+                display: grid;
+                gap: 12px;
+              }
+
+              .locked-panel {
+                border-color: rgba(240, 195, 110, 0.22);
+                background: rgba(240, 195, 110, 0.08);
               }
 
               .next-steps {
-                display: grid;
                 gap: 8px;
-                margin-top: 12px;
               }
 
-              .footer-note {
-                margin-top: 24px;
-                padding-top: 16px;
-                border-top: 1px solid rgba(255, 255, 255, 0.08);
+              .next-steps li::before,
+              .decision-points li::before,
+              .bullet-list li::before {
+                content: ">";
+                color: var(--copper);
+                margin-right: 10px;
+              }
+
+              .next-steps li,
+              .decision-points li,
+              .bullet-list li {
+                display: flex;
+                align-items: flex-start;
+              }
+
+              .footer {
+                padding: 0 14px 14px;
+              }
+
+              .footer-hint {
+                flex: 1;
+                text-align: center;
+              }
+
+              .nav-button {
+                min-width: 120px;
+              }
+
+              .guide-feedback {
+                min-height: 1.3em;
                 color: var(--muted);
-                font-size: 13px;
+              }
+
+              .muted-strong {
+                color: var(--muted-strong);
+              }
+
+              @keyframes fade-in {
+                from {
+                  opacity: 0;
+                  transform: translateY(8px);
+                }
+                to {
+                  opacity: 1;
+                  transform: translateY(0);
+                }
               }
 
               @media (max-width: 960px) {
-                .hero,
-                .page-grid {
+                body {
+                  padding: 10px;
+                }
+
+                .shell {
                   grid-template-columns: 1fr;
+                  min-height: auto;
+                }
+
+                .rail {
+                  border-right: 0;
+                  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+                }
+
+                .main {
+                  padding: 0 10px 10px;
+                }
+
+                .progress {
+                  grid-template-columns: repeat(3, minmax(0, 1fr));
+                }
+
+                .lead-grid,
+                .install-grid,
+                .category-grid,
+                .summary-grid {
+                  grid-template-columns: 1fr;
+                }
+
+                .footer {
+                  flex-wrap: wrap;
+                  justify-content: center;
                 }
               }
             </style>
           </head>
           <body>
             <div class="shell">
-              <section class="hero">
-                <article class="hero-copy">
+              <aside class="rail">
+                <section class="rail-card rail-brand">
                   <div class="eyebrow">Guided install</div>
-                  <h1>
-                    <span class="hero-brand">%%HEADER%%</span>
-                    Ship AI-built software without the vibe hangover
-                  </h1>
-                  <p class="hero-lead">
-                    The release engine for AI-built software. This guided installer keeps the real install
-                    contract intact, but gives founders and operators a calmer front door than raw terminal prompts.
+                  <strong>%%HEADER%%</strong>
+                  <h1>Ship AI-built software without the vibe hangover</h1>
+                  <p class="rail-lead">
+                    Wizard-first onboarding for founders and operators. Same repo-owned installer truth, calmer rhythm.
                   </p>
-                  
-                </article>
-                <aside class="hero-side">
-                  <div class="eyebrow">Current surface</div>
-                  <ul class="stats">
-                    <li><span>Framework</span><strong id="version-value"></strong></li>
-                    <li><span>Source</span><strong id="source-value"></strong></li>
-                    <li><span>Guide</span><strong id="guide-value"></strong></li>
-                    <li><span>Helpers</span><strong id="helper-value"></strong></li>
-                  </ul>
-                  <p class="panel-copy">%%TAGLINE%%</p>
-                  <p class="panel-copy">%%PRODUCT_LINE%%</p>
-                </aside>
-              </section>
+                </section>
 
-              <section class="page-grid">
-                <article class="panel">
-                  <h2 class="section-title">What this path does</h2>
-                  <p class="section-copy">
-                    This GUI is intentionally thin. It does not invent a parallel installer; it wraps the repo-owned
-                    foundation bootstrap plus the compact flow, streams the real log, and keeps the launch-ready
-                    onboarding surface aligned with what the product actually promises.
-                  </p>
-                  
-
-                  <div class="category-grid" id="category-grid"></div>
-                </article>
-
-                <article class="panel">
-                  <h2 class="section-title">Start install</h2>
-                  <p class="section-copy">
-                    Recommended for onboarding founders, PMs, or teammates who should trust the path before they start
-                    memorizing commands.
-                  </p>
-                  <form class="install-form" id="install-form">
-                    <label class="toggle" for="with-shell">
-                      <input checked id="with-shell" name="with-shell" type="checkbox">
-                      <span>
-                        <strong>Install shell helpers</strong><br>
-                        Add the optional helper layer so `vc-*` wrappers and the command deck are available in future sessions.
-                      </span>
-                    </label>
-                    <div class="button-row">
-                      <button class="primary" id="install-button" type="submit">Launch guided install</button>
-                      <button class="secondary" id="open-guide-button" type="button">Open START_HERE</button>
+                <section class="rail-card">
+                  <div class="counts">
+                    <div class="count">
+                      <span>Ready now</span>
+                      <strong id="ready-count">0</strong>
                     </div>
-                  </form>
-                  <div class="status-block">
-                    <div class="chip" id="status-chip">Waiting for approval</div>
-                    <p class="status-text" id="status-text">
-                      Review the preflight cards, then start the install when the machine shape looks right.
-                    </p>
-                    <p class="guide-feedback" id="guide-feedback"></p>
+                    <div class="count">
+                      <span>Needs install</span>
+                      <strong id="missing-count">0</strong>
+                    </div>
                   </div>
+                </section>
 
-                  <div class="command-box">
-                    <code id="command-line">Install command will appear here.</code>
+                <section class="rail-card facts">
+                  <div class="fact">
+                    <span>Framework</span>
+                    <strong id="version-value"></strong>
                   </div>
-
-                  <div class="log-box">
-                    <pre id="log-output">No install has run yet.</pre>
+                  <div class="fact">
+                    <span>Source</span>
+                    <strong id="source-value"></strong>
                   </div>
-
-                  <div class="log-meta">
-                    <span id="log-lines">0 lines captured</span>
-                    <span id="status-meta">Compact mode, repo-owned installer truth.</span>
+                  <div class="fact">
+                    <span>Guide</span>
+                    <strong id="guide-value"></strong>
                   </div>
+                  <div class="fact">
+                    <span>Helpers</span>
+                    <strong id="helper-value"></strong>
+                  </div>
+                </section>
 
-                  <section class="success-panel" hidden id="success-panel">
-                    <strong>Install finished.</strong>
-                    <p class="panel-copy">
-                      Use the guide for the plain-language onboarding path, then run the command deck where the real work begins.
-                    </p>
-                    <ul class="next-steps">
-                      <li><code>vibecrafted help</code></li>
-                      <li><code>vibecrafted doctor</code></li>
-                      <li><code>vibecrafted init claude</code></li>
-                    </ul>
-                  </section>
-                </article>
-              </section>
+                <section class="rail-card rail-mini">
+                  <div class="eyebrow">Why this shape</div>
+                  <p class="rail-lead">%%TAGLINE%%</p>
+                  <p class="slide-note">%%PRODUCT_LINE%%</p>
+                  <code class="fallback-code">make wizard</code>
+                  <p class="slide-note">
+                    Terminal-native fallback stays available for operators who prefer the TUI rhythm. The browser path is the effortless public front door.
+                  </p>
+                </section>
+              </aside>
 
-              
+              <main class="main">
+                <ol class="progress main-card" id="wizard-progress">
+                  <li>
+                    <button class="progress-button" data-step="0" type="button">
+                      <span class="progress-dot"></span>
+                      <span class="progress-meta"><span>01</span><strong>Welcome</strong></span>
+                    </button>
+                  </li>
+                  <li>
+                    <button class="progress-button" data-step="1" type="button">
+                      <span class="progress-dot"></span>
+                      <span class="progress-meta"><span>02</span><strong>Explain</strong></span>
+                    </button>
+                  </li>
+                  <li>
+                    <button class="progress-button" data-step="2" type="button">
+                      <span class="progress-dot"></span>
+                      <span class="progress-meta"><span>03</span><strong>Diagnostics</strong></span>
+                    </button>
+                  </li>
+                  <li>
+                    <button class="progress-button" data-step="3" type="button">
+                      <span class="progress-dot"></span>
+                      <span class="progress-meta"><span>04</span><strong>Checklist</strong></span>
+                    </button>
+                  </li>
+                  <li>
+                    <button class="progress-button" data-step="4" type="button">
+                      <span class="progress-dot"></span>
+                      <span class="progress-meta"><span>05</span><strong>Install</strong></span>
+                    </button>
+                  </li>
+                  <li>
+                    <button class="progress-button" data-step="5" type="button">
+                      <span class="progress-dot"></span>
+                      <span class="progress-meta"><span>06</span><strong>Finish</strong></span>
+                    </button>
+                  </li>
+                </ol>
+
+                <section class="stage">
+                  <div class="slides">
+                    <article class="slide is-active" data-step="0">
+                      <section class="slide-card">
+                        <div class="eyebrow">Step 1 of 6</div>
+                        <h2 class="slide-title">Welcome to the guided install</h2>
+                        <div class="slide-body">
+                          <div class="lead-grid">
+                            <div class="main-card">
+                              <p class="slide-copy">
+                                This setup stages the control plane, checks the machine shape, and only then runs the real repo-owned install flow.
+                              </p>
+                            </div>
+                            <div class="main-card">
+                              <p class="slide-copy">
+                                Until you explicitly launch the install, this wizard is read-only. It explains what changes, why it matters, and how to back out.
+                              </p>
+                            </div>
+                          </div>
+                          <ul class="bullet-list">
+                            <li>Foundations are bootstrapped before workflow skills touch your runtime.</li>
+                            <li>The browser surface stays thin on purpose: one mutation engine, one live log, one truthful outcome.</li>
+                            <li>The result should feel like onboarding, not like scrolling through raw terminal entropy.</li>
+                          </ul>
+                        </div>
+                      </section>
+                    </article>
+
+                    <article class="slide" data-step="1">
+                      <section class="slide-card">
+                        <div class="eyebrow">Step 2 of 6</div>
+                        <h2 class="slide-title">What this wizard is doing for you</h2>
+                        <div class="slide-body">
+                          <ul class="decision-points">
+                            <li>TwinSweep-style effortlessness: local web surface, lower-friction first run, readable trust contract.</li>
+                            <li>`rmcp-memex`-style wizard rhythm: welcome, detection, checklist, explicit execution, clean finish state.</li>
+                            <li>No parallel installer universe: the GUI wraps the same compact install truth used by automation.</li>
+                          </ul>
+                          <div class="summary-grid">
+                            <section class="summary-card">
+                              <h3>Human front door</h3>
+                              <p class="summary-copy">
+                                Recommended for founders, PMs, and teammates who should understand the machine shape before they start memorizing commands.
+                              </p>
+                            </section>
+                            <section class="summary-card">
+                              <h3>Terminal fallback</h3>
+                              <p class="summary-copy">
+                                `make wizard` stays available as the expert path. Useful when you want the same cadence directly inside the terminal.
+                              </p>
+                            </section>
+                          </div>
+                        </div>
+                      </section>
+                    </article>
+
+                    <article class="slide" data-step="2">
+                      <section class="slide-card">
+                        <div class="eyebrow">Step 3 of 6</div>
+                        <h2 class="slide-title">Preflight diagnostics</h2>
+                        <div class="slide-body">
+                          <p class="slide-copy" id="diagnostic-summary">
+                            We check the current framework surface, foundations, toolchains, agent CLIs, and helper tools before touching the filesystem.
+                          </p>
+                          <div class="category-grid" id="category-grid"></div>
+                        </div>
+                      </section>
+                    </article>
+
+                    <article class="slide" data-step="3">
+                      <section class="slide-card">
+                        <div class="eyebrow">Step 4 of 6</div>
+                        <h2 class="slide-title">Checklist and install choices</h2>
+                        <div class="slide-body">
+                          <div class="summary-grid">
+                            <section class="summary-card">
+                              <h3>Already ready</h3>
+                              <ul class="compact-list" id="ready-list"></ul>
+                            </section>
+                            <section class="summary-card">
+                              <h3>We will install</h3>
+                              <ul class="compact-list" id="missing-list"></ul>
+                            </section>
+                          </div>
+
+                          <section class="summary-card">
+                            <h3>Execution stages</h3>
+                            <ul class="compact-list" id="plan-list"></ul>
+                          </section>
+
+                          <form class="install-form" id="install-form">
+                            <label class="toggle" for="with-shell">
+                              <input checked id="with-shell" name="with-shell" type="checkbox">
+                              <span>
+                                <strong>Install shell helpers</strong><br>
+                                Add the optional helper layer so `vc-*` wrappers and the command deck are available in future sessions.
+                              </span>
+                            </label>
+                          </form>
+                        </div>
+                      </section>
+                    </article>
+
+                    <article class="slide" data-step="4">
+                      <section class="slide-card">
+                        <div class="eyebrow">Step 5 of 6</div>
+                        <h2 class="slide-title">Launch the real installer</h2>
+                        <div class="slide-body">
+                          <div class="install-grid">
+                            <section class="status-card">
+                              <div class="chip" id="status-chip">Ready to launch</div>
+                              <p class="status-copy" id="status-text">
+                                Review the command preview and launch when the machine shape looks right.
+                              </p>
+                              <ul class="timeline" id="status-plan"></ul>
+                              <div class="button-row">
+                                <button class="primary" id="install-button" type="button">Launch guided install</button>
+                                <button class="secondary open-guide-button" type="button">Open START_HERE</button>
+                              </div>
+                              <p class="guide-feedback" id="guide-feedback"></p>
+                            </section>
+                            <section class="status-card">
+                              <h3>Command preview</h3>
+                              <div class="command-box">
+                                <code id="command-line">Install command will appear here.</code>
+                              </div>
+                              <div class="log-meta">
+                                <span id="log-lines">0 lines captured</span>
+                                <span id="status-meta">Compact mode, repo-owned installer truth.</span>
+                              </div>
+                            </section>
+                          </div>
+                          <section class="status-card">
+                            <h3>Live output</h3>
+                            <div class="log-box">
+                              <pre id="log-output">No install has run yet.</pre>
+                            </div>
+                          </section>
+                        </div>
+                      </section>
+                    </article>
+
+                    <article class="slide" data-step="5">
+                      <section class="slide-card">
+                        <div class="eyebrow">Step 6 of 6</div>
+                        <h2 class="slide-title">Finish state</h2>
+                        <div class="slide-body">
+                          <section class="success-panel" id="finish-panel" hidden>
+                            <strong>Install finished cleanly.</strong>
+                            <p class="summary-copy" id="finish-summary">
+                              The guided path completed. Use START_HERE for the plain-language onboarding flow, then switch to the command deck where the real work begins.
+                            </p>
+                            <ul class="next-steps">
+                              <li><code>vibecrafted help</code></li>
+                              <li><code>vibecrafted doctor</code></li>
+                              <li><code>vibecrafted init claude</code></li>
+                            </ul>
+                            <div class="button-row">
+                              <button class="secondary open-guide-button" type="button">Open START_HERE</button>
+                            </div>
+                            <p class="guide-feedback" id="finish-feedback"></p>
+                          </section>
+
+                          <section class="locked-panel" id="finish-locked">
+                            <strong>Finish unlocks after install.</strong>
+                            <p class="summary-copy">
+                              Run the install first. Once the repo-owned flow exits cleanly, this step becomes the handoff surface for the next commands.
+                            </p>
+                          </section>
+                        </div>
+                      </section>
+                    </article>
+                  </div>
+                </section>
+
+                <footer class="footer">
+                  <button class="secondary nav-button" id="back-button" type="button">Back</button>
+                  <p class="footer-hint" id="footer-hint">
+                    Welcome. This flow stays explanatory until you explicitly start the install.
+                  </p>
+                  <button class="primary nav-button" id="next-button" type="button">Continue</button>
+                </footer>
+              </main>
             </div>
 
             <script>
@@ -934,22 +1410,46 @@ def build_html(preflight: dict[str, Any]) -> str:
                 source: document.getElementById('source-value'),
                 guide: document.getElementById('guide-value'),
                 helper: document.getElementById('helper-value'),
+                readyCount: document.getElementById('ready-count'),
+                missingCount: document.getElementById('missing-count'),
                 categoryGrid: document.getElementById('category-grid'),
+                diagnosticSummary: document.getElementById('diagnostic-summary'),
+                readyList: document.getElementById('ready-list'),
+                missingList: document.getElementById('missing-list'),
+                planList: document.getElementById('plan-list'),
                 installForm: document.getElementById('install-form'),
                 withShell: document.getElementById('with-shell'),
                 installButton: document.getElementById('install-button'),
-                openGuideButton: document.getElementById('open-guide-button'),
                 statusChip: document.getElementById('status-chip'),
                 statusText: document.getElementById('status-text'),
-                guideFeedback: document.getElementById('guide-feedback'),
                 commandLine: document.getElementById('command-line'),
                 logOutput: document.getElementById('log-output'),
                 logLines: document.getElementById('log-lines'),
                 statusMeta: document.getElementById('status-meta'),
-                successPanel: document.getElementById('success-panel'),
+                statusPlan: document.getElementById('status-plan'),
+                finishPanel: document.getElementById('finish-panel'),
+                finishLocked: document.getElementById('finish-locked'),
+                finishSummary: document.getElementById('finish-summary'),
+                guideFeedbackNodes: Array.from(document.querySelectorAll('.guide-feedback')),
+                backButton: document.getElementById('back-button'),
+                nextButton: document.getElementById('next-button'),
+                footerHint: document.getElementById('footer-hint'),
+                progressButtons: Array.from(document.querySelectorAll('.progress-button')),
+                slides: Array.from(document.querySelectorAll('.slide')),
+                openGuideButtons: Array.from(document.querySelectorAll('.open-guide-button')),
               };
 
               let pollTimer = null;
+              let currentStep = 0;
+              let latestStatus = boot.status;
+              const stepHints = [
+                'Welcome. This flow stays explanatory until you explicitly start the install.',
+                'The GUI is the public front door, but it still runs the repo-owned installer truth.',
+                'Diagnostics show what is already present and what still needs to be materialized.',
+                'This is the consent and checklist step. Decide whether shell helpers should be installed.',
+                'Launch the install and watch the real stages stream live.',
+                'Finish state: handoff to START_HERE and the command deck.',
+              ];
 
               function escapeHtml(value) {
                 return String(value)
@@ -961,8 +1461,58 @@ def build_html(preflight: dict[str, Any]) -> str:
               }
 
               function statusClass(found) {
-                if (found) return 'chip ok';
-                return 'chip warn';
+                return found ? 'status-pill status-pill--ok' : 'status-pill status-pill--warn';
+              }
+
+              function setGuideFeedback(message) {
+                dom.guideFeedbackNodes.forEach((node) => {
+                  node.textContent = message || '';
+                });
+              }
+
+              function previewPlanCommands() {
+                return (boot.install_plan || []).map((step) => (
+                  dom.withShell.checked
+                    ? step.command
+                    : step.command.replace(' --with-shell', '')
+                ));
+              }
+
+              function installSucceeded(status) {
+                return Boolean(status.completed && status.exit_code === 0);
+              }
+
+              function maxAccessibleStep() {
+                return installSucceeded(latestStatus) ? 5 : 4;
+              }
+
+              function setStep(targetStep) {
+                const nextStep = Math.max(0, Math.min(targetStep, maxAccessibleStep()));
+                currentStep = nextStep;
+
+                dom.slides.forEach((slide) => {
+                  slide.classList.toggle('is-active', Number(slide.dataset.step) === currentStep);
+                });
+
+                dom.progressButtons.forEach((button) => {
+                  const step = Number(button.dataset.step);
+                  const isActive = step === currentStep;
+                  const isComplete = step < currentStep || (installSucceeded(latestStatus) && step === 5);
+                  const isLocked = step > maxAccessibleStep();
+                  button.classList.toggle('is-active', isActive);
+                  button.classList.toggle('is-complete', isComplete);
+                  button.disabled = isLocked;
+                });
+
+                dom.backButton.disabled = currentStep === 0 || latestStatus.running;
+                if (currentStep >= 4) {
+                  dom.nextButton.hidden = true;
+                } else {
+                  dom.nextButton.hidden = false;
+                  dom.nextButton.disabled = latestStatus.running;
+                  dom.nextButton.textContent = currentStep === 3 ? 'Go to install' : 'Continue';
+                }
+                dom.footerHint.textContent = stepHints[currentStep];
               }
 
               function renderBoot() {
@@ -970,16 +1520,17 @@ def build_html(preflight: dict[str, Any]) -> str:
                 dom.source.textContent = boot.source_dir_display;
                 dom.guide.textContent = boot.guide_path_display;
                 dom.helper.textContent = boot.helper_path_display;
-                dom.openGuideButton.disabled = false;
+                dom.readyCount.textContent = String(boot.found_count || 0);
+                dom.missingCount.textContent = String(boot.missing_count || 0);
+                dom.diagnosticSummary.textContent = boot.missing_count
+                  ? `We found ${boot.found_count} ready surface(s) and ${boot.missing_count} missing or incomplete item(s).`
+                  : `Everything required for the public surface is already present on this machine.`;
 
                 dom.categoryGrid.innerHTML = boot.categories.map((category) => {
                   const items = category.items.map((item) => `
                     <li>
-                      <div class="item-line">
-                        <span>${escapeHtml(item.label)}</span>
-                        <span class="${statusClass(item.found)}">${item.found ? 'ready' : 'missing'}</span>
-                      </div>
-                      <div class="item-detail">${escapeHtml(item.detail)}</div>
+                      <span>${escapeHtml(item.label)}</span>
+                      <span class="${statusClass(item.found)}">${item.found ? 'ready' : 'missing'}</span>
                     </li>
                   `).join('');
                   return `
@@ -993,38 +1544,110 @@ def build_html(preflight: dict[str, Any]) -> str:
                   `;
                 }).join('');
 
-                renderStatus(boot.status);
+                dom.readyList.innerHTML = (boot.found_items && boot.found_items.length)
+                  ? boot.found_items.map((item) => `<li>${escapeHtml(item)}</li>`).join('')
+                  : '<li>Nothing detected yet.</li>';
+
+                dom.missingList.innerHTML = (boot.missing_items && boot.missing_items.length)
+                  ? boot.missing_items.map((item) => `<li>${escapeHtml(item)}</li>`).join('')
+                  : '<li>Nothing missing. This machine already looks ready.</li>';
+
+                dom.planList.innerHTML = (boot.install_plan && boot.install_plan.length)
+                  ? boot.install_plan.map((step) => `<li><strong>${escapeHtml(step.label)}</strong><div class="item-detail">${escapeHtml(step.command)}</div></li>`).join('')
+                  : '<li>Install plan is not available for this source tree.</li>';
+
+                renderStatus(latestStatus);
+                setStep(0);
+              }
+
+              function renderPlan(status) {
+                const labels = (status.plan_labels && status.plan_labels.length)
+                  ? status.plan_labels
+                  : (boot.install_plan || []).map((step) => step.label);
+                const seenStages = new Set(
+                  (status.output || [])
+                    .filter((line) => line.startsWith('[stage] '))
+                    .map((line) => line.slice(8).trim())
+                );
+
+                dom.statusPlan.innerHTML = labels.map((label) => {
+                  let state = 'pending';
+                  if (status.running && status.current_stage === label) {
+                    state = 'running';
+                  } else if (status.completed && status.exit_code !== 0 && status.current_stage === label) {
+                    state = 'failed';
+                  } else if (installSucceeded(status) || seenStages.has(label)) {
+                    state = 'done';
+                  }
+
+                  const badgeClass = state === 'done'
+                    ? 'status-pill status-pill--ok'
+                    : state === 'running'
+                      ? 'status-pill status-pill--warn'
+                      : state === 'failed'
+                        ? 'status-pill status-pill--fail'
+                        : 'status-pill';
+
+                  const badgeText = state === 'done'
+                    ? 'done'
+                    : state === 'running'
+                      ? 'running'
+                      : state === 'failed'
+                        ? 'failed'
+                        : 'pending';
+
+                  return `
+                    <li data-state="${state}">
+                      <div>
+                        <strong>${escapeHtml(label)}</strong>
+                        <div class="item-detail">${state === 'running' ? 'Streaming live output now.' : state === 'done' ? 'Completed in this run.' : state === 'failed' ? 'Review the log before retrying.' : 'Queued for execution.'}</div>
+                      </div>
+                      <span class="timeline-state ${badgeClass}">${badgeText}</span>
+                    </li>
+                  `;
+                }).join('');
               }
 
               function renderStatus(status) {
-                const commandDisplay = status.command_display || 'Install command will appear here.';
+                latestStatus = status;
+                const commandDisplay = status.command_display || previewPlanCommands().join(' && ') || 'Install command will appear here.';
                 dom.commandLine.textContent = commandDisplay;
                 dom.logOutput.textContent = status.output && status.output.length
                   ? status.output.join('\\n')
                   : 'No install has run yet.';
                 dom.logLines.textContent = `${status.output_line_count || 0} lines captured`;
+                renderPlan(status);
 
                 if (status.running) {
                   dom.installButton.disabled = true;
                   dom.withShell.disabled = true;
+                  dom.installButton.textContent = 'Installing...';
                   dom.statusChip.className = 'chip warn';
                   dom.statusChip.textContent = 'Installing';
                   const stage = status.current_stage ? `${status.current_stage} is running now.` : 'The guided install is running now.';
                   dom.statusText.textContent = `${stage} You can leave this window open and watch the live log.`;
                   dom.statusMeta.textContent = 'Streaming repo-owned foundations + compact installer output.';
-                  dom.successPanel.hidden = true;
+                  dom.finishPanel.hidden = true;
+                  dom.finishLocked.hidden = false;
+                  setStep(4);
                   return;
                 }
 
                 dom.installButton.disabled = false;
                 dom.withShell.disabled = false;
+                dom.installButton.textContent = status.completed && status.exit_code !== 0
+                  ? 'Retry guided install'
+                  : 'Launch guided install';
 
-                if (status.completed && status.exit_code === 0) {
+                if (installSucceeded(status)) {
                   dom.statusChip.className = 'chip ok';
                   dom.statusChip.textContent = 'Install complete';
                   dom.statusText.textContent = 'The guided path finished cleanly. Use START_HERE for the plain-language path, then switch to the command deck.';
                   dom.statusMeta.textContent = 'Foundations and installer exited cleanly.';
-                  dom.successPanel.hidden = false;
+                  dom.finishPanel.hidden = false;
+                  dom.finishLocked.hidden = true;
+                  dom.finishSummary.textContent = 'Use the guide for the plain-language onboarding path, then run the command deck where the real work begins.';
+                  setStep(5);
                   return;
                 }
 
@@ -1033,15 +1656,19 @@ def build_html(preflight: dict[str, Any]) -> str:
                   dom.statusChip.textContent = 'Needs attention';
                   dom.statusText.textContent = status.error || `Installer exited with code ${status.exit_code}. Review the log above before retrying.`;
                   dom.statusMeta.textContent = 'The guided shell stayed up so you can inspect the failure.';
-                  dom.successPanel.hidden = true;
+                  dom.finishPanel.hidden = true;
+                  dom.finishLocked.hidden = false;
+                  setStep(4);
                   return;
                 }
 
                 dom.statusChip.className = 'chip';
-                dom.statusChip.textContent = 'Waiting for approval';
+                dom.statusChip.textContent = 'Ready to launch';
                 dom.statusText.textContent = 'Review the preflight cards, then start the install when the machine shape looks right.';
                 dom.statusMeta.textContent = 'Guided foundations + compact mode, repo-owned installer truth.';
-                dom.successPanel.hidden = true;
+                dom.finishPanel.hidden = true;
+                dom.finishLocked.hidden = false;
+                setStep(currentStep);
               }
 
               async function fetchStatus() {
@@ -1066,12 +1693,30 @@ def build_html(preflight: dict[str, Any]) -> str:
                 }
               }
 
+              dom.progressButtons.forEach((button) => {
+                button.addEventListener('click', () => {
+                  setStep(Number(button.dataset.step));
+                });
+              });
+
+              dom.backButton.addEventListener('click', () => {
+                setStep(currentStep - 1);
+              });
+
+              dom.nextButton.addEventListener('click', () => {
+                setStep(currentStep + 1);
+              });
+
+              dom.withShell.addEventListener('change', () => {
+                renderStatus(latestStatus);
+              });
+
               dom.installForm.addEventListener('submit', async (event) => {
                 event.preventDefault();
                 if (pollTimer) {
                   window.clearTimeout(pollTimer);
                 }
-                dom.guideFeedback.textContent = '';
+                setGuideFeedback('');
                 const response = await fetch('/api/install', {
                   method: 'POST',
                   headers: { 'Content-Type': 'application/json' },
@@ -1080,17 +1725,23 @@ def build_html(preflight: dict[str, Any]) -> str:
                 const payload = await response.json();
                 renderStatus(payload);
                 if (payload.message) {
-                  dom.guideFeedback.textContent = payload.message;
+                  setGuideFeedback(payload.message);
                 }
                 if (payload.running) {
                   pollStatus();
                 }
               });
 
-              dom.openGuideButton.addEventListener('click', async () => {
-                const response = await fetch('/api/open-start-here', { method: 'POST' });
-                const payload = await response.json();
-                dom.guideFeedback.textContent = payload.message || '';
+              dom.installButton.addEventListener('click', () => {
+                dom.installForm.requestSubmit();
+              });
+
+              dom.openGuideButtons.forEach((button) => {
+                button.addEventListener('click', async () => {
+                  const response = await fetch('/api/open-start-here', { method: 'POST' });
+                  const payload = await response.json();
+                  setGuideFeedback(payload.message || '');
+                });
               });
 
               renderBoot();

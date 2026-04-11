@@ -1,8 +1,8 @@
 # Submission Forms
 
-Prepared on 2026-04-10 for the current pre-release shape of 𝚅𝚒𝚋𝚎𝚌𝚛𝚊𝚏𝚝𝚎𝚍.
+Prepared on 2026-04-11 for the current pre-release shape of 𝚅𝚒𝚋𝚎𝚌𝚛𝚊𝚏𝚝𝚎𝚍.
 
-Official submit/help surfaces below were re-checked on 2026-04-10 before this pack was refreshed.
+Official submit/help surfaces below were re-checked on 2026-04-11 before this pack was refreshed.
 
 ## Positioning anchor
 
@@ -183,6 +183,7 @@ Every public surface should agree on:
 - FAQ surface: https://www.futuretools.io/faq
 - Notes from the current page:
   The page still says "Matt will review it," so this is curated, not guaranteed.
+  The FAQ surface still exposes the practical queue questions ("I submitted a tool", "When will my tool go live?", "It's been over a week"), so treat approval as editorial throughput, not instant self-serve publishing.
   Future Tools also positions itself as a media/discovery surface tied to 230,000+ subscribers, so submit early and treat this as a credibility surface rather than a same-day traffic spike.
 - Suggested emphasis:
   founders, software teams, shipping AI-coded products, command deck, convergence loops
@@ -205,8 +206,8 @@ Every public surface should agree on:
 
 - Submit URL: https://www.toolify.ai/submit
 - Notes from the current page:
-  Toolify still frames the listing around visibility, trial rate, and paying users, and says the tool stays permanently on the list once accepted.
-  The submit surface also pushes GPT submission, AI certification, update tooling, and launch embeds, so treat it as an SEO/distribution engine rather than a one-day launch board.
+  Toolify's current submit page still frames the listing around visibility, trial rate, and paying users, and now foregrounds 8M+ page views, 5.1M+ monthly visits, and 700K+ subscribers.
+  It also explicitly promises "Listing & Traffic forever" and pushes GPT submission, update tooling, and launch badges, so treat it as an SEO/distribution engine rather than a one-day launch board.
 - Suggested tags:
   developer tools, ai agents, workflow automation, release engineering, test automation
 - Paste-ready emphasis:
@@ -216,8 +217,8 @@ Every public surface should agree on:
 
 - Submit URL: https://topai.tools/submit
 - Notes from the current page:
-  The current submit page says listings are permanent, secured with one payment, and eligible for fast-track review within 24-48 hours.
-  It still emphasizes permanent placement, update service, and durable directory presence, which makes it a good SEO/discovery surface for Vibecrafted after the portal is stable.
+  The current submit page says submissions are reviewed within 48 hours, full refunds are automated if the tool is not accepted, and one payment secures the listing indefinitely.
+  It also emphasizes Quick Update / self-updates for claimed tools and 2M+ qualified monthly users, which makes it a strong SEO/discovery surface once the portal and install CTA are fully stable.
 - Suggested emphasis:
   AI-generated repo hardening, release engineering, verification loops, install path, docs and trust surface
 - Paste-ready emphasis:
@@ -228,7 +229,7 @@ Every public surface should agree on:
 - Posting access guide: https://help.producthunt.com/en/articles/481909-how-can-i-get-access-to-post
 - Launch prep: https://www.producthunt.com/launch/before-launch
 - Notes from the current docs:
-  Product Hunt currently requires a personal account to post; new accounts wait one week before posting unless Product Hunt grants earlier access through the newsletter shortcut.
+  Product Hunt currently requires a personal account to post; company accounts cannot post. New accounts wait one week before posting unless the maker unlocks earlier access through the newsletter shortcut.
   The current before-launch guide still says to get familiar with the community first, fill out the maker profile, and invite your team/community early so they are ready to engage.
   Self-posting is normal; do not plan around paid hunters/promoters.
   Prepare the first maker comment in advance and only launch once the portal, guided install, and demo are all ready for real strangers.

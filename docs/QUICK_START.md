@@ -23,6 +23,7 @@ Asks before touching your shell config. Everything reversible with
 `make -C $VIBECRAFTED_ROOT/.vibecrafted/tools/vibecrafted-current uninstall`.
 
 Inside a local checkout, `make vibecrafted` opens the guided installer and `make install` stays direct/non-interactive.
+If you prefer the terminal-native fallback, run `make wizard`.
 
 After install, open a new terminal or:
 
