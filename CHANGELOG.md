@@ -5,6 +5,8 @@ Format follows [Keep a Changelog](https://keepachangelog.com/).
 
 ## Unreleased
 
+## 1.3.0 — 2026-04-11
+
 ### Added
 
 - Browser-based guided installer: `scripts/installer_gui.py`
@@ -19,7 +21,9 @@ Format follows [Keep a Changelog](https://keepachangelog.com/).
 - Product positioning now leads with the release-engine promise instead of generic framework language
 - Public install docs now explicitly show the guided GUI path for founders and non-terminal operators
 - `install.sh` help text now matches the actual bootstrap paths instead of promising a TUI that was not wired in
+- `install.sh` fallback now prefers the live GitHub source snapshot when the channel manifest is missing, instead of pinning a stale tarball URL
 - Submission forms now cite current adjacent-tool directory evidence and official launch surfaces
+- Frontier / installer copy now talks about the current framework surface instead of a stale frozen version string
 
 ## 1.2.1 — 2026-04-01
 

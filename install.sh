@@ -119,9 +119,9 @@ if [[ -z "$archive_url" && -z "$archive_file" ]]; then
     archive_url="$resolved_url"
     info "Resolved from channel ($ref): $archive_url"
   else
-    # Fallback: frozen URL for offline / pre-channel deployments.
-    archive_url="https://vibecrafted.io/vibecrafted-v1.2.1.tar.gz"
-    info "[note] Channel manifest not available — using frozen v1.2.1 URL"
+    # Fallback: source snapshot for pre-channel / pre-deploy kickoffs.
+    archive_url="https://github.com/VetCoders/vibecrafted/archive/refs/heads/${ref}.tar.gz"
+    info "[note] Channel manifest not available — using GitHub source snapshot for ${ref}"
   fi
 fi
 
