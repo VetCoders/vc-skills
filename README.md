@@ -110,9 +110,9 @@ Use the direct compact path when you are scripting the install or you already kn
 curl -fsSL https://vibecrafted.io/install.sh | bash
 ```
 
-Inside a local checkout, `make vibecrafted` now opens the same browser-based guided installer. `make install` stays as the direct non-interactive path.
+Inside a local checkout, `make vibecrafted` opens the terminal-native installer wizard — the built-in `vetcoders-installer` runner driven from `install.toml`, with reason + consent per phase and cargo-style sticky progress. `make install` stays as the direct non-interactive path for automation.
 
-Prefer the terminal-native fallback? Run `make wizard` to keep the same trust-building cadence directly in the terminal.
+Shell is our everyday workforce entry and all the tools are terminal-native. Nevertheless if you need GUI we also offer it! Run `make wizard` to keep the same trust-building cadence directly in the browser.
 
 Verify:
 
