@@ -66,7 +66,15 @@ class InstallerIntroApp(App):
         Binding("escape", "quit_installer", "Quit", show=True),
         Binding("q", "quit_installer", "Quit", show=False),
         Binding("tab", "toggle_details", "Details", show=True),
+        Binding("up", "scroll_up", show=False),
+        Binding("down", "scroll_down", show=False),
     ]
+
+    def action_scroll_up(self) -> None:
+        self.query_one("#scroll-area", VerticalScroll).scroll_up()
+
+    def action_scroll_down(self) -> None:
+        self.query_one("#scroll-area", VerticalScroll).scroll_down()
 
     def __init__(
         self,
