@@ -24,11 +24,10 @@ The shipping shape is a synthesis of three sources, not a freeform redesign:
 
 - `docs/installer/0_welcome_step.zsh.md` through `5_installation.zsh.md`
   define the trust-building cadence and the mock intent.
-- `rmcp-memex` contributes the disciplined wizard rhythm from
-  `/Users/polyversai/Libraxis/01_deployed_libraxis_vm/rmcp-memex/src/tui/mod.rs`.
-- `TwinSweep` contributes the effortless local-web handoff from
-  `/Users/polyversai/Libraxis/TwinSweep/twinsweep/macos_app.py` and
-  `/Users/polyversai/Libraxis/TwinSweep/twinsweep/server.py`.
+- `rmcp-memex` contributes the disciplined wizard rhythm from its
+  `src/tui/mod.rs`.
+- `TwinSweep` contributes the effortless local-web handoff from its
+  `twinsweep/macos_app.py` and `twinsweep/server.py`.
 
 ## Crosswalk
 

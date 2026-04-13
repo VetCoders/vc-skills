@@ -31,8 +31,7 @@ Why this won:
 
 ### From `rmcp-memex`
 
-The useful inheritance from [`src/tui/mod.rs`](/Users/polyversai/Libraxis/01_deployed_libraxis_vm/rmcp-memex/src/tui/mod.rs)
-is the wizard rhythm:
+The useful inheritance from `rmcp-memex/src/tui/mod.rs` is the wizard rhythm:
 
 - welcome
 - detection / preflight
@@ -46,9 +45,8 @@ need to dictate Vibecrafted's public install surface.
 
 ### From `TwinSweep`
 
-The useful inheritance from [`twinsweep/macos_app.py`](/Users/polyversai/Libraxis/TwinSweep/twinsweep/macos_app.py)
-and [`twinsweep/server.py`](/Users/polyversai/Libraxis/TwinSweep/twinsweep/server.py)
-is the effortless GUI handoff:
+The useful inheritance from `TwinSweep/twinsweep/macos_app.py` and
+`TwinSweep/twinsweep/server.py` is the effortless GUI handoff:
 
 - launch locally without demanding that the operator "live in the terminal"
 - use a health-checked local web surface as the interaction layer
