@@ -3748,10 +3748,10 @@ def cmd_uninstall(args: argparse.Namespace) -> int:
     ]
 
     # Use manifest if available, otherwise use bundle names
-    skill_names = state.skills if state.skills else [n for n in bundle]
+    skill_names = state.skills if has_state else [n for n in bundle]
     runtimes = (
         state.runtimes
-        if state.runtimes
+        if has_state
         else [rt for rt in SYMLINK_TARGET_CHOICES if runtime_skills_dir(rt).exists()]
     )
 
