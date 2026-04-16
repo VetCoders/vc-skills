@@ -37,20 +37,20 @@ vc-start
 Then launch this workflow through the command deck, not raw `skills/.../*.sh` paths:
 
 ```bash
-vibecrafted <workflow> <agent> \
+vibecrafted <workflow> \
   --<options> <values> \
   --<parameters> <values> \
   --file '/path/to/plan.md'
 ```
 
 ```bash
-vc-<workflow> <agent> \
+vc-<workflow> \
   --<options> <values> \
   --<parameters> <values> \
   --prompt '<prompt>'
 ```
 
-If `vc-<workflow> <agent>` is invoked outside Zellij, the framework will attach
+If `vc-<workflow>` is invoked outside Zellij, the framework will attach
 or create the operator session and run that workflow in a new tab. Replace
 `<workflow>` with this skill's name. Prefer `--file` for an existing plan or
 artifact and `--prompt` for inline intent.
@@ -58,9 +58,9 @@ artifact and `--prompt` for inline intent.
 ### Concrete dispatch examples
 
 ```bash
-vibecrafted research claude --prompt 'Compare auth libraries for Tauri desktop'
-vc-research codex --prompt 'State of the art for MCP streaming transports'
-vibecrafted research gemini --file /path/to/research-plan.md
+vibecrafted research --prompt 'Compare auth libraries for Tauri desktop'
+vc-research --prompt 'State of the art for MCP streaming transports'
+vibecrafted research --file /path/to/research-plan.md
 ```
 
 <details>
@@ -188,16 +188,15 @@ Canonical operator-facing launch path goes through the command deck:
 ```bash
 PLAN="$VIBECRAFTED_HOME/artifacts/<org>/<repo>/<YYYY_MMDD>/plans/<ts>_<slug>_research-plan.md"
 
-vc-research claude --file "$PLAN"
-vc-research codex --file "$PLAN"
-vc-research gemini --file "$PLAN"
+vc-research --file "$PLAN"
 ```
 
 The repo-owned spawn scripts remain the internal engine behind that surface. Do
 not document raw `bash skills/...spawn.sh` paths as the operator entrypoint.
 
-All three get the same plan. All three work independently. This is intentional —
-divergence between reports reveals blind spots.
+The launcher opens one shared Zellij research tab using `vc-research.kdl`,
+keeps a common `run_id`, and starts claude + codex + gemini against the same
+plan. This is intentional — divergence between reports reveals blind spots.
 
 ### Step 4 — Collect reports
 
@@ -310,7 +309,7 @@ research │                         │
 
 ## Anti-Patterns
 
-- Spawning only one agent (defeats the purpose — use workflow Phase 2 instead)
+- Passing `claude|codex|gemini` to `vc-research` (defeats the purpose — the launcher is the swarm)
 - Giving each agent different questions (they must answer the SAME questions
   independently for triangulation to work)
 - Skipping synthesis and just concatenating reports (the value is in the delta)

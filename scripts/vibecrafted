@@ -255,14 +255,23 @@ cmd_skill_help() {
   local agent="${2:-<claude|codex|gemini>}"
   local wrapper="vc-$skill"
 
+  if [[ "$skill" == "research" ]]; then
+    agent=""
+  fi
+
   printf '\n'
   printf '%b⚒%b  %b%s%b\n' "$_copper" "$_reset" "$_bold" "$skill" "$_reset"
   printf '%b─────────────────────────────────────────%b\n' "$_steel" "$_reset"
   printf '  %s' "$(_skill_summary "$skill")"
   printf '\n'
   printf '%bUsage:%b\n' "$_bold" "$_reset"
-  printf '  vibecrafted %s %s [flags]\n' "$skill" "$agent"
-  printf '  %s %s [flags]\n' "$wrapper" "$agent"
+  if [[ -n "$agent" ]]; then
+    printf '  vibecrafted %s %s [flags]\n' "$skill" "$agent"
+    printf '  %s %s [flags]\n' "$wrapper" "$agent"
+  else
+    printf '  vibecrafted %s [flags]\n' "$skill"
+    printf '  %s [flags]\n' "$wrapper"
+  fi
   if [[ "$skill" == "marbles" ]]; then
     printf '  vibecrafted marbles <pause|stop|resume|session|inspect|delete> [args]\n'
     printf '  vc-marbles <pause|stop|resume|session|inspect|delete> [args]\n'
@@ -295,8 +304,8 @@ cmd_skill_help() {
       printf '  vc-review claude --file /path/to/pr-brief.md\n'
       ;;
     research)
-      printf '  vibecrafted research gemini --prompt "Research the API surface"\n'
-      printf '  vc-research codex --file /path/to/question-set.md\n'
+      printf '  vibecrafted research --prompt "Research the API surface"\n'
+      printf '  vc-research --file /path/to/question-set.md\n'
       ;;
     *)
       printf '  vibecrafted %s codex --prompt "Run %s on this repository"\n' "$skill" "$skill"
@@ -1100,6 +1109,12 @@ run_skill() {
 
   if [[ "$skill" == "init" ]]; then
     cmd_init "$agent" "$@"
+    return
+  fi
+
+  if [[ "$skill" == "research" ]]; then
+    _ensure_helpers_loaded || return 1
+    _run_helper "vc-research" "${agent:+$agent}" "$@"
     return
   fi
 
