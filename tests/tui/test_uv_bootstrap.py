@@ -203,7 +203,7 @@ def test_makefile_vibecrafted_dry_run_keeps_path_before_uv_run(
     # No blank line between `export PATH` and `uv run` — same shell.
     segment = out[idx_export:idx_uv]
     assert "\n\n" not in segment, (
-        "Detected shell boundary between `fi` and `uv run` in make -n "
+        "Detected shell boundary between `export PATH` and `uv run` in make -n "
         f"output; PATH export would not survive. Segment:\n{segment!r}"
     )
 
@@ -224,7 +224,7 @@ def test_makefile_install_dry_run_keeps_path_before_uv_run(
     assert idx_export < idx_uv
     segment = out[idx_export:idx_uv]
     assert "\n\n" not in segment, (
-        "Detected shell boundary between `fi` and `uv run` in install "
+        "Detected shell boundary between `export PATH` and `uv run` in install "
         f"recipe make -n output. Segment:\n{segment!r}"
     )
 
