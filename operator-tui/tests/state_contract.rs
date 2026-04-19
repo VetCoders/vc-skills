@@ -4,7 +4,7 @@ use std::path::Path;
 use std::time::Duration;
 
 use tempfile::tempdir;
-use vibecrafted_operator::app::{App, DeepAction, LaunchFocus};
+use vibecrafted_operator::app::{App, AppTab, DeepAction, DispatchFocus, LaunchFocus};
 use vibecrafted_operator::config::AppConfig;
 use vibecrafted_operator::launch::{
     LaunchKind, LaunchRequest, LaunchRuntime, build_launch_command,
@@ -148,11 +148,7 @@ fn marbles_launches_keep_runtime_root_and_loop_controls() {
         root.to_string_lossy()
     );
 
-    if cfg!(target_os = "macos") {
-        assert_eq!(command.program, Path::new("zellij"));
-    } else {
-        assert_eq!(command.program, Path::new("zellij"));
-    }
+    assert_eq!(command.program, Path::new("zellij"));
 
     assert!(args.windows(2).any(|pair| {
         pair == [
@@ -265,10 +261,12 @@ fn deep_controls_expose_attach_resume_and_artifacts() {
         state: ControlPlaneState::empty("/tmp/state"),
         runs: vec![run],
         selected: 0,
+        active_tab: AppTab::Monitor.index(),
         launch_kind: LaunchKind::Workflow,
         launch_agent: 0,
         launch_prompt: "Ship it".to_string(),
         launch_runtime: LaunchRuntime::Terminal,
+        dispatch_selected: DispatchFocus::Kind as usize,
         focus: LaunchFocus::Browse,
         status_line: String::new(),
         launch_history: Vec::new(),
@@ -304,10 +302,12 @@ fn empty_state_detail_lines_offer_human_quick_start() {
         state: ControlPlaneState::empty("/tmp/state"),
         runs: vec![],
         selected: 0,
+        active_tab: AppTab::Monitor.index(),
         launch_kind: LaunchKind::Workflow,
         launch_agent: 0,
         launch_prompt: "Ship it".to_string(),
         launch_runtime: LaunchRuntime::Terminal,
+        dispatch_selected: DispatchFocus::Kind as usize,
         focus: LaunchFocus::Browse,
         status_line: String::new(),
         launch_history: Vec::new(),
@@ -334,10 +334,12 @@ fn prompt_lines_include_human_kind_copy_and_command_preview() {
         state: ControlPlaneState::empty("/tmp/state"),
         runs: vec![],
         selected: 0,
+        active_tab: AppTab::Dispatch.index(),
         launch_kind: LaunchKind::Research,
         launch_agent: 1,
         launch_prompt: "Research the launcher surface.".to_string(),
         launch_runtime: LaunchRuntime::Visible,
+        dispatch_selected: DispatchFocus::Kind as usize,
         focus: LaunchFocus::Browse,
         status_line: String::new(),
         launch_history: Vec::new(),
@@ -350,5 +352,44 @@ fn prompt_lines_include_human_kind_copy_and_command_preview() {
     assert!(lines.iter().any(|line| line.contains("command:")
         && line.contains("zellij")
         && line.contains("research")));
-    assert!(lines.iter().any(|line| line.contains("cycle agent")));
+    assert!(lines.iter().any(|line| line.contains("Arrows:")));
+}
+
+#[test]
+fn tab_navigation_wraps_and_dispatch_focus_tracks_selected_field() {
+    let mut app = App {
+        config: AppConfig {
+            state_root: "/tmp/state".into(),
+            command_deck: "/usr/bin/vibecrafted".into(),
+            launch_root: "/tmp/repo".into(),
+            launch_runtime: LaunchRuntime::Terminal,
+            tick_rate: Duration::from_millis(250),
+        },
+        state: ControlPlaneState::empty("/tmp/state"),
+        runs: vec![],
+        selected: 0,
+        active_tab: AppTab::Monitor.index(),
+        launch_kind: LaunchKind::Workflow,
+        launch_agent: 0,
+        launch_prompt: "Ship it".to_string(),
+        launch_runtime: LaunchRuntime::Terminal,
+        dispatch_selected: DispatchFocus::Kind as usize,
+        focus: LaunchFocus::Browse,
+        status_line: String::new(),
+        launch_history: Vec::new(),
+        deep_selected: 0,
+        filter_active_only: false,
+    };
+
+    app.previous_tab();
+    assert_eq!(app.active_tab(), AppTab::Controls);
+
+    app.next_tab();
+    assert_eq!(app.active_tab(), AppTab::Monitor);
+
+    app.move_dispatch_selection(1);
+    assert_eq!(app.dispatch_focus(), DispatchFocus::Agent);
+
+    app.move_dispatch_selection(2);
+    assert_eq!(app.dispatch_focus(), DispatchFocus::Prompt);
 }

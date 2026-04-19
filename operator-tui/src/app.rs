@@ -7,10 +7,57 @@ use std::collections::BTreeMap;
 use std::path::PathBuf;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum AppTab {
+    Monitor,
+    Dispatch,
+    Controls,
+}
+
+impl AppTab {
+    pub const TITLES: [&'static str; 3] = ["Monitor", "Dispatch", "Controls"];
+
+    pub fn from_index(index: usize) -> Self {
+        match index % Self::TITLES.len() {
+            0 => Self::Monitor,
+            1 => Self::Dispatch,
+            _ => Self::Controls,
+        }
+    }
+
+    pub fn index(self) -> usize {
+        match self {
+            Self::Monitor => 0,
+            Self::Dispatch => 1,
+            Self::Controls => 2,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum DispatchFocus {
+    Kind,
+    Agent,
+    Runtime,
+    Prompt,
+}
+
+impl DispatchFocus {
+    pub const COUNT: usize = 4;
+
+    pub fn from_index(index: usize) -> Self {
+        match index % Self::COUNT {
+            0 => Self::Kind,
+            1 => Self::Agent,
+            2 => Self::Runtime,
+            _ => Self::Prompt,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum LaunchFocus {
     Browse,
     EditPrompt,
-    DeepControls,
     Help,
 }
 
@@ -49,10 +96,12 @@ pub struct App {
     pub state: ControlPlaneState,
     pub runs: Vec<RenderedRun>,
     pub selected: usize,
+    pub active_tab: usize,
     pub launch_kind: LaunchKind,
     pub launch_agent: usize,
     pub launch_prompt: String,
     pub launch_runtime: LaunchRuntime,
+    pub dispatch_selected: usize,
     pub focus: LaunchFocus,
     pub status_line: String,
     pub launch_history: Vec<String>,
@@ -71,10 +120,12 @@ impl App {
             state,
             runs,
             selected: 0,
+            active_tab: AppTab::Monitor.index(),
             launch_kind: LaunchKind::Workflow,
             launch_agent: 0,
             launch_prompt: default_prompt(LaunchKind::Workflow),
             launch_runtime,
+            dispatch_selected: DispatchFocus::Kind as usize,
             focus: LaunchFocus::Browse,
             status_line: String::new(),
             launch_history: Vec::new(),
@@ -106,22 +157,117 @@ impl App {
         self.runs.get(self.selected)
     }
 
+    pub fn active_tab(&self) -> AppTab {
+        AppTab::from_index(self.active_tab)
+    }
+
+    pub fn next_tab(&mut self) {
+        self.active_tab = (self.active_tab + 1) % AppTab::TITLES.len();
+        self.focus = LaunchFocus::Browse;
+    }
+
+    pub fn previous_tab(&mut self) {
+        self.active_tab = if self.active_tab == 0 {
+            AppTab::TITLES.len() - 1
+        } else {
+            self.active_tab - 1
+        };
+        self.focus = LaunchFocus::Browse;
+    }
+
+    pub fn set_active_tab(&mut self, tab: AppTab) {
+        self.active_tab = tab.index();
+    }
+
     pub fn set_launch_kind(&mut self, kind: LaunchKind) {
         self.launch_kind = kind;
         self.launch_prompt = default_prompt(kind);
+        self.active_tab = AppTab::Dispatch.index();
+        self.dispatch_selected = DispatchFocus::Kind as usize;
         self.focus = LaunchFocus::Browse;
     }
 
     pub fn cycle_agent(&mut self) {
-        self.launch_agent = (self.launch_agent + 1) % agents().len();
+        self.shift_agent(1);
     }
 
     pub fn cycle_runtime(&mut self) {
-        self.launch_runtime = self.launch_runtime.cycle();
+        self.shift_runtime(1);
     }
 
     pub fn selected_agent(&self) -> &'static str {
         agents()[self.launch_agent]
+    }
+
+    pub fn shift_agent(&mut self, delta: isize) {
+        let len = agents().len() as isize;
+        let mut index = self.launch_agent as isize + delta;
+        while index < 0 {
+            index += len;
+        }
+        self.launch_agent = (index % len) as usize;
+    }
+
+    pub fn shift_runtime(&mut self, delta: isize) {
+        let runtimes = [
+            LaunchRuntime::Headless,
+            LaunchRuntime::Terminal,
+            LaunchRuntime::Visible,
+        ];
+        let current = runtimes
+            .iter()
+            .position(|runtime| *runtime == self.launch_runtime)
+            .unwrap_or(1) as isize;
+        let len = runtimes.len() as isize;
+        let mut index = current + delta;
+        while index < 0 {
+            index += len;
+        }
+        self.launch_runtime = runtimes[(index % len) as usize];
+    }
+
+    pub fn shift_launch_kind(&mut self, delta: isize) {
+        let kinds = [
+            LaunchKind::Workflow,
+            LaunchKind::Research,
+            LaunchKind::Review,
+            LaunchKind::Marbles,
+        ];
+        let current = kinds
+            .iter()
+            .position(|kind| *kind == self.launch_kind)
+            .unwrap_or(0) as isize;
+        let len = kinds.len() as isize;
+        let mut index = current + delta;
+        while index < 0 {
+            index += len;
+        }
+        self.launch_kind = kinds[(index % len) as usize];
+        self.launch_prompt = default_prompt(self.launch_kind);
+    }
+
+    pub fn dispatch_focus(&self) -> DispatchFocus {
+        DispatchFocus::from_index(self.dispatch_selected)
+    }
+
+    pub fn move_dispatch_selection(&mut self, delta: isize) {
+        let len = DispatchFocus::COUNT as isize;
+        let mut index = self.dispatch_selected as isize + delta;
+        while index < 0 {
+            index += len;
+        }
+        self.dispatch_selected = (index % len) as usize;
+    }
+
+    pub fn adjust_dispatch_selection(&mut self, delta: isize) {
+        match self.dispatch_focus() {
+            DispatchFocus::Kind => self.shift_launch_kind(delta),
+            DispatchFocus::Agent => self.shift_agent(delta),
+            DispatchFocus::Runtime => self.shift_runtime(delta),
+            DispatchFocus::Prompt => {
+                self.focus = LaunchFocus::EditPrompt;
+            }
+        }
     }
 
     pub fn launch_request(&self) -> LaunchRequest {
@@ -174,9 +320,6 @@ impl App {
         let deep_len = self.deep_actions().len();
         if deep_len == 0 {
             self.deep_selected = 0;
-            if self.focus == LaunchFocus::DeepControls {
-                self.focus = LaunchFocus::Browse;
-            }
         } else if self.deep_selected >= deep_len {
             self.deep_selected = deep_len - 1;
         }
@@ -298,20 +441,29 @@ impl App {
     pub fn prompt_lines(&self) -> Vec<String> {
         let command_preview = self.launch_command().command_line();
         let mut lines = vec![
-            format!(
-                "{}  {}",
-                self.launch_kind.human_title(),
-                self.launch_kind.human_description()
+            dispatch_line(
+                self.dispatch_focus() == DispatchFocus::Kind,
+                format!(
+                    "mission: {}  {}",
+                    self.launch_kind.human_title(),
+                    self.launch_kind.human_description()
+                ),
             ),
-            format!(
-                "agent: {}  runtime: {}",
-                self.selected_agent(),
-                self.launch_runtime.label()
+            dispatch_line(
+                self.dispatch_focus() == DispatchFocus::Agent,
+                format!("agent: {}", self.selected_agent()),
             ),
-            format!("prompt: {}", self.launch_prompt),
+            dispatch_line(
+                self.dispatch_focus() == DispatchFocus::Runtime,
+                format!("runtime: {}", self.launch_runtime.label()),
+            ),
+            dispatch_line(
+                self.dispatch_focus() == DispatchFocus::Prompt,
+                format!("prompt: {}", self.launch_prompt),
+            ),
             String::new(),
-            "Keys: 1 workflow  2 research  3 review  4 marbles".to_string(),
-            "      a cycle agent  v cycle runtime  e edit prompt  Enter launch".to_string(),
+            "Arrows: ↑/↓ choose field  ←/→ change field  Enter launch".to_string(),
+            "Shortcuts: 1-4 mission  a agent  v runtime  e edit prompt".to_string(),
             String::new(),
             format!("root: {}", path_display(&self.config.launch_root)),
             format!("command: {}", command_preview),
@@ -336,8 +488,12 @@ impl App {
             "3 Review    -> audit an existing surface".to_string(),
             "4 Marbles   -> convergence loop for fragile systems".to_string(),
             String::new(),
+            "Tabs".to_string(),
+            "Tab / Shift+Tab switch between Monitor, Dispatch, and Controls.".to_string(),
+            "Monitor keeps the live board. Dispatch shapes the next run. Controls opens attach/report actions.".to_string(),
+            String::new(),
             "Keys".to_string(),
-            "↑/↓ or j/k  move through runs".to_string(),
+            "↑/↓ or j/k  navigate inside the active tab".to_string(),
             "a           cycle launch agent".to_string(),
             "v           cycle runtime (terminal / visible / headless)".to_string(),
             "e           edit launch prompt".to_string(),
@@ -440,7 +596,7 @@ impl App {
             String::new(),
         ];
         lines.extend(actions.iter().enumerate().map(|(idx, action)| {
-            let prefix = if self.focus == LaunchFocus::DeepControls && idx == self.deep_selected {
+            let prefix = if self.active_tab() == AppTab::Controls && idx == self.deep_selected {
                 "▶"
             } else {
                 " "
@@ -448,6 +604,14 @@ impl App {
             format!("{prefix} {}", action.label())
         }));
         lines
+    }
+}
+
+fn dispatch_line(selected: bool, content: String) -> String {
+    if selected {
+        format!("▶ {content}")
+    } else {
+        format!("  {content}")
     }
 }
 

@@ -17,7 +17,7 @@ use std::io;
 use std::path::Path;
 use std::time::{Duration, Instant};
 
-pub use app::{App, DeepAction, LaunchFocus};
+pub use app::{App, AppTab, DeepAction, DispatchFocus, LaunchFocus};
 pub use config::{AppConfig, CliOptions, build_config, parse_args};
 pub use launch::{LaunchCommand, LaunchKind};
 
@@ -78,6 +78,8 @@ fn handle_key(app: &mut App, key: KeyEvent) -> anyhow::Result<bool> {
 
     match app.focus {
         LaunchFocus::EditPrompt => match key.code {
+            KeyCode::Tab => app.next_tab(),
+            KeyCode::BackTab => app.previous_tab(),
             KeyCode::Char('?') => {
                 app.focus = LaunchFocus::Help;
             }
@@ -95,38 +97,76 @@ fn handle_key(app: &mut App, key: KeyEvent) -> anyhow::Result<bool> {
         LaunchFocus::Browse => match key.code {
             KeyCode::Char('q') | KeyCode::Esc => return Ok(true),
             KeyCode::Char('?') => app.focus = LaunchFocus::Help,
-            KeyCode::Up | KeyCode::Char('k') => app.move_selection(-1),
-            KeyCode::Down | KeyCode::Char('j') => app.move_selection(1),
+            KeyCode::Tab => app.next_tab(),
+            KeyCode::BackTab => app.previous_tab(),
+            KeyCode::Up | KeyCode::Char('k') => match app.active_tab() {
+                AppTab::Monitor => app.move_selection(-1),
+                AppTab::Dispatch => app.move_dispatch_selection(-1),
+                AppTab::Controls => app.move_deep_selection(-1),
+            },
+            KeyCode::Down | KeyCode::Char('j') => match app.active_tab() {
+                AppTab::Monitor => app.move_selection(1),
+                AppTab::Dispatch => app.move_dispatch_selection(1),
+                AppTab::Controls => app.move_deep_selection(1),
+            },
+            KeyCode::Left | KeyCode::Char('h') => match app.active_tab() {
+                AppTab::Monitor => {}
+                AppTab::Dispatch => app.adjust_dispatch_selection(-1),
+                AppTab::Controls => app.move_selection(-1),
+            },
+            KeyCode::Right | KeyCode::Char('l') => match app.active_tab() {
+                AppTab::Monitor => {}
+                AppTab::Dispatch => app.adjust_dispatch_selection(1),
+                AppTab::Controls => app.move_selection(1),
+            },
             KeyCode::Char('1') => app.set_launch_kind(LaunchKind::Workflow),
             KeyCode::Char('2') => app.set_launch_kind(LaunchKind::Research),
             KeyCode::Char('3') => app.set_launch_kind(LaunchKind::Review),
             KeyCode::Char('4') => app.set_launch_kind(LaunchKind::Marbles),
-            KeyCode::Char('a') => app.cycle_agent(),
-            KeyCode::Char('v') => app.cycle_runtime(),
+            KeyCode::Char('a') => {
+                app.set_active_tab(AppTab::Dispatch);
+                app.dispatch_selected = DispatchFocus::Agent as usize;
+                app.cycle_agent();
+            }
+            KeyCode::Char('v') => {
+                app.set_active_tab(AppTab::Dispatch);
+                app.dispatch_selected = DispatchFocus::Runtime as usize;
+                app.cycle_runtime();
+            }
             KeyCode::Char('f') => app.toggle_filter(),
             KeyCode::Char('r') => app.refresh(),
-            KeyCode::Char('e') => app.focus = LaunchFocus::EditPrompt,
-            KeyCode::Enter => {
-                launch_selected(app)?;
+            KeyCode::Char('e') => {
+                app.set_active_tab(AppTab::Dispatch);
+                app.dispatch_selected = DispatchFocus::Prompt as usize;
+                app.focus = LaunchFocus::EditPrompt;
             }
+            KeyCode::Enter => match app.active_tab() {
+                AppTab::Monitor => {
+                    if app.selected_run().is_some() {
+                        app.set_active_tab(AppTab::Controls);
+                    }
+                }
+                AppTab::Dispatch => {
+                    if app.dispatch_focus() == DispatchFocus::Prompt {
+                        app.focus = LaunchFocus::EditPrompt;
+                    } else {
+                        launch_selected(app)?;
+                    }
+                }
+                AppTab::Controls => {
+                    run_selected_deep_control(app)?;
+                }
+            },
             KeyCode::Char('d') if app.selected_run().is_some() => {
+                app.set_active_tab(AppTab::Controls);
                 if app.deep_actions().is_empty() {
                     app.append_status(
                         "No attach/resume/report actions are available for this run.",
                     );
                 } else {
-                    app.focus = LaunchFocus::DeepControls;
+                    app.append_status("Controls ready: ↑/↓ select action, Enter runs it.");
                 }
             }
-            _ => {}
-        },
-        LaunchFocus::DeepControls => match key.code {
-            KeyCode::Char('?') => app.focus = LaunchFocus::Help,
-            KeyCode::Char('q') | KeyCode::Esc => app.focus = LaunchFocus::Browse,
-            KeyCode::Up | KeyCode::Char('k') => app.move_deep_selection(-1),
-            KeyCode::Down | KeyCode::Char('j') => app.move_deep_selection(1),
-            KeyCode::Char('r') => app.refresh(),
-            KeyCode::Enter => run_selected_deep_control(app)?,
             _ => {}
         },
         LaunchFocus::Help => match key.code {
@@ -223,4 +263,112 @@ fn suspend_and_run(command: &LaunchCommand) -> anyhow::Result<()> {
     raw_result?;
     launch_result?;
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::launch::LaunchRuntime;
+    use crate::state::{ControlPlaneState, RenderedRun, RunKind, RunSnapshot};
+
+    fn sample_run(run_id: &str, agent: &str, session: &str) -> RenderedRun {
+        RenderedRun {
+            snapshot: RunSnapshot {
+                run_id: run_id.to_string(),
+                session_id: Some(format!("sess-{run_id}")),
+                agent: Some(agent.to_string()),
+                skill: Some("workflow".to_string()),
+                mode: Some("implement".to_string()),
+                state: Some("running".to_string()),
+                status: None,
+                started_at: Some("2026-04-19T10:00:00Z".to_string()),
+                updated_at: Some("2026-04-19T10:01:00Z".to_string()),
+                last_heartbeat: Some("2026-04-19T10:01:30Z".to_string()),
+                root: Some(format!("/tmp/{run_id}")),
+                operator_session: Some(session.to_string()),
+                latest_report: Some(format!("/tmp/{run_id}/report.md")),
+                latest_transcript: Some(format!("/tmp/{run_id}/transcript.log")),
+                last_error: None,
+                extra: Default::default(),
+            },
+            kind: RunKind::Active,
+            age_label: "just now".to_string(),
+            recent_events: Vec::new(),
+        }
+    }
+
+    fn sample_app() -> App {
+        App {
+            config: AppConfig {
+                state_root: "/tmp/state".into(),
+                command_deck: "/usr/bin/vibecrafted".into(),
+                launch_root: "/tmp/repo".into(),
+                launch_runtime: LaunchRuntime::Terminal,
+                tick_rate: Duration::from_millis(250),
+            },
+            state: ControlPlaneState::empty("/tmp/state"),
+            runs: vec![
+                sample_run("run-1", "codex", "operator-1"),
+                sample_run("run-2", "claude", "operator-2"),
+            ],
+            selected: 0,
+            active_tab: AppTab::Monitor.index(),
+            launch_kind: LaunchKind::Workflow,
+            launch_agent: 0,
+            launch_prompt: "Ship the operator surface.".to_string(),
+            launch_runtime: LaunchRuntime::Terminal,
+            dispatch_selected: DispatchFocus::Kind as usize,
+            focus: LaunchFocus::Browse,
+            status_line: String::new(),
+            launch_history: Vec::new(),
+            deep_selected: 0,
+            filter_active_only: false,
+        }
+    }
+
+    fn key(code: KeyCode) -> KeyEvent {
+        KeyEvent::new(code, KeyModifiers::NONE)
+    }
+
+    #[test]
+    fn handle_key_cycles_tabs_with_tab_and_shift_tab() {
+        let mut app = sample_app();
+
+        assert_eq!(app.active_tab(), AppTab::Monitor);
+        handle_key(&mut app, key(KeyCode::Tab)).unwrap();
+        assert_eq!(app.active_tab(), AppTab::Dispatch);
+
+        handle_key(&mut app, key(KeyCode::BackTab)).unwrap();
+        assert_eq!(app.active_tab(), AppTab::Monitor);
+    }
+
+    #[test]
+    fn handle_key_routes_arrows_inside_the_active_tab() {
+        let mut app = sample_app();
+
+        handle_key(&mut app, key(KeyCode::Down)).unwrap();
+        assert_eq!(app.selected, 1);
+
+        app.set_active_tab(AppTab::Dispatch);
+        handle_key(&mut app, key(KeyCode::Down)).unwrap();
+        assert_eq!(app.dispatch_focus(), DispatchFocus::Agent);
+
+        handle_key(&mut app, key(KeyCode::Right)).unwrap();
+        assert_eq!(app.selected_agent(), "codex");
+
+        app.set_active_tab(AppTab::Controls);
+        handle_key(&mut app, key(KeyCode::Down)).unwrap();
+        assert_eq!(app.deep_selected, 1);
+    }
+
+    #[test]
+    fn handle_key_enters_prompt_edit_from_dispatch_prompt_row() {
+        let mut app = sample_app();
+        app.set_active_tab(AppTab::Dispatch);
+        app.dispatch_selected = DispatchFocus::Prompt as usize;
+
+        handle_key(&mut app, key(KeyCode::Enter)).unwrap();
+
+        assert_eq!(app.focus, LaunchFocus::EditPrompt);
+    }
 }
