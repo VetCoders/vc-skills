@@ -149,17 +149,9 @@ fn marbles_launches_keep_runtime_root_and_loop_controls() {
     );
 
     if cfg!(target_os = "macos") {
-        assert_eq!(command.program, Path::new("open"));
-        assert!(args.starts_with(&[
-            "-na".to_string(),
-            "/Applications/Ghostty.app".to_string(),
-            "--args".to_string(),
-            "-e".to_string(),
-            "zellij".to_string(),
-        ]));
+        assert_eq!(command.program, Path::new("zellij"));
     } else {
-        assert_eq!(command.program, Path::new("ghostty"));
-        assert!(args.starts_with(&["-e".to_string(), "zellij".to_string()]));
+        assert_eq!(command.program, Path::new("zellij"));
     }
 
     assert!(args.windows(2).any(|pair| {
@@ -170,8 +162,6 @@ fn marbles_launches_keep_runtime_root_and_loop_controls() {
     }));
     assert!(args.iter().any(|value| value == "--layout-string"));
     assert!(args.iter().any(|value| value == "options"));
-    assert!(args.iter().any(|value| value == "--show-release-notes"));
-    assert!(args.iter().any(|value| value == "--show-startup-tips"));
 
     let layout = args
         .iter()

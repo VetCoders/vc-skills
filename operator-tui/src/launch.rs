@@ -34,16 +34,10 @@ impl LaunchKind {
 
     pub fn human_description(self) -> &'static str {
         match self {
-            LaunchKind::Workflow => {
-                "Best default. Examine the surface, plan the cut, then implement."
-            }
+            LaunchKind::Workflow => "Best default. Examine the surface, plan the cut, then implement.",
             LaunchKind::Research => "Send a research pass first when the shape is still unclear.",
-            LaunchKind::Review => {
-                "Audit an existing surface for risk, regressions, and weak claims."
-            }
-            LaunchKind::Marbles => {
-                "Run convergence loops when the code works but still lies or drifts."
-            }
+            LaunchKind::Review => "Audit an existing surface for risk, regressions, and weak claims.",
+            LaunchKind::Marbles => "Run convergence loops when the code works but still lies or drifts.",
         }
     }
 }
@@ -133,7 +127,7 @@ pub fn build_launch_command(deck: impl AsRef<Path>, request: &LaunchRequest) -> 
         request.runtime,
         LaunchRuntime::Terminal | LaunchRuntime::Visible
     ) {
-        return build_ghostty_launch_command(deck, request);
+        return build_terminal_launch_command(deck, request);
     }
     build_deck_launch_command(deck, request)
 }
@@ -178,49 +172,25 @@ fn build_deck_launch_command(deck: &Path, request: &LaunchRequest) -> LaunchComm
     }
 }
 
-fn build_ghostty_launch_command(deck: &Path, request: &LaunchRequest) -> LaunchCommand {
+fn build_terminal_launch_command(deck: &Path, request: &LaunchRequest) -> LaunchCommand {
     let zellij_layout = build_zellij_layout_string(deck, request);
     let zellij_config_dir = resolved_zellij_config_dir(request.root.as_deref());
 
-    if cfg!(target_os = "macos") {
-        let mut args = vec![
-            "-na".into(),
-            ghostty_macos_app().into(),
-            "--args".into(),
-            "-e".into(),
-            "zellij".into(),
-        ];
-        if let Some(config_dir) = zellij_config_dir {
-            args.push("--config-dir".into());
-            args.push(config_dir.into_os_string());
-        }
-        args.push("--layout-string".into());
-        args.push(zellij_layout.into());
-        args.push("options".into());
-        args.push("--show-release-notes".into());
-        args.push("false".into());
-        args.push("--show-startup-tips".into());
-        args.push("false".into());
-        return LaunchCommand {
-            program: "open".into(),
-            args,
-        };
-    }
-
-    let mut args = vec!["-e".into(), "zellij".into()];
+    let mut args = Vec::new();
+    
+    // We are running zellij in-place
+    args.push("options".into());
+    
     if let Some(config_dir) = zellij_config_dir {
         args.push("--config-dir".into());
         args.push(config_dir.into_os_string());
     }
+    
     args.push("--layout-string".into());
     args.push(zellij_layout.into());
-    args.push("options".into());
-    args.push("--show-release-notes".into());
-    args.push("false".into());
-    args.push("--show-startup-tips".into());
-    args.push("false".into());
+
     LaunchCommand {
-        program: "ghostty".into(),
+        program: "zellij".into(),
         args,
     }
 }
