@@ -140,19 +140,6 @@ def test_vc_frontier_paths_mix_repo_prompt_with_companion_zellij(
     assert f"ZELLIJ_CONFIG_DIR={zellij_config.parent}" in result.stdout
 
 
-@pytest.mark.xfail(
-    reason=(
-        "Drift from f104151 (2026-04-21 'Rename Zellij layouts; update launcher "
-        "& tests'): vc-dashboard vc-marbles path now emits ZELLIJ_CONFIG_DIR="
-        "<repo>/config/zellij deterministically, dropping the companion "
-        "$XDG_CONFIG_HOME/vetcoders/frontier/zellij override this test still "
-        "expects. Line 140 (frontier install direct path) keeps honoring "
-        "companion — so resolver is split across entry points. Needs triage "
-        "in 1.4.2: confirm if companion override remains a user feature or if "
-        "the test expectation should be updated to the deterministic repo path."
-    ),
-    strict=False,
-)
 def test_vc_dashboard_mixes_companion_zellij_config_with_repo_layout(
     tmp_path: Path,
 ) -> None:

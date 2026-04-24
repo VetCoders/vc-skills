@@ -7,7 +7,6 @@ import subprocess
 from datetime import datetime
 from pathlib import Path
 
-import pytest
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 HELPER_SCRIPT = REPO_ROOT / "skills" / "vc-agents" / "shell" / "vetcoders.sh"
@@ -416,19 +415,6 @@ def test_vc_dashboard_recreates_dead_run_id_session_without_layout_suffix(
     assert f"{expected_session}-marbles" not in payload
 
 
-@pytest.mark.xfail(
-    reason=(
-        "Drift from f104151 (2026-04-21 'Rename Zellij layouts; update launcher "
-        "& tests') which 'compact[ed] long session names to fit Zellij limits'. "
-        "This test expects {repo-basename}-fwup-\\d{6} in the OSA payload, but "
-        "the compacted session naming path no longer prepends repo-basename "
-        "before the run_id (and commit 59c1e20 added a PID suffix to run_id "
-        "itself). Needs triage in 1.4.2: either restore repo-name prefix for "
-        "multi-repo disambiguation, or update the assertion to the compact "
-        "shape actually emitted today."
-    ),
-    strict=False,
-)
 def test_skill_bootstraps_operator_session_before_spawning(tmp_path: Path) -> None:
     home = tmp_path / "home"
     fake_bin = tmp_path / "bin"
@@ -468,7 +454,7 @@ def test_skill_bootstraps_operator_session_before_spawning(tmp_path: Path) -> No
     payload = capture_file.read_text(encoding="utf-8")
     assert "OSA " in payload
     assert "new-session-with-layout" in payload
-    assert re.search(rf"{re.escape(REPO_ROOT.name.lower())}-fwup-\d{{6}}", payload)
+    assert re.search(r"\bv-[0-9a-f]{4}-fwup-\d{6}-\d+\b", payload)
 
 
 def test_skill_bootstraps_fresh_operator_session_when_existing_one_is_dead(
