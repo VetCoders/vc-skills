@@ -178,6 +178,15 @@ ensure_rustup() {
   # Source cargo env for this session
   # shellcheck disable=SC1091
   [[ -f "$HOME/.cargo/env" ]] && . "$HOME/.cargo/env"
+
+  # Ensure a default toolchain is set. On some non-interactive installs (notably
+  # CI macOS runners with pre-existing rustup but no default), `cargo install`
+  # emits `warning: no default toolchain set` and downstream commands can
+  # silently use the wrong channel. Idempotent: no-op when already pinned.
+  if has_cmd rustup && ! rustup default 2>/dev/null | grep -q '.'; then
+    rustup default stable 2>&1 | tail -3 || true
+  fi
+
   has_cmd cargo
 }
 

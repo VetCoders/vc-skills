@@ -388,7 +388,10 @@ if [[ -e "$repo_root/docs/index.html" ]]; then
   assert_not_contains "$repo_root/docs/index.html" "The Founders' Framework"
 fi
 assert_contains "$repo_root/docs/QUICK_START.md" 'vibecrafted init claude'
-assert_contains "$repo_root/docs/QUICK_START.md" 'vibecrafted justdo codex --prompt "Add user authentication with JWT"'
+# Canonical command shape only — no hardcoded prompt text (brittle), no legacy
+# `justdo` (backward-compatible CLI but not an advertised surface per the
+# canonical rename to `vc-implement`).
+assert_contains "$repo_root/docs/QUICK_START.md" 'vibecrafted implement codex'
 assert_contains "$repo_root/docs/presence/quickstart.html" 'https://vibecrafted.io/en/quickstart/'
 assert_contains "$repo_root/docs/presence/quickstart.html" 'window.location.replace("https://vibecrafted.io/en/quickstart/")'
 assert_not_contains "$repo_root/docs/presence/quickstart.html" 'vibecrafted workflow claude --prompt "Plan and implement auth module"'
