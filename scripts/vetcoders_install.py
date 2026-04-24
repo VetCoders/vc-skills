@@ -513,7 +513,7 @@ def write_start_here_guide(
         "## Simplest path",
         "1. `vibecrafted init claude`",
         '2. `vibecrafted workflow claude --prompt "Plan and implement <task>"`',
-        '3. `vibecrafted justdo codex --prompt "Ship <task>"`',
+        '3. `vibecrafted implement codex --prompt "Ship <task>"`',
         "",
         "## Ship-ready path",
         '1. `vibecrafted dou claude --prompt "Audit launch readiness"`',
@@ -521,30 +521,9 @@ def write_start_here_guide(
         '3. `vibecrafted hydrate codex --prompt "Package the product"`',
         '4. `vibecrafted release codex --prompt "Prepare release steps"`',
         "",
-        "## Runtime surface",
-        "",
-        "Vibecrafted ships with three runtime surfaces. Pick one and stick to it:",
-        "",
-        "1. **Zellij dashboard** — recommended, stable in 1.4.1.",
-        "   `vibecrafted start` · multi-agent terminal workspace with a tab per run,",
-        "   a shared operator pane, and live marbles state. This is the default for",
-        "   fresh installs and what every doctor / helper path assumes.",
-        "",
-        "2. **vc-board + vc-operator** — EXPERIMENTAL.",
-        "   Native Ghostty surface (`vc-board`, Zig fork) with a dedicated Rust TUI",
-        "   (`vc-operator`, crates.io: `vibecrafted-operator`). Aims to replace Zellij",
-        "   tab drift with a deterministic operator console. In active development —",
-        "   install from the vc-runtime workspace, not from the 1.4.1 bundle.",
-        "",
-        "3. **CLI only** — minimal, automation-friendly.",
-        "   Every skill runs without any dashboard: `vibecrafted <skill> <agent>`.",
-        "   MCP servers (aicx, loctree) stay available. This is the fallback for CI,",
-        "   remote shells, headless bootstraps, and any machine where a multiplexer",
-        "   is overkill.",
-        "",
-        "Default: the installer does not force a choice. `vibecrafted start` opens",
-        "Zellij if present; otherwise it falls back to CLI help. To pin a runtime,",
-        "export `VIBECRAFTED_RUNTIME=zellij|vc-operator|cli` in your shell rc.",
+        "## Optional operator surface",
+        "- `vibecrafted dashboard`",
+        "- Dashboard is optional. You can ignore it and stay in plain terminal commands.",
         "",
         "## What to fix next",
     ]
@@ -1529,6 +1508,7 @@ SKILL_WRAPPER_NAMES = [
     "dou",
     "followup",
     "hydrate",
+    "implement",
     "intents",
     "justdo",
     "marbles",
@@ -2811,7 +2791,7 @@ def print_doctor(
         "    "
         + cyan("vibecrafted workflow claude --prompt 'Plan and implement <task>'")
     )
-    print("    " + cyan("vibecrafted justdo codex --prompt 'Ship <task>'"))
+    print("    " + cyan("vibecrafted implement codex --prompt 'Ship <task>'"))
     print()
     print(f"  {bold('Ship-ready path:')}")
     print("    " + cyan("vibecrafted dou claude --prompt 'Audit launch readiness'"))
@@ -3399,7 +3379,6 @@ def _print_unicode_summary(
         "  Start        vibecrafted help",
         "  Verify       vibecrafted doctor",
         "  Reverse      vibecrafted uninstall",
-        "  Runtime      Zellij (default) · vc-operator (exp) · CLI — see Guide",
         "",
         f"  {FOOTER_BRANDING}",
         f"  {FRAMEWORK_STAMP}",
@@ -3673,7 +3652,6 @@ def _cmd_install_compact(args: argparse.Namespace, repo_root: Path) -> int:
     print("    Start        vibecrafted help")
     print("    Verify       vibecrafted doctor")
     print("    Reverse      vibecrafted uninstall")
-    print("    Runtime      Zellij (default) · vc-operator (exp) · CLI — see Guide")
     print(f"    Guide        {start_here_path()}")
     print(f"    Log          {log_display}")
     if missing_fnd:

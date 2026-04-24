@@ -36,6 +36,15 @@ Format follows [Keep a Changelog](https://keepachangelog.com/).
 - Agent telemetry captured into loop `state.json` (dispatch time, completion
   time, exit code, session_id) so marbles state is the single source of truth
   for multi-loop runs.
+- New skill **`vc-implement`** becomes the canonical end-to-end implementation
+  skill. The `vc-justdo` name stays in-tree as a **backward-compatible legacy
+  alias** (frontmatter: `canonical: vc-implement`) so agents already wired to
+  the old name keep working. Every public surface (START_HERE `Simplest path`,
+  install banner, skill registry in `vetcoders_install.py`) now shows
+  `vibecrafted implement ...`; the `justdo` command still executes but is no
+  longer advertised. Full trigger-phrase inventory — including Polish triggers
+  ("zrób to", "dowiez to", "od pomyslu do realizacji") — migrated to
+  `vc-implement`.
 
 ### Changed
 
@@ -68,6 +77,12 @@ research` / `vc-dashboard`) with matching launcher and test updates.
   surface when running in `terminal` / `visible` runtime.
 - Marbles active-only run filter in operator-tui so Monitor tab stops showing
   cold runs from previous sessions.
+- System-wide docs refresh: README, FAQ, FAQ-ANSWERED, QUICK_START, SKILLS,
+  WORKFLOWS, installer/DESIGN, workflows/MARBLES — copy brought in line with
+  the canonical command set (`vibecrafted implement`) and the current 1.4.1
+  surface.
+- FLOW + SKILL polish across `vc-delegate`, `vc-init`, `vc-justdo` (marked
+  legacy), `vc-partner`, `vc-research`, `vc-scaffold`, `vc-workflow`.
 
 ### Fixed
 

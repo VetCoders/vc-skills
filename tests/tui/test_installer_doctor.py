@@ -83,10 +83,7 @@ def test_run_doctor_smokes_helper_and_launcher_runtime(
     assert "vibecrafted init claude" in guide_text
     assert "vibecrafted dou claude" in guide_text
     assert "vibecrafted decorate codex" in guide_text
-    assert "Runtime surface" in guide_text
-    assert "Zellij dashboard" in guide_text
-    assert "vc-operator" in guide_text
-    assert "CLI only" in guide_text
+    assert "Dashboard is optional" in guide_text
 
 
 def test_print_doctor_surfaces_simple_and_release_paths(capsys, tmp_path: Path) -> None:
