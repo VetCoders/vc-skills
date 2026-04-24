@@ -298,6 +298,50 @@ pathlib.Path(plan).write_text(f"---\n{fm}---\n{text[m.end():]}", encoding="utf-8
 PY
 }
 
+_record_planned_loop() {
+  local loop_nr="$1"
+  local loop_agent="$2"
+  local loop_model="$3"
+  local loop_focus="$4"
+  local agent_source="$5"
+
+  [[ -f "$state_file" ]] || return 0
+
+  _state_json_edit "$(cat <<'PY'
+loop_nr = int(args[0])
+agent_name, model, focus, agent_source = args[1:5]
+now = datetime.datetime.now(datetime.timezone.utc).isoformat()
+
+payload["updated_at"] = now
+loops = payload.get("loops", [])
+target = None
+for loop in loops:
+    if loop.get("loop") == loop_nr:
+        target = loop
+        break
+
+if target is None:
+    target = {"loop": loop_nr, "started_at": now}
+    loops.append(target)
+
+if agent_name:
+    target["agent"] = agent_name
+if focus:
+    target["focus"] = focus
+if model:
+    target["model"] = model
+else:
+    target.pop("model", None)
+if agent_source:
+    target["agent_source"] = agent_source
+if "status" not in target:
+    target["status"] = "promise"
+
+payload["loops"] = loops
+PY
+)" "$loop_nr" "$loop_agent" "$loop_model" "$loop_focus" "$agent_source" >/dev/null || true
+}
+
 _write_missing_report_failure() {
   local loop_nr="$1"
   local reason="$2"
@@ -733,19 +777,23 @@ fi
 next_agent=""
 next_model=""
 _steering_source=""
+_next_agent_source=""
 
 if (( _ancestor_steered )); then
   next_agent="$_ancestor_agent"
   next_model="$_ancestor_model"
   _steering_source="ancestor-override ($next_agent via child steering)"
+  _next_agent_source="user"
 elif [[ "$_rotation_mode" != "single" && -n "$_rotation_mode" ]]; then
   _rotation_base="${_seed_agent:-${_ancestor_agent:-$current_agent}}"
   next_agent="$(spawn_rotation_schedule_agent "$_rotation_mode" "$_rotation_base" "$next")"
   next_model="$_ancestor_model"
   _steering_source="rotation-${_rotation_mode} (base=$_rotation_base, loop=$next → $next_agent)"
+  _next_agent_source="rotation"
 else
   next_model="$_ancestor_model"
   _steering_source="seed-fallback"
+  _next_agent_source="seed"
 fi
 
 # Fallbacks: ancestor raw agent, then current agent
@@ -767,6 +815,12 @@ if [[ ! "$next_agent" =~ ^(claude|codex|gemini)$ ]]; then
 fi
 
 _rewrite_loop_plan_frontmatter "$next_plan_tmp" "$next_agent" "$next_model"
+_record_planned_loop \
+  "$next" \
+  "$next_agent" \
+  "$next_model" \
+  "$(spawn_frontmatter_field "$next_plan_tmp" "focus")" \
+  "$_next_agent_source"
 mv "$next_plan_tmp" "$next_plan"
 
 launch_rc=0

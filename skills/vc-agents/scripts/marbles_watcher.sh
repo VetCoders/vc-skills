@@ -169,11 +169,12 @@ _record_loop_start() {
   local focus="$4"
   local ancestor_slug="$5"
   local model="${6:-}"
+  local agent_source="${7:-}"
 
   if command -v python3 >/dev/null 2>&1; then
     _state_json_edit "$(cat <<'PY'
 loop_nr = int(args[0])
-transcript, agent_name, focus, ancestor_slug, model = args[1:6]
+transcript, agent_name, focus, ancestor_slug, model, agent_source = args[1:7]
 now = datetime.datetime.now(datetime.timezone.utc).isoformat()
 
 payload["current_loop"] = loop_nr
@@ -200,10 +201,12 @@ if model:
     target["model"] = model
 else:
     target.pop("model", None)
+if agent_source and "agent_source" not in target:
+    target["agent_source"] = agent_source
 
 payload["loops"] = loops
 PY
-)" "$loop_nr" "$transcript" "$agent_name" "$focus" "$ancestor_slug" "$model" >/dev/null || true
+)" "$loop_nr" "$transcript" "$agent_name" "$focus" "$ancestor_slug" "$model" "$agent_source" >/dev/null || true
   fi
 }
 
@@ -791,7 +794,7 @@ PY
   fi
   [[ -n "$loop_agent" ]] || loop_agent="unknown"
 
-  _record_loop_start "$loop_nr" "" "$loop_agent" "$loop_focus" "$ancestor_slug" "$loop_model"
+  _record_loop_start "$loop_nr" "" "$loop_agent" "$loop_focus" "$ancestor_slug" "$loop_model" "rotation"
 
   promise_detail="$loop_agent"
   if [[ -n "$loop_focus" ]]; then
