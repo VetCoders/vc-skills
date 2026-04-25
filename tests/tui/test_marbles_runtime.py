@@ -1175,6 +1175,12 @@ def test_marbles_watcher_waits_for_meta_completion_before_advancing(
     assert len(events) == 2
     assert all(event["suppress_report_hint"] == "1" for event in events)
 
+    meta_paths = list((crafted_home / "artifacts").rglob("*.meta.json"))
+    assert meta_paths
+    assert {
+        json.loads(path.read_text(encoding="utf-8"))["liveness"] for path in meta_paths
+    } == {"terminal"}
+
 
 def test_marbles_no_watch_keeps_report_hint_enabled(
     tmp_path: Path,

@@ -658,6 +658,8 @@ _wait_for_report_path() {
             spawn_reap_dead_run "$meta_path"
             return 4
           fi
+        else
+          spawn_mark_unknown_liveness "$meta_path"
         fi
       fi
     fi

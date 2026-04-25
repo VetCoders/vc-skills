@@ -292,6 +292,52 @@ def test_normalize_clears_loop_nr_with_stale_run_context(tmp_path: Path) -> None
     assert "LOOP_NR=7" not in result.stdout
 
 
+def test_marbles_spawn_refuses_terminal_inherited_run_id(
+    tmp_path: Path,
+) -> None:
+    cap = tmp_path / "meta.jsonl"
+    sd = _prepare_scripts(tmp_path, cap)
+    env = _base_env(tmp_path)
+    stale_run_id = "marb-stale-123"
+    stale_state = Path(env["VIBECRAFTED_HOME"]) / "marbles" / stale_run_id
+    stale_state.mkdir(parents=True)
+    (stale_state / "state.json").write_text(
+        json.dumps({"run_id": stale_run_id, "status": "failed"}),
+        encoding="utf-8",
+    )
+    env["VIBECRAFTED_MARBLES_RUN_ID"] = stale_run_id
+    env["VIBECRAFTED_MARBLES_RESUME"] = "1"
+    env["VIBECRAFTED_RUN_ID"] = f"{stale_run_id}-001"
+    env["VIBECRAFTED_LOOP_NR"] = "9"
+
+    result = subprocess.run(
+        [
+            "bash",
+            str(sd / "marbles_spawn.sh"),
+            "--agent",
+            "codex",
+            "--count",
+            "1",
+            "--runtime",
+            "headless",
+            "--no-watch",
+            "--prompt",
+            "fresh run after terminal stale context",
+        ],
+        check=True,
+        cwd=REPO_ROOT,
+        env=env,
+        capture_output=True,
+        text=True,
+    )
+
+    events = _load_events(cap)
+    assert len(events) == 1
+    assert events[0]["run_id"] != f"{stale_run_id}-001"
+    assert str(events[0]["run_id"]).startswith("marb-")
+    assert "minting fresh id" in result.stderr
+
+
 # -- 4. Store isolation across nested spawns -----------------------------------
 
 

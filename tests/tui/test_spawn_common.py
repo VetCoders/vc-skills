@@ -701,6 +701,104 @@ PY'
     assert failure_payload["exit_code"] == 23
 
 
+def test_gc_marks_dead_launcher_pid_as_ghost(tmp_path: Path) -> None:
+    meta = tmp_path / "dead.meta.json"
+    report = tmp_path / "report.md"
+    transcript = tmp_path / "trace.log"
+
+    _bash(
+        f'''
+        set -euo pipefail
+        source "{COMMON_SH}"
+        export SPAWN_ROOT="{tmp_path}"
+        export SPAWN_AGENT="codex"
+        export SPAWN_PROMPT_ID="prompt-123"
+        export SPAWN_RUN_ID="impl-010203-999"
+        export SPAWN_SKILL_CODE="impl"
+        spawn_write_meta "{meta}" "running" "codex" "implement" "{tmp_path}" "{tmp_path / "plan.md"}" "{report}" "{transcript}" "{tmp_path / "launcher.sh"}"
+        python3 - <<'PY'
+import json
+from pathlib import Path
+path = Path("{meta}")
+payload = json.loads(path.read_text(encoding="utf-8"))
+payload["launcher_pid"] = 999999999
+payload["liveness"] = "pid_alive"
+path.write_text(json.dumps(payload), encoding="utf-8")
+PY
+        spawn_gc_dead_runs "{tmp_path}"
+        '''
+    )
+
+    payload = json.loads(meta.read_text(encoding="utf-8"))
+    assert payload["status"] == "ghost"
+    assert payload["liveness"] == "pid_dead"
+    assert payload["ghost_reason"] == "launcher_pid dead at reap"
+
+
+def test_gc_marks_live_meta_without_pid_as_unknown_legacy(tmp_path: Path) -> None:
+    meta = tmp_path / "legacy.meta.json"
+    report = tmp_path / "report.md"
+    transcript = tmp_path / "trace.log"
+
+    _bash(
+        f'''
+        set -euo pipefail
+        source "{COMMON_SH}"
+        export SPAWN_ROOT="{tmp_path}"
+        export SPAWN_AGENT="claude"
+        export SPAWN_PROMPT_ID="prompt-123"
+        export SPAWN_RUN_ID="impl-010203-998"
+        export SPAWN_SKILL_CODE="impl"
+        spawn_write_meta "{meta}" "running" "claude" "implement" "{tmp_path}" "{tmp_path / "plan.md"}" "{report}" "{transcript}" "{tmp_path / "launcher.sh"}"
+        spawn_gc_dead_runs "{tmp_path}"
+        '''
+    )
+
+    payload = json.loads(meta.read_text(encoding="utf-8"))
+    assert payload["status"] == "running"
+    assert payload["liveness"] == "unknown_legacy"
+    assert payload["liveness_reason"] == "live status without launcher_pid"
+
+
+def test_operator_intervention_is_run_scoped_auditable_jsonl(
+    tmp_path: Path,
+) -> None:
+    meta = tmp_path / "agent.meta.json"
+    report = tmp_path / "report.md"
+    transcript = tmp_path / "trace.log"
+
+    result = _bash(
+        f'''
+        set -euo pipefail
+        source "{COMMON_SH}"
+        export SPAWN_ROOT="{tmp_path}"
+        export SPAWN_AGENT="codex"
+        export SPAWN_PROMPT_ID="prompt-123"
+        export SPAWN_RUN_ID="impl-010203-997"
+        export SPAWN_SKILL_CODE="impl"
+        spawn_write_meta "{meta}" "running" "codex" "implement" "{tmp_path}" "{tmp_path / "plan.md"}" "{report}" "{transcript}" "{tmp_path / "launcher.sh"}"
+        spawn_append_operator_intervention "{meta}" "Please narrow the next pass to liveness tests." "operator"
+        '''
+    )
+
+    intervention_path = Path(result.stdout.strip().splitlines()[-1])
+    payload = json.loads(meta.read_text(encoding="utf-8"))
+    events = [
+        json.loads(line)
+        for line in intervention_path.read_text(encoding="utf-8").splitlines()
+        if line.strip()
+    ]
+
+    assert payload["intervention_path"] == str(intervention_path)
+    assert payload["intervention_count"] == 1
+    assert events[0]["schema"] == "vibecrafted.operator_intervention.v1"
+    assert events[0]["run_id"] == "impl-010203-997"
+    assert events[0]["consumer_contract"] == "compatible-watchers-and-bridges-only"
+    transcript_text = transcript.read_text(encoding="utf-8")
+    assert "operator intervention" in transcript_text
+    assert "run_id=impl-010203-997" in transcript_text
+
+
 def test_spawn_prepare_paths_generates_real_run_context_when_missing(
     tmp_path: Path,
 ) -> None:

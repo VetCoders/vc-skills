@@ -314,6 +314,7 @@ jq -e '.run_id | test("^impl-[0-9]{6}-[0-9]+$")' "$gemini_meta" >/dev/null || di
 jq -e '.loop_nr == 0' "$codex_meta" >/dev/null || die "codex meta missing loop_nr"
 jq -e '.framework_version != null and .framework_version != ""' "$codex_meta" >/dev/null || die "codex meta missing framework_version"
 jq -e '.completed_at != null and .duration_s != null' "$codex_meta" >/dev/null || die "codex meta missing completion telemetry"
+jq -e '.liveness == "terminal"' "$codex_meta" >/dev/null || die "codex meta missing terminal liveness"
 
 log "launcher resume smoke"
 resume_capture="$workspace/resume-codex.txt"
@@ -342,6 +343,7 @@ require_file "$skill_meta"
 [[ "$(wait_for_meta "$skill_meta")" == "completed" ]] || die "skill helper spawn did not complete"
 jq -e '.skill_code == "marb"' "$skill_meta" >/dev/null || die "skill helper did not wire skill_code"
 jq -e '.run_id | startswith("marb-")' "$skill_meta" >/dev/null || die "skill helper did not wire run_id"
+jq -e '.liveness == "terminal"' "$skill_meta" >/dev/null || die "skill helper did not finish with terminal liveness"
 
 # If zsh is available, also smoke test zsh loading via legacy compat symlink
 if command -v zsh >/dev/null 2>&1; then

@@ -117,6 +117,7 @@ payload = {
     # launcher_pid is set by the launcher itself once it starts (see
     # spawn_update_meta_pid). Dead launcher_pid → ghost state, out.
     "launcher_pid": None,
+    "liveness": "pid_pending",
 }
 if model != "__NONE__":
     payload["model"] = model
@@ -150,8 +151,10 @@ except (OSError, json.JSONDecodeError):
 
 try:
     payload["launcher_pid"] = int(pid)
+    payload["liveness"] = "pid_alive"
 except (TypeError, ValueError):
     payload["launcher_pid"] = None
+    payload["liveness"] = "unknown_legacy"
 
 with open(meta_path, "w", encoding="utf-8") as fh:
     json.dump(payload, fh, indent=2, ensure_ascii=False)
@@ -197,6 +200,7 @@ payload["updated_at"] = now_iso
 payload.setdefault("completed_at", now_iso)
 payload.setdefault("exit_code", 137)  # canonical kill-killed code, for parity
 payload["ghost_reason"] = "launcher_pid dead at reap"
+payload["liveness"] = "pid_dead"
 
 with open(meta_path, "w", encoding="utf-8") as fh:
     json.dump(payload, fh, indent=2, ensure_ascii=False)
@@ -209,6 +213,42 @@ if lock_path and os.path.isfile(lock_path):
         os.unlink(lock_path)
     except OSError:
         pass
+PY
+  spawn_sync_control_plane
+}
+
+spawn_mark_unknown_liveness() {
+  # Legacy live meta without launcher_pid is not safe to reap. Mark it
+  # explicitly so dashboards stop pretending it is verified-live.
+  local meta_path="$1"
+  [[ -f "$meta_path" ]] || return 0
+
+  python3 - "$meta_path" <<'PY'
+import datetime as dt
+import json
+import sys
+
+meta_path = sys.argv[1]
+try:
+    with open(meta_path, "r", encoding="utf-8") as fh:
+        payload = json.load(fh)
+except (OSError, json.JSONDecodeError):
+    sys.exit(0)
+
+if payload.get("status") not in ("launching", "running", "in-progress"):
+    sys.exit(0)
+
+pid = payload.get("launcher_pid")
+if pid not in (None, "", "None"):
+    sys.exit(0)
+
+payload["liveness"] = "unknown_legacy"
+payload.setdefault("liveness_reason", "live status without launcher_pid")
+payload["updated_at"] = dt.datetime.now(dt.timezone.utc).isoformat()
+
+with open(meta_path, "w", encoding="utf-8") as fh:
+    json.dump(payload, fh, indent=2, ensure_ascii=False)
+    fh.write("\n")
 PY
   spawn_sync_control_plane
 }
@@ -228,7 +268,10 @@ spawn_gc_dead_runs() {
     # wrote it — we cannot prove death, so we leave it alone. This avoids
     # false-positive reaping of still-running agents whose meta was written
     # by an older launcher template. TTL-based cleanup is a separate path.
-    [[ -n "$pid_value" && "$pid_value" != "None" ]] || continue
+    if [[ -z "$pid_value" || "$pid_value" == "None" ]]; then
+      spawn_mark_unknown_liveness "$meta_path"
+      continue
+    fi
     if ! spawn_pid_alive "$pid_value"; then
       spawn_reap_dead_run "$meta_path"
     fi
@@ -264,6 +307,7 @@ payload["completed_at"] = completed_at.isoformat()
 payload["duration_s"] = duration_s
 payload["status"] = status
 payload["exit_code"] = int(exit_code)
+payload["liveness"] = "terminal"
 
 # Parse session_id from transcript (strip ANSI, match "session: <uuid>")
 transcript_path = payload.get("transcript", "")

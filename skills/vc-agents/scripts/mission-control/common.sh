@@ -8,6 +8,7 @@ MC_STEEL=$'\033[38;5;247m'
 MC_GREEN=$'\033[32m'
 MC_YELLOW=$'\033[33m'
 MC_CYAN=$'\033[36m'
+MC_RED=$'\033[31m'
 MC_RESET=$'\033[0m'
 
 mc_clear() {
@@ -36,6 +37,12 @@ mc_status_color() {
       else
         printf '%s' "$MC_CYAN"
       fi
+      ;;
+    ghost|failed|error)
+      printf '%s' "$MC_RED"
+      ;;
+    unknown_legacy|pid_pending)
+      printf '%s' "$MC_YELLOW"
       ;;
     *)
       printf '%s' "$MC_STEEL"

@@ -18,8 +18,8 @@ while :; do
     find "$MC_ARTIFACT_ROOT" -type f -name '*.meta.json' -mtime -1 2>/dev/null |
       while read -r file; do
         jq -r '
-          select(.status == "launching" or .status == "running" or .status == "completed")
-          | [(.updated_at // "-"), (.status // "-"), (.agent // "-"), (.mode // "-"), (.run_id // "-")]
+          select(.status == "launching" or .status == "running" or .status == "in-progress" or .status == "ghost")
+          | [(.updated_at // "-"), (.status // "-"), (.liveness // "unknown_legacy"), (.agent // "-"), (.mode // "-"), (.run_id // "-")]
           | @tsv
         ' "$file" 2>/dev/null || true
       done |
@@ -33,13 +33,14 @@ while :; do
     continue
   fi
 
-  printf '%supdated_at                status       agent     mode      run_id%s\n' "$MC_STEEL" "$MC_RESET"
-  printf '%s------------------------  -----------  --------  --------  ----------------%s\n' "$MC_STEEL" "$MC_RESET"
+  printf '%supdated_at                status       liveness        agent     mode      run_id%s\n' "$MC_STEEL" "$MC_RESET"
+  printf '%s------------------------  -----------  --------------  --------  --------  ----------------%s\n' "$MC_STEEL" "$MC_RESET"
 
-  while IFS=$'\t' read -r updated status agent mode run_id; do
+  while IFS=$'\t' read -r updated status liveness agent mode run_id; do
     color="$(mc_status_color "$status")"
-    printf '%-24s  %s%-11s%s  %-8s  %-8s  %s\n' \
-      "$updated" "$color" "$status" "$MC_RESET" "$agent" "$mode" "$run_id"
+    live_color="$(mc_status_color "$liveness")"
+    printf '%-24s  %s%-11s%s  %s%-14s%s  %-8s  %-8s  %s\n' \
+      "$updated" "$color" "$status" "$MC_RESET" "$live_color" "$liveness" "$MC_RESET" "$agent" "$mode" "$run_id"
   done <<< "$payload"
 
   sleep 2

@@ -312,6 +312,59 @@ def test_workflow_skill_helpers_export_registered_run_ids_and_locks(
         ]
 
 
+def test_workflow_helper_mints_fresh_run_when_ambient_id_is_stale(
+    tmp_path: Path,
+) -> None:
+    home = tmp_path / "home"
+    fake_spawn = tmp_path / "fake_spawn.sh"
+    capture_file = tmp_path / "capture.log"
+    stale_lock = home / ".vibecrafted" / "locks" / "wrong" / "just-000000-1.lock"
+
+    stale_lock.parent.mkdir(parents=True)
+    stale_lock.write_text("run_id=just-000000-1\n", encoding="utf-8")
+    _write_fake_spawn(fake_spawn)
+
+    env = os.environ.copy()
+    env["HOME"] = str(home)
+    env["CAPTURE_FILE"] = str(capture_file)
+    env["VETCODERS_SPAWN_RUNTIME"] = "headless"
+    env["VIBECRAFTED_ROOT"] = str(REPO_ROOT)
+    env["VIBECRAFTED_RUN_ID"] = "just-000000-1"
+    env["VIBECRAFTED_RUN_LOCK"] = str(stale_lock)
+    env["VIBECRAFTED_SKILL_CODE"] = "just"
+    env["VIBECRAFTED_SKILL_NAME"] = "justdo"
+
+    subprocess.run(
+        [
+            "bash",
+            "-lc",
+            "\n".join(
+                [
+                    "set -euo pipefail",
+                    f'source "{HELPER_SCRIPT}"',
+                    "_vetcoders_spawn_script() {",
+                    f'  printf "%s\\n" "{fake_spawn}"',
+                    "}",
+                    'codex-justdo --prompt "fresh run please"',
+                ]
+            ),
+        ],
+        check=True,
+        cwd=REPO_ROOT,
+        env=env,
+    )
+
+    payload: dict[str, str] = {}
+    for line in capture_file.read_text(encoding="utf-8").splitlines():
+        key, value = line.split("=", 1)
+        payload[key] = value
+
+    assert payload["RUN_ID"] != "just-000000-1"
+    assert re.fullmatch(r"just-\d{6}-\d+", payload["RUN_ID"])
+    assert payload["SKILL_CODE"] == "just"
+    assert payload["SKILL_NAME"] == "justdo"
+
+
 def test_legacy_review_helper_generates_real_run_id_and_lock(tmp_path: Path) -> None:
     org_repo = _org_repo()
     plan_file = tmp_path / "review-plan.md"
