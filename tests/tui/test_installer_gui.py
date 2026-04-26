@@ -16,6 +16,8 @@ def test_build_install_command_respects_shell_toggle(tmp_path: Path) -> None:
 
     assert with_shell[-1] == "--with-shell"
     assert "--with-shell" not in without_shell
+    assert "--mirror" in with_shell
+    assert "--mirror" in without_shell
     assert with_shell[:5] == without_shell[:5]
 
 
@@ -39,6 +41,7 @@ def test_build_install_steps_include_foundations_before_installer(
     ]
     assert steps[0].command == ["bash", str(scripts_dir / "install-foundations.sh")]
     assert steps[1].command[-1] == "--with-shell"
+    assert "--mirror" in steps[1].command
 
 
 def test_preflight_payload_summarizes_diagnostics(monkeypatch, tmp_path: Path) -> None:

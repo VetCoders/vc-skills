@@ -161,18 +161,39 @@ spawn_prepare_paths() {
   SPAWN_PLAN_DIR="$store_base/plans"
   SPAWN_REPORT_DIR="$store_base/reports"
   SPAWN_TMP_DIR="$store_base/tmp"
-  SPAWN_BASE="$SPAWN_REPORT_DIR/${SPAWN_TS}_${SPAWN_SLUG}_${agent}"
-  SPAWN_REPORT="${SPAWN_BASE}.md"
-  SPAWN_TRANSCRIPT="${SPAWN_BASE}.transcript.log"
-  SPAWN_META="${SPAWN_BASE}.meta.json"
-  # Include run_id in launcher filename — even with second-resolution timestamps,
-  # two spawns can still race inside the same second. run_id carries a PID suffix
-  # so it is globally unique per dispatch and guarantees no append collisions.
-  SPAWN_LAUNCHER="$SPAWN_TMP_DIR/${SPAWN_TS}_${SPAWN_RUN_ID}_${SPAWN_SLUG}_${agent}_launch.sh"
-  mkdir -p "$store_base/plans" "$SPAWN_REPORT_DIR" "$SPAWN_TMP_DIR"
+  SPAWN_LOG_DIR="$SPAWN_REPORT_DIR"
+
+  local research_run_dir_abs="" store_base_abs=""
+  if [[ -n "${VIBECRAFTED_RESEARCH_RUN_DIR:-}" ]]; then
+    research_run_dir_abs="$(spawn_abspath "$VIBECRAFTED_RESEARCH_RUN_DIR" 2>/dev/null || true)"
+    store_base_abs="$(spawn_abspath "$store_base" 2>/dev/null || true)"
+  fi
+
+  if [[ -n "$research_run_dir_abs" ]] \
+    && [[ "$research_run_dir_abs" == "$store_base_abs" ]] \
+    && [[ "${SPAWN_SKILL_NAME:-}" == "research" || "${SPAWN_SKILL_CODE:-}" == "rsch" ]]; then
+    SPAWN_LOG_DIR="$store_base/logs"
+    SPAWN_BASE="$SPAWN_REPORT_DIR/${agent}"
+    SPAWN_REPORT="$SPAWN_REPORT_DIR/${agent}.md"
+    SPAWN_TRANSCRIPT="$SPAWN_LOG_DIR/${agent}.transcript.log"
+    SPAWN_META="$SPAWN_LOG_DIR/${agent}.meta.json"
+    SPAWN_LAUNCHER="$SPAWN_TMP_DIR/${agent}_launch.sh"
+    mkdir -p "$SPAWN_PLAN_DIR" "$SPAWN_REPORT_DIR" "$SPAWN_LOG_DIR" "$SPAWN_TMP_DIR"
+  else
+    SPAWN_BASE="$SPAWN_REPORT_DIR/${SPAWN_TS}_${SPAWN_SLUG}_${agent}"
+    SPAWN_REPORT="${SPAWN_BASE}.md"
+    SPAWN_TRANSCRIPT="${SPAWN_BASE}.transcript.log"
+    SPAWN_META="${SPAWN_BASE}.meta.json"
+    # Include run_id in launcher filename — even with second-resolution timestamps,
+    # two spawns can still race inside the same second. run_id carries a PID suffix
+    # so it is globally unique per dispatch and guarantees no append collisions.
+    SPAWN_LAUNCHER="$SPAWN_TMP_DIR/${SPAWN_TS}_${SPAWN_RUN_ID}_${SPAWN_SLUG}_${agent}_launch.sh"
+    mkdir -p "$SPAWN_PLAN_DIR" "$SPAWN_REPORT_DIR" "$SPAWN_TMP_DIR"
+  fi
+
   spawn_link_repo_artifacts "$store_base" "$SPAWN_ROOT"
   export SPAWN_ROOT SPAWN_PLAN SPAWN_SLUG SPAWN_TS SPAWN_AGENT SPAWN_PROMPT_ID SPAWN_RUN_ID SPAWN_RUN_LOCK SPAWN_SKILL_CODE SPAWN_SKILL_NAME SPAWN_LOOP_NR
-  export SPAWN_PLAN_DIR SPAWN_REPORT_DIR SPAWN_TMP_DIR SPAWN_BASE SPAWN_REPORT SPAWN_TRANSCRIPT SPAWN_META SPAWN_LAUNCHER
+  export SPAWN_PLAN_DIR SPAWN_REPORT_DIR SPAWN_TMP_DIR SPAWN_LOG_DIR SPAWN_BASE SPAWN_REPORT SPAWN_TRANSCRIPT SPAWN_META SPAWN_LAUNCHER
 }
 
 spawn_scan_active() {

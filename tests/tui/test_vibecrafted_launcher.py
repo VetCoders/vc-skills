@@ -829,6 +829,10 @@ def test_installed_launcher_tui_uses_shared_state_and_operator_binary(
     (current_root / "operator-tui" / "target" / "debug").mkdir(
         parents=True, exist_ok=True
     )
+    (current_root / "operator-tui" / "Cargo.toml").write_text(
+        '[package]\nname = "vibecrafted-operator"\nversion = "0.0.0"\nedition = "2021"\n',
+        encoding="utf-8",
+    )
     (current_root / "VERSION").write_text("0.0.0-test\n", encoding="utf-8")
     (current_root / "scripts" / "control_plane_state.py").write_text(
         "#!/usr/bin/env python3\n", encoding="utf-8"

@@ -51,6 +51,34 @@ def _split_zellij_calls(payload: str) -> list[list[str]]:
     return calls
 
 
+def _read_json_or_none(path: Path) -> dict | None:
+    try:
+        text = path.read_text(encoding="utf-8")
+        if not text.strip():
+            return None
+        return json.loads(text)
+    except json.JSONDecodeError:
+        return None
+
+
+def _wait_for_meta_payload(
+    artifacts_root: Path, pattern: str, timeout: float = 5.0
+) -> tuple[Path | None, dict | None]:
+    deadline = time.time() + timeout
+    latest_meta: Path | None = None
+    while time.time() < deadline:
+        meta_files = sorted(artifacts_root.rglob(pattern))
+        if meta_files:
+            latest_meta = meta_files[0]
+            payload = _read_json_or_none(latest_meta)
+            if payload and payload.get("status") in {"completed", "failed"}:
+                return latest_meta, payload
+        time.sleep(0.1)
+    if latest_meta is None:
+        return None, None
+    return latest_meta, _read_json_or_none(latest_meta)
+
+
 def test_runtime_prompt_guards_report_path_from_bare_slash(tmp_path: Path) -> None:
     source_file = tmp_path / "source.md"
     runtime_file = tmp_path / "runtime.md"
@@ -93,6 +121,112 @@ def test_runtime_prompt_includes_vc_agents_worker_charter(tmp_path: Path) -> Non
     assert "Do NOT invoke vc-agents" in payload
     assert "do not reinterpret it" in payload
     assert "record the boundary clearly in your report" in payload
+    assert "**COMMIT**: mandatory. One commit when done." in payload
+
+
+def test_research_runtime_prompt_forbids_commits_and_source_mutation(
+    tmp_path: Path,
+) -> None:
+    source_file = tmp_path / "source.md"
+    runtime_file = tmp_path / "runtime.md"
+    report_path = tmp_path / "report.md"
+    source_file.write_text("# Research prompt\n", encoding="utf-8")
+
+    _bash(
+        f'''
+        set -euo pipefail
+        source "{COMMON_SH}"
+        export SPAWN_RUN_ID="rsch-123"
+        export SPAWN_PROMPT_ID="prompt-123"
+        export SPAWN_SKILL_NAME="research"
+        export SPAWN_SKILL_CODE="rsch"
+        spawn_build_runtime_prompt "{source_file}" "{runtime_file}" "{report_path}" codex
+        '''
+    )
+
+    payload = runtime_file.read_text(encoding="utf-8")
+    assert "## Research Safety Contract" in payload
+    assert "**COMMIT**: forbidden" in payload
+    assert "git write operation" in payload
+    assert "Do not edit repo source files" in payload
+    assert "**COMMIT**: mandatory. One commit when done." not in payload
+
+
+def test_codex_research_prompt_uses_clean_research_payload(
+    tmp_path: Path,
+) -> None:
+    source_file = tmp_path / "source.md"
+    runtime_file = tmp_path / "runtime.md"
+    report_path = tmp_path / "report.md"
+    source_file.write_text(
+        "\n".join(
+            [
+                "---",
+                "run_id: rsch-123",
+                "skill: vc-research",
+                "status: in-progress",
+                "---",
+                "",
+                "# Research Prompt",
+                "",
+                "Question: How should clean worker prompts behave?",
+                "",
+            ]
+        ),
+        encoding="utf-8",
+    )
+
+    _bash(
+        f'''
+        set -euo pipefail
+        source "{COMMON_SH}"
+        export SPAWN_RUN_ID="rsch-123"
+        export SPAWN_PROMPT_ID="prompt-123"
+        export SPAWN_SKILL_NAME="research"
+        spawn_build_runtime_prompt "{source_file}" "{runtime_file}" "{report_path}" codex
+        '''
+    )
+
+    payload = runtime_file.read_text(encoding="utf-8")
+    assert "# Research Prompt" in payload
+    assert "Question: How should clean worker prompts behave?" in payload
+    assert "## Final Message" in payload
+    assert "complete markdown report verbatim" in payload
+    assert "final message must stand alone as the full report" in payload
+    assert "skill: vc-research" not in payload
+    assert "Perform the vc-research skill" not in payload
+    assert "## VC Agents Worker Charter" not in payload
+    assert "Do NOT invoke vc-agents" not in payload
+    assert "Codex Research Report Capture Contract" not in payload
+    assert "triple-agent research swarm" not in payload.lower()
+    assert "delegate" not in payload.lower()
+
+
+def test_codex_implement_prompt_does_not_get_research_capture_contract(
+    tmp_path: Path,
+) -> None:
+    source_file = tmp_path / "source.md"
+    runtime_file = tmp_path / "runtime.md"
+    report_path = tmp_path / "report.md"
+    source_file.write_text("# Implement Prompt\n", encoding="utf-8")
+
+    _bash(
+        f'''
+        set -euo pipefail
+        source "{COMMON_SH}"
+        export SPAWN_RUN_ID="impl-123"
+        export SPAWN_PROMPT_ID="prompt-123"
+        export SPAWN_SKILL_NAME="implement"
+        spawn_build_runtime_prompt "{source_file}" "{runtime_file}" "{report_path}" codex
+        '''
+    )
+
+    payload = runtime_file.read_text(encoding="utf-8")
+    assert "## Codex Research Report Capture Contract" not in payload
+    assert (
+        "final assistant message MUST be the complete markdown report verbatim"
+        not in payload
+    )
 
 
 def test_generated_launcher_runs_from_spawn_root(tmp_path: Path) -> None:
@@ -393,19 +527,13 @@ def test_codex_spawn_marks_meta_failed_when_codex_emits_non_json_auth_error(
     assert "Agent launched." in result.stdout
     assert "Await:" in result.stdout
 
-    meta_files: list[Path] = []
-    deadline = time.time() + 5
     artifacts_root = crafted_home / "artifacts"
-    while time.time() < deadline:
-        meta_files = list(artifacts_root.rglob("*_plan_codex.meta.json"))
-        if meta_files:
-            payload = json.loads(meta_files[0].read_text(encoding="utf-8"))
-            if payload.get("status") in {"completed", "failed"}:
-                break
-        time.sleep(0.1)
+    meta_file, meta_payload = _wait_for_meta_payload(
+        artifacts_root, "*_plan_codex.meta.json"
+    )
 
-    assert meta_files, "codex spawn did not write meta.json"
-    meta_payload = json.loads(meta_files[0].read_text(encoding="utf-8"))
+    assert meta_file is not None, "codex spawn did not write meta.json"
+    assert meta_payload is not None, "codex spawn did not finish writing meta.json"
     assert meta_payload["status"] == "failed"
     assert meta_payload["exit_code"] == 17
 
@@ -421,12 +549,118 @@ def test_codex_spawn_marks_meta_failed_when_codex_emits_non_json_auth_error(
         "Codex failed before writing a standalone report file."
         in report_file.read_text(encoding="utf-8")
     )
-    transcript_file = meta_files[0].with_name(
-        meta_files[0].name.replace(".meta.json", ".transcript.log")
+    transcript_file = meta_file.with_name(
+        meta_file.name.replace(".meta.json", ".transcript.log")
     )
     assert "refresh token was already used" in transcript_file.read_text(
         encoding="utf-8"
     )
+
+
+def test_codex_spawn_preserves_standalone_report_when_last_message_is_handoff(
+    tmp_path: Path,
+) -> None:
+    home = tmp_path / "home"
+    crafted_home = home / ".vibecrafted"
+    fake_bin = tmp_path / "bin"
+    plan = tmp_path / "research-plan.md"
+
+    home.mkdir()
+    fake_bin.mkdir()
+    plan.write_text("# Research Plan\n", encoding="utf-8")
+
+    fake_codex = fake_bin / "codex"
+    fake_codex.write_text(
+        "\n".join(
+            [
+                "#!/usr/bin/env bash",
+                "set -euo pipefail",
+                'last_message=""',
+                "while [[ $# -gt 0 ]]; do",
+                '  case "$1" in',
+                '    --output-last-message) shift; last_message="${1:-}" ;;',
+                "  esac",
+                "  shift || true",
+                "done",
+                'prompt="$(cat)"',
+                'report_path="$(printf "%s\\n" "$prompt" | sed -n \'s/^Report path: //p\' | tail -n 1)"',
+                '[[ -n "$report_path" ]] || exit 22',
+                'mkdir -p "$(dirname "$report_path")"',
+                'cat > "$report_path" <<EOF_REPORT',
+                "---",
+                "agent: codex",
+                "status: completed",
+                "---",
+                "",
+                "# Full Research Report",
+                "",
+                "This is the durable report body.",
+                "EOF_REPORT",
+                'if [[ -n "$last_message" ]]; then',
+                '  mkdir -p "$(dirname "$last_message")"',
+                '  cat > "$last_message" <<EOF_LAST',
+                "Done. Report saved at: $report_path",
+                "EOF_LAST",
+                "fi",
+                'printf \'{"type":"thread.started","thread_id":"fake-session-standalone"}\\n\'',
+                'printf \'{"type":"item.completed","item":{"type":"agent_message","text":"structured report was streamed earlier"}}\\n\'',
+                'printf \'{"type":"turn.completed","usage":{"input_tokens":10,"output_tokens":5}}\\n\'',
+            ]
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    fake_codex.chmod(0o755)
+
+    env = {
+        **os.environ,
+        "HOME": str(home),
+        "VIBECRAFTED_HOME": str(crafted_home),
+        "PATH": f"{fake_bin}:{os.environ.get('PATH', '')}",
+        "VIBECRAFTED_INLINE_STARTUP_WATCH": "0",
+        "VIBECRAFTED_SKILL_CODE": "rsch",
+        "VIBECRAFTED_SKILL_NAME": "research",
+    }
+
+    result = subprocess.run(
+        [
+            "bash",
+            str(CODEX_SPAWN_SH),
+            "--mode",
+            "research",
+            "--runtime",
+            "headless",
+            "--root",
+            str(REPO_ROOT),
+            str(plan),
+        ],
+        check=True,
+        cwd=REPO_ROOT,
+        env=env,
+        capture_output=True,
+        text=True,
+    )
+
+    assert "Agent launched." in result.stdout
+
+    artifacts_root = crafted_home / "artifacts"
+    meta_file, meta_payload = _wait_for_meta_payload(
+        artifacts_root, "*_research-plan_codex.meta.json"
+    )
+
+    assert meta_file is not None, "codex spawn did not write research meta.json"
+    assert meta_payload is not None, "codex spawn did not finish writing meta.json"
+    assert meta_payload["status"] == "completed"
+
+    report_file = Path(meta_payload["report"])
+    report_text = report_file.read_text(encoding="utf-8")
+    assert "# Full Research Report" in report_text
+    assert "This is the durable report body." in report_text
+    assert "Done. Report saved at" not in report_text
+
+    last_message_file = Path(meta_payload["transcript"]).with_suffix(".last-message.md")
+    assert last_message_file.exists()
+    assert "Done. Report saved at" in last_message_file.read_text(encoding="utf-8")
 
 
 def test_claude_spawn_marks_meta_failed_when_stream_has_no_json(
@@ -485,19 +719,13 @@ def test_claude_spawn_marks_meta_failed_when_stream_has_no_json(
     assert "Agent launched." in result.stdout
     assert "Await:" in result.stdout
 
-    meta_files: list[Path] = []
-    deadline = time.time() + 5
     artifacts_root = crafted_home / "artifacts"
-    while time.time() < deadline:
-        meta_files = list(artifacts_root.rglob("*_plan_claude.meta.json"))
-        if meta_files:
-            payload = json.loads(meta_files[0].read_text(encoding="utf-8"))
-            if payload.get("status") in {"completed", "failed"}:
-                break
-        time.sleep(0.1)
+    meta_file, meta_payload = _wait_for_meta_payload(
+        artifacts_root, "*_plan_claude.meta.json"
+    )
 
-    assert meta_files, "claude spawn did not write meta.json"
-    meta_payload = json.loads(meta_files[0].read_text(encoding="utf-8"))
+    assert meta_file is not None, "claude spawn did not write meta.json"
+    assert meta_payload is not None, "claude spawn did not finish writing meta.json"
     assert meta_payload["status"] == "failed"
     assert meta_payload["exit_code"] != 0
 
@@ -530,6 +758,47 @@ def test_generated_launcher_includes_startup_watch(tmp_path: Path) -> None:
         in body
     )
     assert 'wait "$startup_watch_pid"' in body
+
+
+def test_research_launcher_blocks_git_write_operations(tmp_path: Path) -> None:
+    launcher = tmp_path / "launch.sh"
+    meta = tmp_path / "meta.json"
+    report = tmp_path / "report.txt"
+    transcript = tmp_path / "trace.log"
+
+    result = subprocess.run(
+        [
+            "bash",
+            "-lc",
+            f'''
+            set -euo pipefail
+            source "{COMMON_SH}"
+            export SPAWN_ROOT="{tmp_path}"
+            export SPAWN_AGENT="codex"
+            export SPAWN_PROMPT_ID="prompt-123"
+            export SPAWN_RUN_ID="rsch-014520-002"
+            export SPAWN_LOOP_NR="0"
+            export SPAWN_SKILL_CODE="rsch"
+            export SPAWN_SKILL_NAME="research"
+            export VIBECRAFTED_INLINE_STARTUP_WATCH=0
+            cmd='git commit --allow-empty -m blocked'
+            spawn_write_meta "{meta}" "launching" "codex" "research" "{tmp_path}" "{launcher}" "{report}" "{transcript}" "{launcher}"
+            spawn_generate_launcher "{launcher}" "{meta}" "{report}" "{transcript}" "{COMMON_SH}" "$cmd"
+            chmod +x "{launcher}"
+            bash "{launcher}"
+            ''',
+        ],
+        check=False,
+        cwd=REPO_ROOT,
+        capture_output=True,
+        text=True,
+    )
+
+    assert result.returncode == 126
+    assert "vibecrafted research mode blocks git write operation: git commit" in (
+        result.stderr + result.stdout
+    )
+    assert json.loads(meta.read_text(encoding="utf-8"))["status"] == "failed"
 
 
 def test_spawn_in_zellij_pane_honors_requested_direction(tmp_path: Path) -> None:

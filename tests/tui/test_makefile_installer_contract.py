@@ -70,3 +70,12 @@ def test_bundle_check_uses_portable_mktemp_template() -> None:
 
     assert 'mktemp "$$tmp_root/vibecrafted-bundle.XXXXXX"' in text
     assert 'mktemp "$$tmp_root/vibecrafted-bundle.XXXXXX.plugin"' not in text
+
+
+def test_install_manifest_post_install_uses_mirror_sync() -> None:
+    text = (REPO_ROOT / "install.toml").read_text(encoding="utf-8")
+
+    assert (
+        'python3 scripts/vetcoders_install.py install --source "." '
+        "--with-shell --compact --non-interactive --mirror"
+    ) in text

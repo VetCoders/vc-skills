@@ -18,7 +18,7 @@ spawn_generate_launcher() {
 
   local q_meta q_report q_transcript q_common q_cmd
   local q_root q_agent q_prompt_id q_run_id q_run_lock q_loop_nr q_skill_code
-  local q_operator_session q_spawn_direction q_marbles_tab
+  local q_skill_name q_operator_session q_spawn_direction q_marbles_tab
   q_meta="$(spawn_shell_quote "$meta_path")"
   q_report="$(spawn_shell_quote "$report_path")"
   q_transcript="$(spawn_shell_quote "$transcript_path")"
@@ -80,6 +80,59 @@ if [[ -n "$pre_hook" ]]; then
   cat >> "$launcher" <<'EOF_LAUNCH'
 spawn_export_frontier_sidecars
 export PATH="${PATH:-/usr/local/bin:/usr/bin:/bin}"
+if [[ "${SPAWN_SKILL_NAME:-}" == "research" || "${SPAWN_SKILL_CODE:-}" == "rsch" || "${VIBECRAFTED_RESEARCH_MODE:-0}" == "1" ]]; then
+  export VIBECRAFTED_RESEARCH_MODE=1
+  export VIBECRAFTED_NO_GIT_WRITES=1
+  if [[ "${VIBECRAFTED_ALLOW_RESEARCH_GIT_WRITE:-0}" != "1" ]] && command -v git >/dev/null 2>&1; then
+    export VIBECRAFTED_REAL_GIT="$(command -v git)"
+    git_guard_dir="${TMPDIR:-/tmp}/vibecrafted-research-git-guard-${SPAWN_RUN_ID:-research}-$$"
+    mkdir -p "$git_guard_dir"
+    cat > "$git_guard_dir/git" <<'EOF_GIT_GUARD'
+#!/usr/bin/env bash
+set -euo pipefail
+
+subcmd=""
+args=("$@")
+i=0
+while (( i < ${#args[@]} )); do
+  arg="${args[$i]}"
+  case "$arg" in
+    -C|-c|--git-dir|--work-tree|--namespace|--exec-path|--super-prefix)
+      (( i += 2 ))
+      ;;
+    --git-dir=*|--work-tree=*|--namespace=*|--exec-path=*|--super-prefix=*|-c*)
+      (( i += 1 ))
+      ;;
+    --no-pager|--paginate|--bare|--no-replace-objects|--literal-pathspecs|--glob-pathspecs|--noglob-pathspecs|--icase-pathspecs)
+      (( i += 1 ))
+      ;;
+    --*)
+      (( i += 1 ))
+      ;;
+    -*)
+      (( i += 1 ))
+      ;;
+    *)
+      subcmd="$arg"
+      break
+      ;;
+  esac
+done
+
+case "$subcmd" in
+  add|am|apply|bisect|branch|checkout|cherry-pick|clean|commit|fetch|merge|mv|pull|push|rebase|reset|restore|revert|rm|stash|submodule|switch|tag|update-index|worktree)
+    printf 'vibecrafted research mode blocks git write operation: git %s\n' "$subcmd" >&2
+    printf 'Write findings to the research report instead of mutating the source repo.\n' >&2
+    exit 126
+    ;;
+esac
+
+exec "${VIBECRAFTED_REAL_GIT:-/usr/bin/git}" "$@"
+EOF_GIT_GUARD
+    chmod +x "$git_guard_dir/git"
+    export PATH="$git_guard_dir:$PATH"
+  fi
+fi
 if [[ "${VIBECRAFTED_INLINE_STARTUP_WATCH:-1}" != "0" ]]; then
   VIBECRAFTED_STARTUP_WATCH_ECHO=0 spawn_watch_startup "$meta" "$transcript" "$report" &
   startup_watch_pid=$!

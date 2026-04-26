@@ -1810,6 +1810,13 @@ def report_helper_conflicts(
 
 
 _RSYNC_EXCLUDES = {".DS_Store", ".loctree"}
+_CONTROL_PLANE_EXCLUDES = {
+    ".DS_Store",
+    ".git",
+    ".loctree",
+    ".pytest_cache",
+    "__pycache__",
+}
 
 
 def _copytree_skill(src: Path, dst: Path, mirror: bool = False) -> None:
@@ -1844,6 +1851,124 @@ def rsync_skill(
         )
     else:
         _copytree_skill(src, dst, mirror=mirror)
+
+
+def _remove_path(path: Path) -> None:
+    if path.is_symlink() or path.is_file():
+        path.unlink()
+    elif path.is_dir():
+        shutil.rmtree(path)
+
+
+def _clear_dir_contents(path: Path) -> None:
+    if not path.exists():
+        return
+    for child in path.iterdir():
+        _remove_path(child)
+
+
+def _copy_control_plane_contents(src: Path, dst: Path, mirror: bool = False) -> None:
+    """Pure-Python fallback for staged control-plane sync."""
+    if mirror:
+        _clear_dir_contents(dst)
+    dst.mkdir(parents=True, exist_ok=True)
+
+    for item in src.iterdir():
+        if item.name in _CONTROL_PLANE_EXCLUDES:
+            continue
+
+        target = dst / item.name
+        if item.is_symlink():
+            if target.exists() or target.is_symlink():
+                _remove_path(target)
+            target.symlink_to(os.readlink(item))
+        elif item.is_dir():
+            if target.exists() and not target.is_dir():
+                _remove_path(target)
+            _copy_control_plane_contents(item, target, mirror=False)
+        elif item.is_file():
+            if target.exists() and target.is_dir():
+                _remove_path(target)
+            target.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(item, target)
+
+
+def sync_control_plane_tree(
+    src: Path, dst: Path, dry_run: bool = False, mirror: bool = False
+) -> None:
+    """Sync the staged source tree used by installed launchers and helpers."""
+    if dry_run:
+        return
+    dst.mkdir(parents=True, exist_ok=True)
+    if shutil.which("rsync"):
+        cmd = ["rsync", "-a"]
+        for name in sorted(_CONTROL_PLANE_EXCLUDES):
+            cmd += ["--exclude", name]
+        if mirror:
+            cmd.append("--delete")
+        cmd += [str(src) + "/", str(dst) + "/"]
+        subprocess.run(
+            cmd, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL
+        )
+    else:
+        _copy_control_plane_contents(src, dst, mirror=mirror)
+
+
+def _is_framework_source_root(repo_root: Path) -> bool:
+    return (
+        (repo_root / "VERSION").is_file()
+        and (repo_root / "scripts" / "vibecrafted").is_file()
+        and (repo_root / "skills").is_dir()
+    )
+
+
+def _current_tools_link(shared_home: Path) -> Path:
+    return shared_home / "tools" / "vibecrafted-current"
+
+
+def _ensure_current_tools_target(shared_home: Path) -> Path:
+    tools_dir = shared_home / "tools"
+    current_link = _current_tools_link(shared_home)
+    tools_dir.mkdir(parents=True, exist_ok=True)
+
+    if current_link.is_symlink():
+        target = current_link.resolve(strict=False)
+        if target.exists():
+            return target
+        current_link.unlink()
+    elif current_link.exists():
+        return current_link
+
+    target = tools_dir / "vibecrafted-local"
+    target.mkdir(parents=True, exist_ok=True)
+    current_link.symlink_to(target)
+    return target
+
+
+def refresh_current_tools(
+    repo_root: Path, shared_home: Path, dry_run: bool = False, mirror: bool = False
+) -> Optional[Path]:
+    """Refresh ~/.vibecrafted/tools/vibecrafted-current from the install source."""
+    if not _is_framework_source_root(repo_root):
+        return None
+
+    current_link = _current_tools_link(shared_home)
+    if current_link.exists() or current_link.is_symlink():
+        try:
+            if current_link.resolve(strict=False) == repo_root:
+                return current_link
+        except OSError:
+            pass
+
+    if dry_run:
+        return current_link
+
+    target = _ensure_current_tools_target(shared_home)
+    if target.resolve(strict=False) == repo_root:
+        return target
+
+    sync_control_plane_tree(repo_root, target, dry_run=dry_run, mirror=mirror)
+    return current_link
 
 
 def prune_orphaned_skills(
@@ -3185,6 +3310,27 @@ def _cmd_install_verbose(args: argparse.Namespace, repo_root: Path) -> int:
         rsync_skill(src, dst, dry_run=dry_run, mirror=mirror)
     print()
 
+    # --- Execute: staged control plane ---
+    print(bold("Refreshing staged control plane..."))
+    try:
+        current_tools = refresh_current_tools(
+            repo_root, shared_home, dry_run=dry_run, mirror=mirror
+        )
+    except (OSError, subprocess.CalledProcessError) as exc:
+        print(f"  {MISS} Could not refresh staged tools: {exc}")
+        print(
+            "  Stopping install so stale ~/.vibecrafted/tools/vibecrafted-current "
+            "cannot shadow fresh skills."
+        )
+        return 1
+    if current_tools is None:
+        print(f"  {WARN} Source is not a full framework checkout; staged tools skipped")
+    elif dry_run:
+        print(f"  {dim('would sync')} {repo_root} -> {current_tools}")
+    else:
+        print(f"  {OK} {current_tools}")
+    print()
+
     # --- Execute: symlink views ---
     print(bold("Linking agent views..."))
     for rt in all_runtimes:
@@ -3498,6 +3644,33 @@ def _cmd_install_compact(args: argparse.Namespace, repo_root: Path) -> int:
             dst = store_path / name
             print(f"  -> {name}")
             rsync_skill(src, dst, dry_run=dry_run, mirror=mirror)
+        print()
+
+        print("Refreshing staged control plane:")
+        try:
+            current_tools = refresh_current_tools(
+                repo_root, shared_home, dry_run=dry_run, mirror=mirror
+            )
+        except (OSError, subprocess.CalledProcessError) as exc:
+            print(f"  FAILED: {exc}")
+            out.write(
+                "\n  "
+                + red("Install stopped")
+                + " — could not refresh ~/.vibecrafted/tools/vibecrafted-current\n"
+            )
+            out.write(
+                "  Stale staged tools would shadow fresh skills; check the install log.\n"
+            )
+            return 1
+        if current_tools is None:
+            print("  skipped: source is not a full framework checkout")
+            _compact_line(out, WARN, "Tools", "staged control plane skipped")
+        elif dry_run:
+            print(f"  would sync: {repo_root} -> {current_tools}")
+            _compact_line(out, SKIP, "Tools", "dry run")
+        else:
+            print(f"  synced: {repo_root} -> {current_tools}")
+            _compact_line(out, green("\u2713"), "Tools", "staged current refreshed")
         print()
 
         # Compact status lines on real stdout
@@ -4294,7 +4467,10 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     p_install.add_argument(
         "--mirror",
         action="store_true",
-        help="Delete extra files in installed skill dirs (rsync --delete)",
+        help=(
+            "Delete extra files in installed skill dirs and staged tools "
+            "(rsync --delete)"
+        ),
     )
     p_install.add_argument(
         "--compact",

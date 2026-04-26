@@ -106,6 +106,7 @@ def build_install_command(source_dir: str, *, with_shell: bool) -> list[str]:
         str(Path(source_dir).resolve()),
         "--compact",
         "--non-interactive",
+        "--mirror",
     ]
     if with_shell:
         command.append("--with-shell")

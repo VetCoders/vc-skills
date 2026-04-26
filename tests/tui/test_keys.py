@@ -40,6 +40,7 @@ def test_build_install_command_includes_compact_noninteractive_flags(
         str(tmp_path.resolve()),
         "--compact",
         "--non-interactive",
+        "--mirror",
         "--with-shell",
     ]
 

@@ -6,11 +6,11 @@
 flowchart TD
     A[Operator: vibecrafted research --prompt 'Research the topic'] --> B[Parse one question or plan file]
     B --> C[Create or inherit swarm run context]
-    C --> D[Prepare Claude, Codex, and Gemini launchers]
+    C --> D[Create research/<run_id> and prepare launchers]
     D --> E{Runtime?}
     E -->|terminal or visible| F[Open shared zellij research tab]
     E -->|headless| G[Print launcher paths and await command]
-    F --> H[Each agent writes report, transcript, and meta]
+    F --> H[Each agent writes report plus logs inside the run directory]
     G --> H
     H --> I[Await and synthesize next]
 ```
@@ -32,6 +32,7 @@ flowchart TD
 
 ### Session artifacts
 
-- Artifact root: `$VIBECRAFTED_HOME/artifacts/<org>/<repo>/<YYYY_MMDD>/`
+- Artifact root: `$VIBECRAFTED_HOME/artifacts/<org>/<repo>/<YYYY_MMDD>/research/<run_id>/`
 - Lock: `$VIBECRAFTED_HOME/locks/<org>/<repo>/<run_id>.lock`
-- Outputs: per-agent reports, transcripts, and `.meta.json` sidecars under `reports/`
+- Human surface: `summary.md` plus `reports/{claude,codex,gemini}.md`
+- Internal audit: `logs/{claude,codex,gemini}.meta.json`, transcripts, raw streams, runtime prompts, launchers, and layout under `logs/` and `tmp/`

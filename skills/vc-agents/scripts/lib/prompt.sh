@@ -96,16 +96,12 @@ status: $status
 EOF_FM
 }
 
-spawn_build_runtime_prompt() {
+spawn_append_prompt_body() {
   local source_file="$1"
-  local runtime_file="$2"
-  local report_path="$3"
-  local agent="${4:-${SPAWN_AGENT:-agent}}"
-  local model="${5:-${SPAWN_MODEL:-unknown}}"
+  local target_file="$2"
 
-  spawn_write_frontmatter "$runtime_file" "$agent" "$model" "prompt"
-
-  # Strip existing frontmatter (so we don't have double) and append the plan
+  # Strip top-level metadata before handing the task body to the model. Runtime
+  # metadata belongs in artifacts, not in the worker's execution prompt.
   awk \
     '\
     BEGIN { in_fm=0; fm_done=0; }
@@ -113,9 +109,83 @@ spawn_build_runtime_prompt() {
     in_fm && /^---[ 	]*$/ { in_fm=0; fm_done=1; next; }
     in_fm { next; }
     { print }
-  ' "$source_file" >> "$runtime_file"
+  ' "$source_file" >> "$target_file"
+}
 
+spawn_build_research_runtime_prompt() {
+  local source_file="$1"
+  local runtime_file="$2"
+  local report_path="$3"
+  local agent="${4:-${SPAWN_AGENT:-agent}}"
+  local model="${5:-${SPAWN_MODEL:-unknown}}"
   local run_id="${SPAWN_RUN_ID:-unknown}"
+  local prompt_id="${SPAWN_PROMPT_ID:-unknown}"
+
+  cat > "$runtime_file" <<'EOF_RESEARCH_PROMPT'
+# Research Task
+
+EOF_RESEARCH_PROMPT
+
+  spawn_append_prompt_body "$source_file" "$runtime_file"
+
+  cat >> "$runtime_file" <<EOF_RESEARCH_CONTRACT
+
+---
+## Execution
+- Execute the research plan directly.
+- Ground findings in primary sources, repository evidence, or clearly labeled inference.
+- If evidence conflicts, call out the conflict explicitly.
+- Write the final markdown report to the exact path below.
+
+## Research Safety Contract
+- Research mode is read-only for the source repo by default.
+- **COMMIT**: forbidden. Do not stage, commit, amend, tag, branch, merge, rebase, push, stash, clean, reset, checkout, switch, or run any other git write operation.
+- **SOURCE MUTATION**: forbidden unless the operator plan explicitly asks for source modifications. Do not edit repo source files, config, .gitignore, generated files, or cleanup stray files from this research worker.
+- If you discover a fix, describe it in the report instead of implementing it.
+
+Report path: $report_path
+
+## Report Frontmatter
+Start the report with this frontmatter, changing status to failed if the research cannot be completed:
+
+---
+run_id: $run_id
+prompt_id: $prompt_id
+agent: $agent
+model: $model
+status: completed
+---
+EOF_RESEARCH_CONTRACT
+
+  if [[ "$agent" == "codex" ]]; then
+    cat >> "$runtime_file" <<'EOF_CODEX_RESEARCH'
+
+## Final Message
+- Make your final assistant message the complete markdown report verbatim, including frontmatter, findings, sources, synthesis, and open questions.
+- Do not end with a pointer-only handoff such as "see the report path"; the final message must stand alone as the full report.
+EOF_CODEX_RESEARCH
+  fi
+}
+
+spawn_build_runtime_prompt() {
+  local source_file="$1"
+  local runtime_file="$2"
+  local report_path="$3"
+  local agent="${4:-${SPAWN_AGENT:-agent}}"
+  local model="${5:-${SPAWN_MODEL:-unknown}}"
+  local skill_name="${SPAWN_SKILL_NAME:-${VIBECRAFTED_SKILL_NAME:-}}"
+
+  if [[ "$skill_name" == "research" || "${SPAWN_SKILL_CODE:-}" == "rsch" || "${VIBECRAFTED_RESEARCH_MODE:-0}" == "1" ]]; then
+    spawn_build_research_runtime_prompt "$source_file" "$runtime_file" "$report_path" "$agent" "$model"
+    return 0
+  fi
+
+  spawn_write_frontmatter "$runtime_file" "$agent" "$model" "prompt"
+
+  # Strip existing frontmatter (so we don't have double) and append the plan
+  spawn_append_prompt_body "$source_file" "$runtime_file"
+
+  # shellcheck disable=SC2129
   cat >> "$runtime_file" <<EOF_LABEL
 ---
 ## VC Agents Worker Charter
@@ -123,12 +193,14 @@ spawn_build_runtime_prompt() {
 - Do NOT invoke vc-agents, do NOT launch another external fleet, and do NOT reopen frontier selection.
 - The operator already made the vc-why-matrix choice for this mission; do not reinterpret it.
 - If the task reveals a wider unresolved surface, complete the assigned mission as far as honestly possible and record the boundary clearly in your report.
+EOF_LABEL
 
+  cat >> "$runtime_file" <<'EOF_IMPLEMENT'
 ## Exit Contract
 - **COMMIT**: mandatory. One commit when done.
 - **REPORT**: mandatory. Write to the report path given at the end of this prompt.
 - **SCOPE**: do your work, commit, report, stop.
-EOF_LABEL
+EOF_IMPLEMENT
 
   cat >> "$runtime_file" <<EOF_PROMPT
 

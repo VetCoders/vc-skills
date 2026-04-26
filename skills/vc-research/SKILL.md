@@ -98,6 +98,21 @@ Do NOT use for:
 - Pure implementation tasks (use vc-workflow, usually through vc-agents; use vc-delegate only for small model-agnostic
   work)
 
+## Research Safety
+
+Research mode is read-only for the source repository by default.
+
+- Do not stage, commit, amend, tag, branch, merge, rebase, push, stash, clean,
+  reset, checkout, switch, or run any other git write operation.
+- Do not edit repo source files, config, `.gitignore`, generated files, or
+  cleanup stray files unless the operator plan explicitly asks for source
+  modifications.
+- If research discovers an obvious fix, write the proposed fix, exact file
+  references, and implementation notes to the report artifact instead of
+  applying it.
+- Reports and plans still go under the run-scoped research directory:
+  `$VIBECRAFTED_HOME/artifacts/<org>/<repo>/<YYYY_MMDD>/research/<run_id>/`.
+
 ## The 6-Step Research Flow
 
 ### Step 1 — Co-define the problem
@@ -175,8 +190,9 @@ Write your findings to the report file as markdown with this structure:
 - Do not hallucinate API signatures — verify them
 ```
 
-Save to
-`$VIBECRAFTED_HOME/artifacts/<org>/<repo>/<YYYY_MMDD>/plans/<ts>_<slug>_research-plan.md`.
+Input plans may live anywhere, but `vc-research` records the effective prompt
+or plan under
+`$VIBECRAFTED_HOME/artifacts/<org>/<repo>/<YYYY_MMDD>/research/<run_id>/plans/<ts>_<slug>_research-plan.md`.
 
 Plans can be split if the problem has clearly separable domains. Each agent
 gets ALL plans — they are independent researchers, not specialists.
@@ -201,7 +217,8 @@ plan. This is intentional — divergence between reports reveals blind spots.
 Research observability is mandatory.
 `vc-research` is not "running" just because three panes appeared.
 Immediately after spawn, the operator should get a launch card with the shared
-`run_id`, plan path, report/meta paths, and the exact await command.
+`run_id`, run directory, reports directory, summary path, and the exact await
+command.
 
 That launch card is the default surface.
 `observe --last` is a drilldown tool, not the primary source of truth.
@@ -211,10 +228,15 @@ That launch card is the default surface.
 Reports land in:
 
 ```
-$VIBECRAFTED_HOME/artifacts/<org>/<repo>/<YYYY_MMDD>/reports/<ts>_research-plan_claude.md
-$VIBECRAFTED_HOME/artifacts/<org>/<repo>/<YYYY_MMDD>/reports/<ts>_research-plan_codex.md
-$VIBECRAFTED_HOME/artifacts/<org>/<repo>/<YYYY_MMDD>/reports/<ts>_research-plan_gemini.md
+$VIBECRAFTED_HOME/artifacts/<org>/<repo>/<YYYY_MMDD>/research/<run_id>/reports/claude.md
+$VIBECRAFTED_HOME/artifacts/<org>/<repo>/<YYYY_MMDD>/research/<run_id>/reports/codex.md
+$VIBECRAFTED_HOME/artifacts/<org>/<repo>/<YYYY_MMDD>/research/<run_id>/reports/gemini.md
 ```
+
+The readable launch card lives at `research/<run_id>/summary.md`. Metadata,
+transcripts, raw streams, runtime prompts, launchers, and the Zellij layout stay
+inside `research/<run_id>/logs/` and `research/<run_id>/tmp/` so the date-level
+artifact root remains readable.
 
 Wait for all three through the dedicated runtime helper, not by hand-rolled
 snippets.
@@ -267,7 +289,8 @@ Rules for synthesis:
 ### Step 6 — Produce gap-free research document
 
 Write the final document to
-`$VIBECRAFTED_HOME/artifacts/<org>/<repo>/<YYYY_MMDD>/plans/<ts>_<slug>_RESEARCH.md`:
+`$VIBECRAFTED_HOME/artifacts/<org>/<repo>/<YYYY_MMDD>/research/<run_id>/summary.md`
+or a sibling synthesis document in that same run directory:
 
 ```markdown
 ---

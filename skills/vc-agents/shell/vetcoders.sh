@@ -96,6 +96,65 @@ _vetcoders_tmp_script_path() {
   mktemp "${dir%/}/${prefix}.${stamp}_${context}.XXXXXX"
 }
 
+_vetcoders_research_run_dir() {
+  local root="$1"
+  local run_id="$2"
+  printf '%s/research/%s\n' "$(_vetcoders_store_dir "$root")" "$run_id"
+}
+
+_vetcoders_research_prompt_file() {
+  local run_dir="$1"
+  local prompt_text="$2"
+  local ts slug prompt_file
+
+  ts="$(_vetcoders_spawn_timestamp)"
+  slug="$(printf '%s' "$prompt_text" | tr '\n' ' ' | tr '[:upper:]' '[:lower:]' | sed -E 's/[^a-z0-9]+/-/g; s/^-+//; s/-+$//' | cut -c1-48)"
+  [[ -n "$slug" ]] || slug="research-plan"
+
+  mkdir -p "$run_dir/plans"
+  prompt_file="$run_dir/plans/${ts}_${slug}_research-plan.md"
+  printf '%s\n' "$prompt_text" > "$prompt_file"
+  printf '%s\n' "$prompt_file"
+}
+
+_vetcoders_write_research_summary() {
+  local run_dir="$1"
+  local run_id="$2"
+  local root="$3"
+  local prompt_file="$4"
+  local claude_launcher="$5"
+  local codex_launcher="$6"
+  local gemini_launcher="$7"
+  local summary_file="$run_dir/summary.md"
+
+  cat > "$summary_file" <<EOF
+# Research Run: $run_id
+
+Root: $root
+Prompt: $prompt_file
+Await: \`vc-research-await --run-id $run_id\`
+
+## Reports
+
+- Claude: $run_dir/reports/claude.md
+- Codex: $run_dir/reports/codex.md
+- Gemini: $run_dir/reports/gemini.md
+
+## Internal Logs
+
+- Metadata: $run_dir/logs/{claude,codex,gemini}.meta.json
+- Transcripts: $run_dir/logs/{claude,codex,gemini}.transcript.log
+- Launchers and runtime prompts: $run_dir/tmp/
+
+## Launchers
+
+- Claude: $claude_launcher
+- Codex: $codex_launcher
+- Gemini: $gemini_launcher
+EOF
+  printf '%s\n' "$summary_file"
+}
+
 _vetcoders_find_meta_for_run_id() {
   local reports_dir="$1"
   local target_run_id="$2"
@@ -1396,6 +1455,52 @@ _vetcoders_compose_skill_prompt() {
   printf '%s\n' "$base"
 }
 
+_vetcoders_research_file_body() {
+  local file_path="$1"
+
+  python3 - "$file_path" <<'PY'
+import pathlib
+import sys
+
+path = pathlib.Path(sys.argv[1])
+text = path.read_text(encoding="utf-8")
+lines = text.splitlines(keepends=True)
+
+if lines and lines[0].strip() == "---":
+    body_start = None
+    for idx, line in enumerate(lines[1:], start=1):
+        if line.strip() == "---":
+            body_start = idx + 1
+            break
+    if body_start is not None:
+        text = "".join(lines[body_start:]).lstrip("\n")
+
+print(text, end="")
+PY
+}
+
+_vetcoders_compose_research_worker_prompt() {
+  local prompt_text="${1:-}"
+  local file_path="${2:-}"
+  local combined="$prompt_text"
+
+  if [[ -n "$file_path" ]]; then
+    _vetcoders_require_file "$file_path" || return 1
+    local abs_file
+    abs_file="$(cd "$(dirname "$file_path")" && pwd)/$(basename "$file_path")"
+    local file_body
+    file_body="$(_vetcoders_research_file_body "$file_path")" || return 1
+    if [[ -n "$combined" ]]; then
+      combined+=$'\n\n'
+    fi
+    combined+="Research plan file: $abs_file"
+    combined+=$'\n\n'
+    combined+="$file_body"
+  fi
+
+  printf '%s\n' "$combined"
+}
+
 _vetcoders_init_runtime() {
   local runtime="${1:-terminal}"
   case "$runtime" in
@@ -1655,6 +1760,7 @@ _vetcoders_research_launcher_path() {
   local run_id="$4"
   local run_lock="$5"
   local runtime="$6"
+  local run_dir="$7"
   local script output launcher
 
   script="$(_vetcoders_spawn_script "$tool" "${tool}_spawn.sh")" || return 1
@@ -1664,7 +1770,11 @@ _vetcoders_research_launcher_path() {
       VIBECRAFTED_RUN_LOCK="$run_lock" \
       VIBECRAFTED_SKILL_CODE="rsch" \
       VIBECRAFTED_SKILL_NAME="research" \
-      bash "$script" --dry-run --mode implement --runtime "$runtime" --root "$root" "$prompt_file" 2>&1
+      VIBECRAFTED_RESEARCH_MODE="1" \
+      VIBECRAFTED_STORE_DIR="$run_dir" \
+      VIBECRAFTED_STORE_ROOT="$root" \
+      VIBECRAFTED_RESEARCH_RUN_DIR="$run_dir" \
+      bash "$script" --dry-run --mode research --runtime "$runtime" --root "$root" "$prompt_file" 2>&1
   )" || {
     printf '%s\n' "$output" >&2
     return 1
@@ -1746,7 +1856,7 @@ HELP
 _vetcoders_research() {
   local first_arg="${1:-}"
   local inherited_run_id inherited_run_lock
-  local prompt root run_id run_lock runtime prompt_file layout_file
+  local prompt root run_id run_lock runtime run_dir prompt_file layout_file summary_file
   local claude_launcher codex_launcher gemini_launcher
   local claude_cmd codex_cmd gemini_cmd session_name
 
@@ -1786,10 +1896,9 @@ _vetcoders_research() {
     return 1
   }
 
-  prompt="$(_vetcoders_compose_skill_prompt "research" "$_vetcoders_contract_prompt" "$_vetcoders_contract_file")" || return 1
+  prompt="$(_vetcoders_compose_research_worker_prompt "$_vetcoders_contract_prompt" "$_vetcoders_contract_file")" || return 1
   root="${_vetcoders_contract_root:-$(_vetcoders_repo_root)}"
   runtime="$(_vetcoders_effective_runtime)"
-  prompt_file="$(_vetcoders_prompt_file "research" "$prompt")" || return 1
 
   inherited_run_id="$(_vetcoders_effective_run_id 2>/dev/null || true)"
   inherited_run_lock="$(_vetcoders_effective_run_lock 2>/dev/null || true)"
@@ -1800,9 +1909,14 @@ _vetcoders_research() {
     run_lock="$(_vetcoders_create_run_lock "$run_id" "swarm" "research" "$root")" || return 1
   fi
 
-  claude_launcher="$(_vetcoders_research_launcher_path claude "$prompt_file" "$root" "$run_id" "$run_lock" "$runtime")" || return 1
-  codex_launcher="$(_vetcoders_research_launcher_path codex "$prompt_file" "$root" "$run_id" "$run_lock" "$runtime")" || return 1
-  gemini_launcher="$(_vetcoders_research_launcher_path gemini "$prompt_file" "$root" "$run_id" "$run_lock" "$runtime")" || return 1
+  run_dir="$(_vetcoders_research_run_dir "$root" "$run_id")"
+  mkdir -p "$run_dir/plans" "$run_dir/reports" "$run_dir/logs" "$run_dir/tmp"
+  prompt_file="$(_vetcoders_research_prompt_file "$run_dir" "$prompt")" || return 1
+
+  claude_launcher="$(_vetcoders_research_launcher_path claude "$prompt_file" "$root" "$run_id" "$run_lock" "$runtime" "$run_dir")" || return 1
+  codex_launcher="$(_vetcoders_research_launcher_path codex "$prompt_file" "$root" "$run_id" "$run_lock" "$runtime" "$run_dir")" || return 1
+  gemini_launcher="$(_vetcoders_research_launcher_path gemini "$prompt_file" "$root" "$run_id" "$run_lock" "$runtime" "$run_dir")" || return 1
+  summary_file="$(_vetcoders_write_research_summary "$run_dir" "$run_id" "$root" "$prompt_file" "$claude_launcher" "$codex_launcher" "$gemini_launcher")" || return 1
 
   if [[ "$runtime" =~ ^(terminal|visible)$ ]]; then
     _vetcoders_prepare_operator_runtime "$runtime" || return 1
@@ -1817,10 +1931,10 @@ _vetcoders_research() {
       return 1
     }
 
-    claude_cmd="$(_vetcoders_tmp_script_path "vc-research-claude" "$root")"
-    codex_cmd="$(_vetcoders_tmp_script_path "vc-research-codex" "$root")"
-    gemini_cmd="$(_vetcoders_tmp_script_path "vc-research-gemini" "$root")"
-    layout_file="$(_vetcoders_tmp_script_path "vc-research-layout" "$root").kdl"
+    claude_cmd="$run_dir/tmp/claude_cmd.sh"
+    codex_cmd="$run_dir/tmp/codex_cmd.sh"
+    gemini_cmd="$run_dir/tmp/gemini_cmd.sh"
+    layout_file="$run_dir/tmp/research.kdl"
 
     _vetcoders_write_command_script "$claude_cmd" "bash $(_vetcoders_shell_quote "$claude_launcher")" || return 1
     _vetcoders_write_command_script "$codex_cmd" "bash $(_vetcoders_shell_quote "$codex_launcher")" || return 1
@@ -1836,8 +1950,19 @@ _vetcoders_research() {
     export VIBECRAFTED_SKILL_CODE="rsch"
     # shellcheck disable=SC2031
     export VIBECRAFTED_SKILL_NAME="research"
+    # shellcheck disable=SC2031
+    export VIBECRAFTED_RESEARCH_MODE="1"
+    # shellcheck disable=SC2031
+    export VIBECRAFTED_STORE_DIR="$run_dir"
+    # shellcheck disable=SC2031
+    export VIBECRAFTED_STORE_ROOT="$root"
+    # shellcheck disable=SC2031
+    export VIBECRAFTED_RESEARCH_RUN_DIR="$run_dir"
     zellij --session "$session_name" action new-tab --layout "$layout_file" >/dev/null
     printf 'Research swarm launched in shared tab (run_id=%s).\n' "$run_id"
+    printf '  run dir: %s\n' "$run_dir"
+    printf '  reports: %s\n' "$run_dir/reports"
+    printf '  summary: %s\n' "$summary_file"
     _vetcoders_await "" --describe "$claude_launcher" "$codex_launcher" "$gemini_launcher" || true
     printf '\nAwait:\n\n'
     printf 'vc-research-await --run-id %s\n' "$run_id"
@@ -1845,6 +1970,9 @@ _vetcoders_research() {
   fi
 
   printf 'Research swarm prepared (run_id=%s), but runtime %s does not use the shared zellij layout.\n' "$run_id" "$runtime"
+  printf 'Run directory: %s\n' "$run_dir"
+  printf 'Reports: %s\n' "$run_dir/reports"
+  printf 'Summary: %s\n' "$summary_file"
   printf 'Launchers:\n'
   printf '  claude: %s\n' "$claude_launcher"
   printf '  codex:  %s\n' "$codex_launcher"

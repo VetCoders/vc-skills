@@ -269,7 +269,7 @@ _operator_tui_dir() {
     "${repo_source:+$repo_source/operator-tui}" \
     "$crafted_tools/operator-tui" \
     "$(_script_repo_root)/operator-tui"; do
-    [[ -d "$candidate" ]] || continue
+    [[ -f "$candidate/Cargo.toml" ]] || continue
     printf '%s\n' "$candidate"
     return 0
   done
@@ -736,6 +736,9 @@ cmd_tui() {
   [[ -n "$tui_dir" ]] && binary_path="$tui_dir/target/debug/vibecrafted-operator"
   external_binary="$(command -v vc-operator 2>/dev/null || true)"
   deck_path="$(_repo_source_root 2>/dev/null || true)"
+  if [[ -z "$deck_path" && -f "$crafted_tools/scripts/vibecrafted" ]]; then
+    deck_path="$crafted_tools"
+  fi
   if [[ -z "$deck_path" && -n "$tui_dir" ]]; then
     deck_path="$(cd "$tui_dir/.." && pwd)"
   fi

@@ -25,7 +25,9 @@ EOF_USAGE
 }
 
 root="${VIBECRAFTED_ROOT:-$(spawn_repo_root)}"
-reports_dir="$(spawn_store_dir "$root")/reports"
+store_dir="${VIBECRAFTED_AWAIT_STORE_DIR:-$(spawn_store_dir "$root")}"
+reports_dir="${VIBECRAFTED_AWAIT_REPORTS_DIR:-$store_dir/reports}"
+export VIBECRAFTED_AWAIT_STORE_DIR="$store_dir"
 export VIBECRAFTED_AWAIT_REPORTS_DIR="$reports_dir"
 
 exec python3 - "$@" <<'PY'
@@ -90,6 +92,7 @@ while i < len(argv):
         targets.append(arg)
     i += 1
 
+store_dir = Path(os.environ.get("VIBECRAFTED_AWAIT_STORE_DIR", "")).expanduser()
 reports_dir = Path(os.environ.get("VIBECRAFTED_AWAIT_REPORTS_DIR", "")).expanduser()
 
 
@@ -153,7 +156,9 @@ def descriptor_from_target(raw: str) -> dict[str, str]:
         desc["meta"] = str(path).replace(".transcript.log", ".meta.json")
     elif raw.endswith(".md"):
         desc["report"] = str(path)
-        desc["meta"] = str(path).rsplit(".md", 1)[0] + ".meta.json"
+        legacy_meta = Path(str(path).rsplit(".md", 1)[0] + ".meta.json")
+        research_meta = path.parent.parent / "logs" / f"{path.stem}.meta.json"
+        desc["meta"] = str(research_meta if research_meta.is_file() else legacy_meta)
     elif raw.endswith(".sh"):
         desc.update(parse_launcher(path))
     else:
@@ -161,10 +166,27 @@ def descriptor_from_target(raw: str) -> dict[str, str]:
     return backfill_from_meta(desc)
 
 
-def list_meta_files() -> list[Path]:
+def list_legacy_meta_files() -> list[Path]:
     if not reports_dir.is_dir():
         return []
     return sorted(reports_dir.glob("*.meta.json"))
+
+
+def list_research_meta_files() -> list[Path]:
+    if not store_dir.is_dir():
+        return []
+    metas = [
+        *store_dir.glob("research/*/logs/*.meta.json"),
+        *store_dir.glob("research/*/reports/*.meta.json"),
+    ]
+    return sorted(dict.fromkeys(metas))
+
+
+def list_meta_files(*, include_research: bool = False) -> list[Path]:
+    metas = list_legacy_meta_files()
+    if include_research:
+        metas.extend(list_research_meta_files())
+    return sorted(dict.fromkeys(metas))
 
 
 def load_meta(path: Path) -> dict | None:
@@ -175,7 +197,7 @@ def load_meta(path: Path) -> dict | None:
 
 
 def descriptors_for_last() -> list[dict[str, str]]:
-    metas = list_meta_files()
+    metas = list_meta_files(include_research=research_mode)
     if research_mode:
         last_research = None
         for meta_path in reversed(metas):
@@ -206,7 +228,8 @@ def descriptors_for_last() -> list[dict[str, str]]:
 
 def descriptors_for_run_id(target_run_id: str) -> list[dict[str, str]]:
     matches: list[dict[str, str]] = []
-    for meta_path in list_meta_files():
+    include_research = research_mode or target_run_id.startswith("rsch-")
+    for meta_path in list_meta_files(include_research=include_research):
         payload = load_meta(meta_path)
         if not payload:
             continue
