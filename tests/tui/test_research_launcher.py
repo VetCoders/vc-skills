@@ -211,7 +211,8 @@ def test_vc_research_uses_run_scoped_artifact_layout(tmp_path: Path) -> None:
         assert str(meta["input"]).startswith(str(run_dir / "plans"))
 
     codex_launcher = (run_dir / "tmp" / "codex_launch.sh").read_text(encoding="utf-8")
-    assert str(run_dir / "logs" / "codex.transcript.raw.jsonl") in codex_launcher
+    assert "--raw" not in codex_launcher
+    assert ".raw.jsonl" not in codex_launcher
 
     await_env = env.copy()
     await_env["VIBECRAFTED_ROOT"] = str(root)

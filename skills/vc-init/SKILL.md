@@ -248,6 +248,25 @@ Fallback: `git log --oneline --decorate --graph -n 15` and `git status -sb`. Obs
 - Verify it against code. If a config file claims a command that contradicts current
   code, trust the code and update other agents' files accordingly.
 
+#### 3c. Hunt for myliki before updating docs
+
+A **mylik** is a plausible misread that causes documentation drift: the agent
+copies a true statement from one actor, layer, or runtime surface into another
+place where it is no longer true.
+
+Before changing docs, topology notes, runbooks, or `.vibecrafted/GUIDELINES.md`,
+separate:
+
+- **actor** — operator, spawned agent, application user, CI, installer, runtime
+- **function** — admin UI, DSN/event ingestion, local helper, deploy path, fallback path
+- **scope** — public Internet, tailnet, local machine, source checkout, staged install
+- **truth source** — code, generated template, deployed env, live endpoint, runtime artifact
+
+If the same URL, command, or file appears in two roles, do not merge the roles.
+Name both. Operator fallback paths are not automatically application runtime
+paths. Template placeholders are not deployed values. A code path is not a
+topology claim until the live/runtime value confirms it.
+
 ---
 
 ### Sense 4: Quality Gates (optional)

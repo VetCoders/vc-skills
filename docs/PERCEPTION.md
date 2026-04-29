@@ -50,6 +50,32 @@ When multiple senses disagree, the disagreement is the signal:
 
 This is convergence through counterexample applied to perception itself.
 
+## Mylik
+
+A **mylik** is a small, plausible misread that grows into documentation drift.
+
+It happens when an agent copies a true shape from one actor, layer, or runtime
+surface into another one where it no longer applies. The source was not fake;
+the mapping was wrong.
+
+Typical myliki:
+
+- operator fallback paths get documented as application runtime paths
+- one endpoint serving two functions gets treated as one policy
+- an empty template value gets mistaken for a configurable topology
+- source code suggests one story while deployed env truth says another
+
+The antidote is not more prose. The antidote is actor/layer/runtime
+separation:
+
+1. name the actor using the surface
+2. name the function of the path or endpoint
+3. verify real deployed values before updating docs
+4. mark fallback/admin paths as such when they are not product runtime truth
+
+If a future agent says "the docs drifted, but the code looked convincing",
+look for the mylik first.
+
 ## Living Tree
 
 Agents working in a shared workspace use these senses to avoid collisions,

@@ -4,12 +4,15 @@
 This parser is intentionally tolerant: malformed or truncated JSON lines should
 never crash the live stream path. The Codex process exit code remains the
 source of truth for success/failure; this bridge only formats observable
-activity and preserves raw output for forensics.
+activity into the Vibecrafted transcript. Codex keeps its own JSONL session
+store; this bridge should not create a second persistent JSONL artifact during
+normal runtime.
 """
 
 from __future__ import annotations
 
 import argparse
+from contextlib import ExitStack
 import json
 import sys
 import time
@@ -129,7 +132,13 @@ def append(handle, text: str) -> None:
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--transcript", required=True)
-    parser.add_argument("--raw", required=True)
+    parser.add_argument(
+        "--raw",
+        help=(
+            "Optional diagnostic mirror for the incoming Codex JSONL stream. "
+            "Normal launchers should rely on vendor session logs instead."
+        ),
+    )
     parser.add_argument(
         "--echo-stdout",
         action="store_true",
@@ -138,16 +147,18 @@ def main() -> int:
     args = parser.parse_args()
 
     transcript_path = Path(args.transcript)
-    raw_path = Path(args.raw)
-    raw_path.parent.mkdir(parents=True, exist_ok=True)
+    raw_path = Path(args.raw) if args.raw else None
 
-    with (
-        transcript_path.open("a", encoding="utf-8") as transcript,
-        raw_path.open("a", encoding="utf-8") as raw,
-    ):
+    with ExitStack() as stack:
+        transcript = stack.enter_context(transcript_path.open("a", encoding="utf-8"))
+        raw = None
+        if raw_path is not None:
+            raw_path.parent.mkdir(parents=True, exist_ok=True)
+            raw = stack.enter_context(raw_path.open("a", encoding="utf-8"))
         try:
             for raw_line in sys.stdin:
-                append(raw, raw_line)
+                if raw is not None:
+                    append(raw, raw_line)
                 stripped = raw_line.lstrip()
                 if not stripped.startswith("{"):
                     passthrough = (

@@ -433,7 +433,6 @@ def test_codex_stream_bridge_tolerates_turn_abort_and_malformed_json(
     tmp_path: Path,
 ) -> None:
     transcript = tmp_path / "trace.log"
-    raw = tmp_path / "trace.raw.jsonl"
     payload = "\n".join(
         [
             '{"type":"thread.started","thread_id":"fake-session-001"}',
@@ -448,8 +447,6 @@ def test_codex_stream_bridge_tolerates_turn_abort_and_malformed_json(
             str(CODEX_STREAM_BRIDGE),
             "--transcript",
             str(transcript),
-            "--raw",
-            str(raw),
         ],
         check=True,
         cwd=REPO_ROOT,
@@ -459,11 +456,9 @@ def test_codex_stream_bridge_tolerates_turn_abort_and_malformed_json(
     )
 
     transcript_text = transcript.read_text(encoding="utf-8")
-    raw_text = raw.read_text(encoding="utf-8")
     assert "session: fake-session-001" in transcript_text
     assert "refresh token already used" in transcript_text
     assert '{"type":"item.completed"' in transcript_text
-    assert payload in raw_text
 
 
 def test_codex_spawn_marks_meta_failed_when_codex_emits_non_json_auth_error(

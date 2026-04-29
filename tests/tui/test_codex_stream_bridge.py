@@ -3,7 +3,8 @@
 The bridge parses Codex JSONL events into a human-readable transcript. It must
 be tolerant: malformed lines, unknown event types, and an EOF mid-stream must
 never crash — the Codex process's exit code is the source of truth, the bridge
-only formats observable activity and preserves the raw stream for forensics.
+only formats observable activity into the Vibecrafted transcript. Codex keeps
+its own JSONL session store under its vendor runtime directory.
 
 These tests run entirely offline: they feed stdin via subprocess, covering:
 
@@ -14,8 +15,7 @@ These tests run entirely offline: they feed stdin via subprocess, covering:
 - Known-event formatting (thread.started, item.completed/agent_message,
   turn.failed).
 
-All assertions are on the resulting transcript + raw files and the bridge's
-exit code.
+Assertions focus on the resulting transcript and the bridge's exit code.
 """
 
 from __future__ import annotations
@@ -62,17 +62,14 @@ def _strip_ansi(text: str) -> str:
 # ---------------------------------------------------------------------------
 
 
-def _run_bridge(tmp_path: Path, stdin_text: str) -> tuple[int, str, str, str]:
+def _run_bridge(tmp_path: Path, stdin_text: str) -> tuple[int, str, str]:
     transcript = tmp_path / "transcript.txt"
-    raw = tmp_path / "raw.jsonl"
     proc = subprocess.run(
         [
             sys.executable,
             str(BRIDGE_PATH),
             "--transcript",
             str(transcript),
-            "--raw",
-            str(raw),
         ],
         input=stdin_text,
         capture_output=True,
@@ -83,25 +80,21 @@ def _run_bridge(tmp_path: Path, stdin_text: str) -> tuple[int, str, str, str]:
         proc.returncode,
         proc.stderr,
         transcript.read_text(encoding="utf-8") if transcript.exists() else "",
-        raw.read_text(encoding="utf-8") if raw.exists() else "",
     )
 
 
 def test_bridge_handles_clean_eof_on_empty_stdin(tmp_path: Path) -> None:
     """EOF on empty stdin → zero exit, empty files, no crash."""
-    rc, err, transcript, raw = _run_bridge(tmp_path, "")
+    rc, err, transcript = _run_bridge(tmp_path, "")
     assert rc == 0, f"stderr={err!r}"
     assert transcript == ""
-    assert raw == ""
 
 
 def test_bridge_handles_eof_after_partial_json_line(tmp_path: Path) -> None:
     """EOF mid-JSON (no closing brace) → line preserved, no crash."""
     truncated = '{"type": "thread.started", "thread_id": "abc"'  # no newline, no `}`
-    rc, err, transcript, raw = _run_bridge(tmp_path, truncated)
+    rc, err, transcript = _run_bridge(tmp_path, truncated)
     assert rc == 0, f"stderr={err!r}"
-    # Raw must always contain exactly what came in.
-    assert raw == truncated
     # Because the JSON never closed, the parser falls back to writing the raw
     # line to the transcript. The bridge adds a trailing newline when the
     # incoming line had none.
@@ -112,9 +105,8 @@ def test_bridge_handles_eof_after_partial_json_line(tmp_path: Path) -> None:
 def test_bridge_preserves_malformed_json_line(tmp_path: Path) -> None:
     """Edge: a line that starts with `{` but isn't valid JSON falls through."""
     bad = '{"type": broken, "msg":}\n'
-    rc, err, transcript, raw = _run_bridge(tmp_path, bad)
+    rc, err, transcript = _run_bridge(tmp_path, bad)
     assert rc == 0, f"stderr={err!r}"
-    assert raw == bad
     # Transcript keeps the raw line verbatim (no trailing newline added — the
     # original line already ended with \n).
     assert transcript == bad
@@ -123,9 +115,8 @@ def test_bridge_preserves_malformed_json_line(tmp_path: Path) -> None:
 def test_bridge_passes_through_non_json_line(tmp_path: Path) -> None:
     """Edge: plain stdout (no `{` prefix) must be forwarded to the transcript."""
     line = "plain text noise from stderr\n"
-    rc, err, transcript, raw = _run_bridge(tmp_path, line)
+    rc, err, transcript = _run_bridge(tmp_path, line)
     assert rc == 0, f"stderr={err!r}"
-    assert raw == line
     assert transcript == line
 
 
@@ -133,14 +124,12 @@ def test_bridge_formats_turn_failed_as_error_line(tmp_path: Path) -> None:
     """Error payload path: turn.failed → transcript marked with [error]."""
     event = {"type": "turn.failed", "error": "429 rate limit"}
     stdin = json.dumps(event) + "\n"
-    rc, err, transcript, raw = _run_bridge(tmp_path, stdin)
+    rc, err, transcript = _run_bridge(tmp_path, stdin)
     assert rc == 0, f"stderr={err!r}"
     cleaned = _strip_ansi(transcript)
     # The format helper emits "[HH:MM:SS error] 429 rate limit".
     assert "error" in cleaned.lower()
     assert "429 rate limit" in cleaned
-    # Raw must retain the exact JSON line.
-    assert json.loads(raw.strip()) == event
 
 
 def test_bridge_formats_agent_message_into_transcript(tmp_path: Path) -> None:
@@ -150,10 +139,9 @@ def test_bridge_formats_agent_message_into_transcript(tmp_path: Path) -> None:
         "item": {"type": "agent_message", "text": "Hello from Codex"},
     }
     stdin = json.dumps(event) + "\n"
-    rc, _err, transcript, raw = _run_bridge(tmp_path, stdin)
+    rc, _err, transcript = _run_bridge(tmp_path, stdin)
     assert rc == 0
     assert "Hello from Codex" in transcript
-    assert json.loads(raw.strip()) == event
 
 
 def test_bridge_can_echo_rendered_output_to_stdout(tmp_path: Path) -> None:
@@ -162,15 +150,12 @@ def test_bridge_can_echo_rendered_output_to_stdout(tmp_path: Path) -> None:
         "item": {"type": "agent_message", "text": "Visible in pane"},
     }
     transcript = tmp_path / "transcript.txt"
-    raw = tmp_path / "raw.jsonl"
     proc = subprocess.run(
         [
             sys.executable,
             str(BRIDGE_PATH),
             "--transcript",
             str(transcript),
-            "--raw",
-            str(raw),
             "--echo-stdout",
         ],
         input=json.dumps(event) + "\n",
@@ -189,7 +174,6 @@ def test_bridge_main_handles_keyboard_interrupt_cleanly(
 ) -> None:
     """KeyboardInterrupt inside the stdin loop should return 130 without crashing."""
     transcript = tmp_path / "transcript.txt"
-    raw = tmp_path / "raw.jsonl"
 
     class _InterruptingStdin:
         def __iter__(self):
@@ -205,8 +189,6 @@ def test_bridge_main_handles_keyboard_interrupt_cleanly(
             str(BRIDGE_PATH),
             "--transcript",
             str(transcript),
-            "--raw",
-            str(raw),
             "--echo-stdout",
         ],
     )
@@ -308,12 +290,12 @@ def test_bridge_rejects_missing_required_arguments() -> None:
     assert "--transcript" in proc.stderr or "--transcript" in proc.stdout
 
 
-def test_bridge_creates_raw_parent_directory(tmp_path: Path) -> None:
-    """main() must mkdir(parents=True) for the raw path — regression guard."""
+def test_bridge_can_write_optional_raw_diagnostic_mirror(tmp_path: Path) -> None:
+    """The raw JSONL mirror is opt-in diagnostic output, not launcher default."""
     transcript = tmp_path / "out" / "transcript.txt"
     raw = tmp_path / "out" / "nested" / "raw.jsonl"
     transcript.parent.mkdir(parents=True, exist_ok=True)
-    # raw parent is intentionally missing to prove the bridge creates it.
+    # raw parent is intentionally missing to prove the optional path creates it.
     assert not raw.parent.exists()
 
     proc = subprocess.run(
@@ -325,10 +307,13 @@ def test_bridge_creates_raw_parent_directory(tmp_path: Path) -> None:
             "--raw",
             str(raw),
         ],
-        input="",
+        input='{"type":"item.completed","item":{"type":"agent_message","text":"hi"}}\n',
         capture_output=True,
         text=True,
         timeout=10,
     )
     assert proc.returncode == 0, proc.stderr
     assert raw.parent.is_dir()
+    assert (
+        json.loads(raw.read_text(encoding="utf-8").strip())["type"] == "item.completed"
+    )
