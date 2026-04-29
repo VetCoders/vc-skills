@@ -221,7 +221,7 @@ operator` crate — see **Changed** above).
 ### Added
 
 - `make foundations` — portable installer for loctree and ai-contexters binaries
-  - Downloads pre-built loctree v0.8.16 binaries (notarized/signed) for macOS, Linux, Windows
+  - Downloads pre-built loctree v0.8.17 binaries (notarized/signed) for macOS, Linux, Windows
   - Installs ai-contexters via GitHub release binary or `cargo install` fallback
   - `make foundations-check` for dry-run preview
   - `scripts/install-foundations.sh` works standalone or via Make

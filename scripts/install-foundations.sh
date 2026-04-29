@@ -17,7 +17,7 @@ set -euo pipefail
 #   bash scripts/install-foundations.sh --prefix /usr/local  # custom install prefix
 # ---------------------------------------------------------------------------
 
-LOCTREE_VERSION="${LOCTREE_VERSION:-0.8.16}"
+LOCTREE_VERSION="${LOCTREE_VERSION:-0.8.17}"
 LOCTREE_REPO="Loctree/Loctree"
 
 AICX_CRATE="aicx"

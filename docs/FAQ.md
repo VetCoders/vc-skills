@@ -19,7 +19,8 @@ For the long-form answer bank, see [FAQ-ANSWERED.md](FAQ-ANSWERED.md).
   Yes. Run `curl -fsSL https://vibecrafted.io/install.sh | bash -s -- --gui` to stage the control plane and open the browser-based installer. It bootstraps foundations first, then runs the same compact installer truth used by automation. If you are already in the repo, use `make wizard` or its alias `make gui-install`. The default `make vibecrafted` target runs the terminal-native installer wizard.
 
 - **What does `make doctor` check?**
-  The doctor verifies the central store, helper availability, symlink health, optional foundations, and shell quietness.
+  The doctor verifies the central store, helper availability, symlink health, required foundations (`loctree-mcp` and
+  `aicx-mcp`), evidence tools such as `prview` and ScreenScribe, and shell quietness.
 
 - **Which install path should I use in CI?**
   Use `make install` for the direct non-interactive path, or
@@ -35,8 +36,9 @@ For the long-form answer bank, see [FAQ-ANSWERED.md](FAQ-ANSWERED.md).
   Because 𝚅𝚒𝚋𝚎𝚌𝚛𝚊𝚏𝚝𝚎𝚍. is trying to solve system-shaping, not only chat convenience. It adds structural awareness,
   decision retrieval, convergence loops, and shipping audits.
 
-- **Can I use 𝚅𝚒𝚋𝚎𝚌𝚛𝚊𝚏𝚝𝚎𝚍. without loctree or aicx?**
-  Yes, but you lose structural perception and session continuity. The framework runs, but with weaker context.
+- **Are loctree and aicx required?**
+  Not honestly. `loctree` and `aicx` are required foundations: one gives the agent structural perception, the other
+  restores prior decisions and intent. If either is missing, fix the foundation layer before trusting the workflow.
 
 - **What is Marbles?**
   Marbles is the convergence loop: implement, follow up, measure, and repeat until the important classes of findings

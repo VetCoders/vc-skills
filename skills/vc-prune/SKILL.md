@@ -163,7 +163,7 @@ gems (G), test theater (T), truly dead (D). Operator decisions needed: G + T.
 
 ## Gems
 
-### #1 src/legacy/clinic_export_v2.rs (412 LOC, last touch 2025-09-04)
+### #1 src/archive/clinic_export_v2.rs (412 LOC, last touch 2025-09-04)
 
 - What: 2nd-gen export pipeline, clean trait split, full SOAP→PDF, never wired
 - Why valuable: better-structured than current export, tests included, no dep drift
@@ -204,7 +204,7 @@ Each is a real bug or a real lie the silencer was hiding. Strip-and-listen finds
 
 **Vista 0.67.3 (Rust + TypeScript), 2026-04-28.** A late-evening sweep stripped 12 `#[allow(...)]`, 7 `// nosemgrep`, 10 `eslint-disable`, and 24 `@ts-(ignore|nocheck|expect-error)` annotations. After the strip, `cargo test --all` failed on 13 e2e tests with `panic!("Test requires API credentials")` — but the panic was new noise only because adjacent tests in the same suite already silently skipped on the same precondition. **Two contradictory "missing credentials" behaviours co-existing.** Stripping did not introduce the inconsistency; it surfaced it. The bigger lesson: none of those 13 e2e tests had ever actually run without manual env injection. The 13 panicking tests were CI theater; the 5 quietly skipping tests were equally theater. Two flavours of the same lie. The follow-up — a real `dotenvy::from_path("src-tauri/.env")` loader — was the **prize** of running Wave 5.
 
-**Hypothetical Python equivalent (vista-portal billing service).** A sweep of `# type: ignore` and `@pytest.mark.skipif(not stripe_keys_present(), reason="...")` reveals: 11 `# type: ignore[attr-defined]` on the `stripe.Customer` object — every one was added before the `stripe-python` 11.x upgrade landed proper types in 2025-Q1. None of them were still needed. Plus 3 `@pytest.mark.skipif` decorators on webhook idempotency tests that **always skipped in CI** because nobody had wired Stripe test keys into GitHub Actions secrets. Same pattern as Vista, different ecosystem: silencers outliving the bug they hid, plus tests that never ran. The forgotten gem in the same sweep: a 380-line `app/billing/legacy_invoice_export.py` with `# noqa: F401` on every import — turns out it was a complete invoice CSV exporter someone built for a customer who churned, never wired into a CLI command, and tested coverage was 87%. Reported up to operator: revive as `vc-export-invoices` CLI, or archive in `docs/archive/billing-legacy.md` and delete.
+**Hypothetical Python equivalent (vista-portal billing service).** A sweep of `# type: ignore` and `@pytest.mark.skipif(not stripe_keys_present(), reason="...")` reveals: 11 `# type: ignore[attr-defined]` on the `stripe.Customer` object — every one was added before the `stripe-python` 11.x upgrade landed proper types in 2025-Q1. None of them were still needed. Plus 3 `@pytest.mark.skipif` decorators on webhook idempotency tests that **always skipped in CI** because nobody had wired Stripe test keys into GitHub Actions secrets. Same pattern as Vista, different ecosystem: silencers outliving the bug they hid, plus tests that never ran. The forgotten gem in the same sweep: a 380-line `app/billing/archived_invoice_export.py` with `# noqa: F401` on every import — turns out it was a complete invoice CSV exporter someone built for a customer who churned, never wired into a CLI command, and tested coverage was 87%. Reported up to operator: revive as `vc-export-invoices` CLI, or archive in `docs/archive/billing-archive.md` and delete.
 
 The pattern is universal. Languages and toolchains differ; the discipline is identical.
 

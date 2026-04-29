@@ -153,9 +153,10 @@ Answers from the trenches. This is the truth as of April 2026.
   Because "memory" implies fuzzy recall. `aicx` (AI Contextualizer) is a deterministic engine that retrieves _prior
   decisions_ and _context chunks_ based on the current task. It's built for precision, not nostalgia.
 
-- **Can I use 𝚅𝚒𝚋𝚎𝚌𝚛𝚊𝚏𝚝𝚎𝚍. without installing loctree or aicx?**
-  Technically yes, but you're running blind and with amnesia. You lose the structural mapping and the session history
-  recovery that makes 𝚅𝚒𝚋𝚎𝚌𝚛𝚊𝚏𝚝𝚎𝚍. powerful.
+- **Are loctree and aicx required?**
+  No. You can still run isolated shell scripts, but that is not the Vibecrafted operating model. `loctree` is required
+  for structural perception and `aicx` is required for intention/session continuity. Install the foundations first,
+  then trust the workflow.
 
 - **Why does prview generate artifacts instead of just printing to terminal?**
   So they can be consumed by _other_ agents. A terminal print is lost. A `report.json` or `findings.md` can be read by a

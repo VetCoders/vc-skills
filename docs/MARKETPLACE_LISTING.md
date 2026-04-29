@@ -42,7 +42,7 @@ market. `vc-release` deploys.
 - Guided browser installer for human onboarding; compact CLI path for automation
 - Git, Python 3.10+, `make`
 - One or more agent CLIs: Claude Code, Codex, or Gemini CLI
-- Recommended: Loctree (structural analysis), AICX (session history)
+- Required foundations: Loctree (structural analysis), AICX (session history)
 
 ## Pricing
 

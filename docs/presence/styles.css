@@ -632,7 +632,7 @@ h1, h2, h3, h4, h5, h6 {
     color: var(--steel-edge);
 }
 
-/* legacy .manifesto-canvas-container removed — replaced by .hero-canvas */
+/* The manifesto canvas now uses the shared hero canvas surface. */
 
 .manifesto-body {
     max-width: var(--page-shell);

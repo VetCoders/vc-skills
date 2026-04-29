@@ -29,7 +29,7 @@ With it, they see the dependency graph before touching anything.
 `repo-view` as its first action. `vc-workflow` runs `slice` before editing.
 `vc-followup` runs `impact` before deleting.
 
-**Install**: `make foundations` (auto-downloads v0.8.16 binary) or
+**Install**: `make foundations` (auto-downloads v0.8.17 binary) or
 [Loctree/Loctree releases](https://github.com/Loctree/Loctree/releases)
 
 ## AICX — intentions
@@ -83,9 +83,13 @@ converts narrated demos into actionable input for agent workflows.
 ## Foundation in the Installer
 
 `make doctor` checks foundation binaries and reports their status.
-Foundation packages are optional — skills degrade gracefully without them,
-but lose structural awareness (loctree), session intentions (aicx),
-persistent review artifacts (prview), or visual input (screenscribe).
+`loctree` and `aicx` are required foundations. Skills may still be readable
+without them, but the framework is not operating in its intended mode: it has
+no structural perception and no durable intention recovery.
+
+`prview` and ScreenScribe are evidence layers. They are strongly recommended
+for review and runtime proof, but they do not replace the required foundation
+pair: `loctree-mcp` plus `aicx-mcp`.
 
 The recommended install order:
 
@@ -93,7 +97,7 @@ The recommended install order:
 2. Foundation binaries (`make foundations` — installs loctree + aicx)
 3. Agent CLIs (claude, codex, gemini)
 4. PRView (recommended for review workflows)
-5. ScreenScribe (optional, for visual verification)
+5. ScreenScribe (recommended for visual verification)
 
 ## Foundation vs Skills
 
@@ -102,7 +106,7 @@ The recommended install order:
 | **What**       | Infrastructure binary | Instruction set (SKILL.md)               |
 | **Where**      | System PATH           | `$VIBECRAFTED_ROOT/.vibecrafted/skills/` |
 | **Updates**    | Binary releases       | `make install` or `skills-sync`          |
-| **Without it** | Skill degrades        | Agent doesn't know the workflow          |
+| **Without it** | Runtime truth is weak | Agent doesn't know the workflow          |
 | **Example**    | loctree-mcp           | vc-workflow                              |
 
 ---

@@ -144,7 +144,7 @@ cases or simply by calling `aicx --help`.
 
 ### Sense 2: Perception (over memory)
 
-`loctree-ast` v0.8.16+ Features
+`loctree-ast` v0.8.17+ Features
 
 Get shipping maps, reports, and runtime insights for your living codebases.
 Loctree is more than just finding dead code; it’s about understanding the context, analyzing the structure, checking Tauri contracts, getting bundle intelligence, creating artifacts, and seeing how your codebase works with MCP.
