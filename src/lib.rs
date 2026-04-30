@@ -390,12 +390,18 @@ fn suspend_and_run(command: &LaunchCommand) -> Result<(), LaunchRunError> {
     }
 }
 
+/// How long `wait_for_interactive_launch` will keep polling the zellij
+/// readiness probe before giving up. Kept short so the operator does not
+/// freeze on a launch that never came up; long enough that real interactive
+/// launches on the host can register their named socket.
+const READINESS_DEADLINE: Duration = Duration::from_secs(2);
+
 fn wait_for_interactive_launch(
     command: &LaunchCommand,
     mut child: std::process::Child,
 ) -> Result<Output, LaunchRunError> {
     if let Some(probe) = command.readiness_probe() {
-        let deadline = Instant::now() + Duration::from_secs(2);
+        let deadline = Instant::now() + READINESS_DEADLINE;
         let mut probe_error: Option<String> = None;
         while Instant::now() < deadline {
             match probe.is_session_visible() {
@@ -447,6 +453,32 @@ fn wait_for_interactive_launch(
             }
             thread::sleep(Duration::from_millis(100));
         }
+        // Deadline exceeded with the named session never visible AND the
+        // child still running. The README contract says a launch that exits
+        // before its session appears is reported as failure; we extend that
+        // to "a launch whose session never appears within the readiness
+        // window is also a failure", and we do NOT silently fall through to
+        // `child.wait_with_output()` (which would either hang on a healthy
+        // zellij forever or report success once the operator finally quits
+        // it manually — both produce false-success class outcomes).
+        //
+        // Kill the child so we do not leave a hanging zellij socket pointing
+        // at the same session name; subsequent launches with the same
+        // `--session` value would fight an orphan otherwise.
+        let _ = child.kill();
+        let stderr_after_kill = child
+            .wait_with_output()
+            .map(|output| String::from_utf8_lossy(&output.stderr).into_owned())
+            .unwrap_or_default();
+        return Err(LaunchRunError {
+            message: format!(
+                "zellij session '{}' did not appear within the {}ms readiness window",
+                probe.session_name,
+                READINESS_DEADLINE.as_millis()
+            ),
+            stderr: stderr_after_kill,
+            probe_error,
+        });
     }
     child.wait_with_output().map_err(|err| LaunchRunError {
         message: format!("launch process failed: {err}"),
