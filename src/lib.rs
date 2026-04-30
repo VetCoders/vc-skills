@@ -15,7 +15,7 @@ use notify::{Config as NotifyConfig, RecommendedWatcher, RecursiveMode, Watcher}
 use ratatui::Terminal;
 use ratatui::backend::CrosstermBackend;
 use std::io;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::process::Output;
 use std::sync::mpsc::{self, Sender};
 use std::thread;
@@ -323,6 +323,17 @@ fn deep_control_command(app: &App, action: &DeepAction) -> LaunchCommand {
                 "--session".into(),
                 session.clone().into(),
             ],
+            env: Default::default(),
+        },
+        DeepAction::MuxHealth { service } => LaunchCommand {
+            // `rust-mux` is expected on PATH (installed via the rust-mux
+            // installer or `cargo install rust-mux`). The default config
+            // path is `~/.codex/mcp.json`, which `rust-mux` resolves on
+            // its own. Operators with a non-default config should set
+            // `RUST_MUX_CONFIG` (read by rust-mux directly) rather than
+            // teach the operator console a second config surface.
+            program: PathBuf::from("rust-mux"),
+            args: vec!["health".into(), "--service".into(), service.clone().into()],
             env: Default::default(),
         },
         DeepAction::OpenReport(_) | DeepAction::OpenTranscript(_) | DeepAction::OpenRoot(_) => {

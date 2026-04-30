@@ -110,10 +110,20 @@ impl QueueScope {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum DeepAction {
     AttachSession(String),
-    ResumeSession { agent: String, session: String },
+    ResumeSession {
+        agent: String,
+        session: String,
+    },
     OpenReport(PathBuf),
     OpenTranscript(PathBuf),
     OpenRoot(PathBuf),
+    /// Run `rust-mux health --service <name>` against a known MCP daemon.
+    /// Available when at least one rust-mux status snapshot is cached on
+    /// the App; not tied to the selected run, so the operator can health-
+    /// check the supervisor even when no agent run is selected.
+    MuxHealth {
+        service: String,
+    },
 }
 
 impl DeepAction {
@@ -132,6 +142,9 @@ impl DeepAction {
                 format!("Open latest transcript: {}", path.to_string_lossy())
             }
             DeepAction::OpenRoot(path) => format!("Open run root: {}", path.to_string_lossy()),
+            DeepAction::MuxHealth { service } => {
+                format!("Health-check MCP daemon: rust-mux health --service {service}")
+            }
         }
     }
 }
@@ -719,46 +732,55 @@ impl App {
     }
 
     pub fn deep_actions(&self) -> Vec<DeepAction> {
-        let Some(run) = self.selected_run() else {
-            return Vec::new();
-        };
-        let snapshot = &run.snapshot;
         let mut actions = Vec::new();
-        if let Some(session) = snapshot
-            .operator_session
-            .as_ref()
-            .filter(|value| !value.is_empty())
-        {
-            actions.push(DeepAction::AttachSession(session.clone()));
-        }
-        if let (Some(agent), Some(session)) = (
-            snapshot.agent.as_ref().filter(|value| !value.is_empty()),
-            snapshot
-                .session_id
+        if let Some(run) = self.selected_run() {
+            let snapshot = &run.snapshot;
+            if let Some(session) = snapshot
+                .operator_session
                 .as_ref()
-                .filter(|value| !value.is_empty()),
-        ) {
-            actions.push(DeepAction::ResumeSession {
-                agent: agent.clone(),
-                session: session.clone(),
+                .filter(|value| !value.is_empty())
+            {
+                actions.push(DeepAction::AttachSession(session.clone()));
+            }
+            if let (Some(agent), Some(session)) = (
+                snapshot.agent.as_ref().filter(|value| !value.is_empty()),
+                snapshot
+                    .session_id
+                    .as_ref()
+                    .filter(|value| !value.is_empty()),
+            ) {
+                actions.push(DeepAction::ResumeSession {
+                    agent: agent.clone(),
+                    session: session.clone(),
+                });
+            }
+            if let Some(report) = snapshot
+                .latest_report
+                .as_ref()
+                .filter(|value| !value.is_empty())
+            {
+                actions.push(DeepAction::OpenReport(PathBuf::from(report)));
+            }
+            if let Some(transcript) = snapshot
+                .latest_transcript
+                .as_ref()
+                .filter(|value| !value.is_empty())
+            {
+                actions.push(DeepAction::OpenTranscript(PathBuf::from(transcript)));
+            }
+            if let Some(root) = snapshot.root.as_ref().filter(|value| !value.is_empty()) {
+                actions.push(DeepAction::OpenRoot(PathBuf::from(root)));
+            }
+        }
+        // MCP daemon health-check actions are always available (one per
+        // known rust-mux service), independent of whether a run is
+        // selected. Operators commonly need to check the supervisor when
+        // *no* run is healthy, so gating these on selection would defeat
+        // the surface.
+        for summary in &self.mux_summaries {
+            actions.push(DeepAction::MuxHealth {
+                service: summary.display_name.clone(),
             });
-        }
-        if let Some(report) = snapshot
-            .latest_report
-            .as_ref()
-            .filter(|value| !value.is_empty())
-        {
-            actions.push(DeepAction::OpenReport(PathBuf::from(report)));
-        }
-        if let Some(transcript) = snapshot
-            .latest_transcript
-            .as_ref()
-            .filter(|value| !value.is_empty())
-        {
-            actions.push(DeepAction::OpenTranscript(PathBuf::from(transcript)));
-        }
-        if let Some(root) = snapshot.root.as_ref().filter(|value| !value.is_empty()) {
-            actions.push(DeepAction::OpenRoot(PathBuf::from(root)));
         }
         actions
     }

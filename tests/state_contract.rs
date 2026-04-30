@@ -507,6 +507,160 @@ fn terminal_launch_probe_inherits_config_dir_from_launch_command() {
 }
 
 #[test]
+fn mux_health_deep_actions_surface_per_known_service() {
+    use std::path::PathBuf;
+    use vibecrafted_operator::mux::{MuxStatusSnapshot, MuxSummary};
+
+    let healthy_json = r#"{
+        "service_name": "general-memory",
+        "server_status": "Running",
+        "restarts": 0,
+        "connected_clients": 1,
+        "active_clients": 0,
+        "max_active_clients": 5,
+        "pending_requests": 0,
+        "cached_initialize": true,
+        "initializing": false,
+        "queue_depth": 0,
+        "max_request_bytes": 1048576,
+        "restart_backoff_ms": 1000,
+        "restart_backoff_max_ms": 30000,
+        "max_restarts": 5
+    }"#;
+    let failed_json = r#"{
+        "service_name": "brave-search",
+        "server_status": {"Failed": "max restarts reached"},
+        "restarts": 5,
+        "connected_clients": 0,
+        "active_clients": 0,
+        "max_active_clients": 5,
+        "pending_requests": 0,
+        "cached_initialize": false,
+        "initializing": false,
+        "queue_depth": 0,
+        "max_request_bytes": 1048576,
+        "restart_backoff_ms": 1000,
+        "restart_backoff_max_ms": 30000,
+        "max_restarts": 5
+    }"#;
+
+    // Run with full surface so we get the expected per-run actions too.
+    let snapshot = RunSnapshot {
+        run_id: "run-7".to_string(),
+        session_id: Some("sess-7".to_string()),
+        agent: Some("codex".to_string()),
+        skill: Some("workflow".to_string()),
+        mode: Some("implement".to_string()),
+        state: Some("running".to_string()),
+        status: None,
+        started_at: Some("2026-04-30T10:00:00Z".to_string()),
+        updated_at: Some("2026-04-30T10:02:00Z".to_string()),
+        last_heartbeat: Some("2026-04-30T10:03:00Z".to_string()),
+        root: Some("/tmp/repo".to_string()),
+        operator_session: Some("repo-run-7".to_string()),
+        latest_report: Some("/tmp/repo/report.md".to_string()),
+        latest_transcript: None,
+        last_error: None,
+        extra: Default::default(),
+    };
+    let run = RenderedRun {
+        snapshot,
+        kind: RunKind::Active,
+        age_label: "1m ago".to_string(),
+        recent_events: Vec::new(),
+    };
+    let mut app = App {
+        config: AppConfig {
+            state_root: "/tmp/state".into(),
+            command_deck: "/usr/bin/vibecrafted".into(),
+            launch_root: "/tmp/repo".into(),
+            launch_runtime: LaunchRuntime::Terminal,
+            terminal_binary: "zellij".into(),
+            tick_rate: Duration::from_millis(250),
+        },
+        state: ControlPlaneState::empty("/tmp/state"),
+        runs: vec![run],
+        selected: 0,
+        active_tab: AppTab::Controls.index(),
+        launch_kind: LaunchKind::Workflow,
+        launch_agent: 0,
+        launch_prompt: "Ship it".to_string(),
+        launch_runtime: LaunchRuntime::Terminal,
+        dispatch_selected: DispatchFocus::Kind as usize,
+        focus: LaunchFocus::Browse,
+        status_line: String::new(),
+        launch_history: Vec::new(),
+        deep_selected: 0,
+        queue_scope: QueueScope::Live,
+        search_query: String::new(),
+        error_title: String::new(),
+        error_lines: Vec::new(),
+        artifact_title: String::new(),
+        artifact_lines: Vec::new(),
+        mux_summaries: Vec::new(),
+    };
+
+    // No mux summaries → only per-run actions. Existing surface preserved.
+    let actions_no_mux = app.deep_actions();
+    assert!(
+        !actions_no_mux
+            .iter()
+            .any(|action| matches!(action, DeepAction::MuxHealth { .. })),
+        "no MuxHealth without summaries: {actions_no_mux:?}"
+    );
+
+    // With one healthy + one failed summary → one MuxHealth action per service,
+    // appended after the per-run actions.
+    app.mux_summaries = vec![
+        MuxSummary::from_path_and_result(
+            PathBuf::from("/tmp/memory.json"),
+            MuxStatusSnapshot::from_json(healthy_json),
+        ),
+        MuxSummary::from_path_and_result(
+            PathBuf::from("/tmp/brave.json"),
+            MuxStatusSnapshot::from_json(failed_json),
+        ),
+    ];
+    let actions = app.deep_actions();
+    let mux_actions: Vec<&DeepAction> = actions
+        .iter()
+        .filter(|action| matches!(action, DeepAction::MuxHealth { .. }))
+        .collect();
+    assert_eq!(mux_actions.len(), 2, "one MuxHealth per service");
+
+    let services: Vec<&str> = actions
+        .iter()
+        .filter_map(|action| match action {
+            DeepAction::MuxHealth { service } => Some(service.as_str()),
+            _ => None,
+        })
+        .collect();
+    assert!(services.contains(&"general-memory"));
+    assert!(services.contains(&"brave-search"));
+
+    // Label must surface the rust-mux invocation so the operator knows
+    // exactly what will run when they hit Enter.
+    let label = mux_actions[0].label();
+    assert!(label.contains("rust-mux health --service"));
+    assert!(label.contains("general-memory") || label.contains("brave-search"));
+
+    // MuxHealth is available even with no run selected (the operator should
+    // be able to health-check the supervisor even when nothing else is up).
+    app.runs.clear();
+    app.selected = 0;
+    let actions_no_run = app.deep_actions();
+    let mux_only: Vec<&DeepAction> = actions_no_run
+        .iter()
+        .filter(|action| matches!(action, DeepAction::MuxHealth { .. }))
+        .collect();
+    assert_eq!(
+        mux_only.len(),
+        2,
+        "MuxHealth should not depend on selected_run"
+    );
+}
+
+#[test]
 fn mux_status_lines_render_healthy_and_attention_headers() {
     use std::path::PathBuf;
     use vibecrafted_operator::mux::{MuxStatusSnapshot, MuxSummary, MuxSummaryState};
