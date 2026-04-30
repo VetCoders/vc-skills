@@ -334,6 +334,11 @@ fn deep_control_command(app: &App, action: &DeepAction) -> LaunchCommand {
 struct LaunchRunError {
     message: String,
     stderr: String,
+    /// First error observed by the zellij readiness probe before the launch
+    /// gave up. Distinguishes "session not visible" from "probe could not
+    /// run" (bad flags, socket/config errors, missing binary). When None,
+    /// the probe either succeeded or was never attempted.
+    probe_error: Option<String>,
 }
 
 impl LaunchRunError {
@@ -342,6 +347,9 @@ impl LaunchRunError {
             format!("command: {summary}"),
             format!("error: {}", self.message),
         ];
+        if let Some(probe_error) = &self.probe_error {
+            lines.push(format!("readiness probe: {probe_error}"));
+        }
         if !self.stderr.trim().is_empty() {
             lines.push(String::new());
             lines.push("stderr:".to_string());
@@ -358,10 +366,11 @@ fn suspend_and_run(command: &LaunchCommand) -> Result<(), LaunchRunError> {
         .map_err(launch_error)?;
     execute!(stdout, LeaveAlternateScreen).map_err(launch_error)?;
 
-    let launch_result = match command.spawn_interactive_with_stderr() {
-        Ok(child) => wait_for_interactive_launch(command, child),
-        Err(error) => Err(error),
-    };
+    let launch_result: Result<Output, LaunchRunError> =
+        match command.spawn_interactive_with_stderr() {
+            Ok(child) => wait_for_interactive_launch(command, child),
+            Err(error) => Err(launch_error(error)),
+        };
 
     let leave_result =
         execute!(stdout, EnterAlternateScreen).context("failed to restore alternate screen");
@@ -369,13 +378,14 @@ fn suspend_and_run(command: &LaunchCommand) -> Result<(), LaunchRunError> {
 
     leave_result.map_err(launch_error)?;
     raw_result.map_err(launch_error)?;
-    let output = launch_result.map_err(launch_error)?;
+    let output = launch_result?;
     if output.status.success() {
         Ok(())
     } else {
         Err(LaunchRunError {
             message: format!("command exited with {}", output.status),
             stderr: String::from_utf8_lossy(&output.stderr).into_owned(),
+            probe_error: None,
         })
     }
 }
@@ -383,27 +393,66 @@ fn suspend_and_run(command: &LaunchCommand) -> Result<(), LaunchRunError> {
 fn wait_for_interactive_launch(
     command: &LaunchCommand,
     mut child: std::process::Child,
-) -> anyhow::Result<Output> {
+) -> Result<Output, LaunchRunError> {
     if let Some(probe) = command.readiness_probe() {
         let deadline = Instant::now() + Duration::from_secs(2);
+        let mut probe_error: Option<String> = None;
         while Instant::now() < deadline {
-            if probe.is_session_visible().unwrap_or(false) {
-                return child.wait_with_output().context("launch process failed");
-            }
-            if child.try_wait()?.is_some() {
-                let output = child.wait_with_output().context("launch process failed")?;
-                if output.status.success() {
-                    anyhow::bail!(
-                        "zellij session '{}' exited before the readiness probe saw it",
-                        probe.session_name
-                    );
+            match probe.is_session_visible() {
+                Ok(true) => {
+                    return child.wait_with_output().map_err(|err| LaunchRunError {
+                        message: format!("launch process failed: {err}"),
+                        stderr: String::new(),
+                        probe_error: probe_error.clone(),
+                    });
                 }
-                return Ok(output);
+                Ok(false) => {}
+                Err(error) => {
+                    // Preserve the FIRST probe error (P2-02). Bad flags,
+                    // socket/config errors, or permission failures should
+                    // surface in the error overlay instead of being
+                    // collapsed into a generic "session not visible".
+                    if probe_error.is_none() {
+                        probe_error = Some(format!("{error:#}"));
+                    }
+                }
+            }
+            match child.try_wait() {
+                Ok(Some(_)) => {
+                    let output = child.wait_with_output().map_err(|err| LaunchRunError {
+                        message: format!("launch process failed: {err}"),
+                        stderr: String::new(),
+                        probe_error: probe_error.clone(),
+                    })?;
+                    if output.status.success() {
+                        return Err(LaunchRunError {
+                            message: format!(
+                                "zellij session '{}' exited before the readiness probe saw it",
+                                probe.session_name
+                            ),
+                            stderr: String::from_utf8_lossy(&output.stderr).into_owned(),
+                            probe_error,
+                        });
+                    }
+                    return Ok(output);
+                }
+                Ok(None) => {}
+                Err(err) => {
+                    return Err(LaunchRunError {
+                        message: format!("failed to inspect launch child: {err}"),
+                        stderr: String::new(),
+                        probe_error,
+                    });
+                }
             }
             thread::sleep(Duration::from_millis(100));
         }
     }
-    child.wait_with_output().context("launch process failed")
+    child.wait_with_output().map_err(|err| LaunchRunError {
+        message: format!("launch process failed: {err}"),
+        stderr: String::new(),
+        probe_error: None,
+    })
 }
 
 fn launch_error(error: impl Into<anyhow::Error>) -> LaunchRunError {
@@ -411,6 +460,7 @@ fn launch_error(error: impl Into<anyhow::Error>) -> LaunchRunError {
     LaunchRunError {
         message: format!("{error:#}"),
         stderr: String::new(),
+        probe_error: None,
     }
 }
 
@@ -588,5 +638,40 @@ mod tests {
 
         assert_eq!(app.active_tab(), AppTab::Controls);
         assert_eq!(app.focus, LaunchFocus::Browse);
+    }
+
+    #[test]
+    fn launch_run_error_detail_lines_render_probe_error_when_present() {
+        let error = LaunchRunError {
+            message: "command exited with status: 1".to_string(),
+            stderr: "boom\nstack\n".to_string(),
+            probe_error: Some(
+                "failed to run zellij readiness probe: No such file or directory".to_string(),
+            ),
+        };
+        let lines = error.detail_lines("zellij --session foo".to_string());
+        assert_eq!(lines[0], "command: zellij --session foo");
+        assert_eq!(lines[1], "error: command exited with status: 1");
+        assert!(
+            lines.iter().any(|line| line.contains("readiness probe:")
+                && line.contains("No such file or directory")),
+            "probe_error must be surfaced in the operator error overlay: lines={lines:?}"
+        );
+        assert!(lines.iter().any(|line| line == "stderr:"));
+        assert!(lines.iter().any(|line| line == "boom"));
+    }
+
+    #[test]
+    fn launch_run_error_detail_lines_skip_probe_section_when_none() {
+        let error = LaunchRunError {
+            message: "command exited with status: 2".to_string(),
+            stderr: String::new(),
+            probe_error: None,
+        };
+        let lines = error.detail_lines("zellij --session foo".to_string());
+        assert!(
+            !lines.iter().any(|line| line.contains("readiness probe:")),
+            "probe_error=None must not render an empty probe section: lines={lines:?}"
+        );
     }
 }
