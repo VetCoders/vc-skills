@@ -12,43 +12,19 @@ description: >
   direction audit; that is `vc-followup`.
 ---
 
-# vc-review — Bounded Code Review Pipeline (Generate + Audit)
+# vc-review — Bounded Code Review (Generate + Audit)
+
+Two-phase skill: **Phase 1** generates structured artifacts with `prview-rs`, **Phase 2** squeezes maximum findings from them. Output: P-leveled findings with evidence + before-merge TODO checklist.
+
+Use `vc-followup` instead when the target is not a bounded diff/artifact and the real question is whether the implementation direction is healthy.
+
+- Binary: `prview` (resolve via `command -v prview`; do not assume cargo path)
+- Source: `https://github.com/VetCoders/prview-rs`
+- Author: Monika (@m-szymanska) — VetCoders
 
 ## Operator Entry
 
-Operator enters the framework session through:
-
-```bash
-vibecrafted start
-# or
-vc-start
-# same default board as: vc-start operator
-```
-
-Then launch this workflow through the command deck, not raw `skills/.../*.sh` paths:
-
-```bash
-vibecrafted <workflow> <agent> \
-  --<options> <values> \
-  --<parameters> <values> \
-  --file '/path/to/plan.md'
-```
-
-```bash
-vc-<workflow> <agent> \
-  --<options> <values> \
-  --<parameters> <values> \
-  --prompt '<prompt>'
-```
-
-If `vc-<workflow> <agent>` is invoked outside Zellij, the framework will attach
-or create the operator session and run that workflow in a new tab. Replace
-`<workflow>` with this skill's name. `vc-review` must have a bounded target:
-a PR, branch diff, commit range, or generated review artifact pack. It may also
-prefer `--pr` or other review-specific inputs; keep the same launcher contract
-and use the most truthful flag for the review surface.
-
-### Concrete dispatch examples
+Enter the framework via `vibecrafted start` (or `vc-start`). Then launch through the command deck — never raw `skills/.../*.sh` paths:
 
 ```bash
 vibecrafted review claude --prompt 'Review PR #4'
@@ -57,154 +33,45 @@ vibecrafted review codex --prompt 'Review HEAD~10..HEAD'
 vibecrafted review gemini --file /path/to/pr-artifacts-pack.md
 ```
 
-Two-phase skill: **Phase 1** generates structured artifacts with prview-rs,
-**Phase 2** squeezes maximum findings from them. Output: P-leveled findings
-with evidence + before-merge TODO checklist.
-
-Use `vc-followup` instead when the target is not a bounded diff/artifact and
-the real question is whether the implementation direction is healthy.
-
-Binary: `prview` (resolve via `command -v prview`; do not assume cargo path)
-Source: `https://github.com/VetCoders/prview-rs`
-Author: Monika (@m-szymanska) — VetCoders
+`vc-review` must have a bounded target: a PR, branch diff, commit range, or generated artifact pack. Prefer `--pr` or other review-specific inputs.
 
 ---
 
 ## Phase 1 — Generate Artifacts
 
-### Most common: local branch review
+Most common dispatches:
 
 ```bash
-prview --pr <NUMBER>
+prview --pr <NUMBER>                                    # local branch vs develop/main
+prview -R --remote-only <branch> <base>                 # remote branch (no checkout)
+prview --pr <NUMBER> --with-tests --with-lint           # GitHub PR by number
+prview --deep                                           # all gates
 ```
 
-Analyzes current branch HEAD vs develop/main. Fast (<20s). Best for daily work.
-
-### Remote branch (no checkout needed)
-
-```bash
-prview -R --remote-only <branch> <base>
-```
-
-- `<branch>`: name without `origin/` (e.g. `feat/x`)
-- `<base>`: defaults to `develop`
-
-### GitHub PR by number
-
-```bash
-prview --pr <NUMBER> --with-tests --with-lint
-```
+Default for vc-review: **do not use `--quick`**. Use `--quick` only for explicit fast triage, artifact refresh under time pressure, or when heavy gates are impossible.
 
 Add `--gh-repo owner/repo` if origin is ambiguous.
 
-Default for this skill: **do not use `--quick` for PR review**.
-Use `--quick` only for explicit fast triage, artifact refresh under time pressure,
-or when heavy gates are impossible in the current environment.
-
-### Deep review (all gates)
-
-```bash
-prview --deep
-# or selective:
-prview --with-tests --with-lint --with-security
-```
-
-### Other modes
-
-| Command                      | Purpose                                          |
-| ---------------------------- | ------------------------------------------------ |
-| `prview --ci`                | CI mode: all checks, no color, exit 1 on failure |
-| `prview --json --quiet`      | JSON output for automation / jq piping           |
-| `prview --update`            | Incremental: only regenerate changed artifacts   |
-| `prview --tui`               | Interactive terminal UI                          |
-| `prview feat/x develop main` | Explicit target + base branches                  |
-
-### Flag Reference
-
-| Flag                   | What                                                  |
-| ---------------------- | ----------------------------------------------------- |
-| `--quick`              | Skip tests/lint/bundle/heuristics; triage only        |
-| `--deep`               | All checks enabled                                    |
-| `--ci`                 | CI mode (strict exit)                                 |
-| `--pr N`               | Analyze GitHub PR #N                                  |
-| `--gh-repo owner/repo` | Explicit repo for --pr                                |
-| `--with-tests`         | Enable test runner                                    |
-| `--with-lint`          | Enable linters                                        |
-| `--with-security`      | Enable cargo geiger                                   |
-| `--update`             | Incremental regeneration                              |
-| `--json`               | JSON output                                           |
-| `-q, --quiet`          | Minimal output                                        |
-| `--tui`                | Interactive TUI                                       |
-| `--watch`              | Monitor + regenerate on changes                       |
-| `-R, --remote`         | Remote branch, no checkout                            |
-| `--no-fetch`           | Skip git fetch                                        |
-| `--no-cache`           | Disable check caching                                 |
-| `--no-zip`             | Skip ZIP creation                                     |
-| `--soft-exit`          | Always exit 0                                         |
-| `--profile <P>`        | Force language profile (rust/js/python/mixed/generic) |
-| `--policy-mode <M>`    | Override policy (shadow/warn/block)                   |
-| `--breaking-change`    | Mark PR as breaking                                   |
-| `-v, --verbose`        | Verbose output                                        |
-
-Shell aliases exist (`prv`, `prvpr`, `prvjson`), but this skill should not use
-the quick aliases for review-quality output.
+> See [references/artifact-pack-layout.md](references/artifact-pack-layout.md) for full flag reference, mode table, profile detection, policy system, and tooling-special-cases.
 
 ---
 
-## ScreenScribe Integration
+## Artifact Pack Quick Map
 
-vc-review can analyze screencast recordings alongside code diffs when
-ScreenScribe is available as a foundation tool. Use this for:
+Output: `$VIBECRAFTED_ROOT/.prview/pr-artifacts/<branch>/<timestamp>/` (newest = canonical; symlink `latest`).
 
-- Runtime behavior review (visual confirmation of what the code does)
-- Bug demo analysis (narrated screen recordings -> structured findings)
-- UX review passes (screencast of user flow -> P-leveled UX issues)
+Top-level structure:
 
-ScreenScribe is optional. If not installed, vc-review operates on code
-artifacts only.
+- `report.json` — **canonical structured report** (parse first)
+- `dashboard.html` — interactive HTML
+- `AI_INDEX.md` — artifact map + reading order
+- `00_summary/` — MERGE_GATE, RUN, MANIFEST, SANITY, pr-metadata, file-status, commit-list
+- `10_diff/` — `full.patch`, `per-commit-diffs/`, `per-file-diffs/`
+- `20_quality/` — per-gate logs/results, `checks-errors.log`, `coverage-delta.txt`, `BREAKING_CHANGES.md`
+- `30_context/` — `INLINE_FINDINGS.sarif`, `changed-tests.txt`, tooling output
+- `artifacts.zip` — everything zipped
 
----
-
-## Artifact Pack Layout
-
-Output: `$VIBECRAFTED_ROOT/.prview/pr-artifacts/<branch>/<timestamp>/`
-Symlink: `$VIBECRAFTED_ROOT/.prview/pr-artifacts/<branch>/latest`
-
-Always select the **newest** `<timestamp>`. Empty or missing directory → **P0**.
-
-```
-$VIBECRAFTED_ROOT/.prview/pr-artifacts/<branch>/<timestamp>/
-├── dashboard.html                # Interactive HTML report
-├── AI_INDEX.md                   # Artifact map + suggested reading order
-├── report.json                   # Canonical structured report (PARSE FIRST)
-├── 00_summary/
-│   ├── MERGE_GATE.json           # Machine-readable merge decision
-│   ├── MERGE_GATE.md             # Human-readable merge decision
-│   ├── RUN.json                  # Run metadata (timing, config, version)
-│   ├── MANIFEST.json             # SHA256 hashes of all generated files
-│   ├── SANITY.json               # Post-generation integrity checks
-│   ├── pr-metadata.txt           # Branch/base/profile metadata
-│   ├── file-status.txt           # A/M/D + file paths
-│   └── commit-list.txt           # hash date author message
-├── 10_diff/
-│   ├── full.patch                # Full diff with diff-stat header
-│   ├── per-commit-diffs/         # Batched commit patches + 00-SUMMARY.md
-│   └── per-file-diffs/           # Hotspot files (>80 lines changed) + 00-INDEX.txt
-├── 20_quality/
-│   ├── <gate>.result.json        # Per-gate result + provenance
-│   ├── <gate>.log                # Per-gate raw output
-│   ├── full-checks.log           # All check output concatenated
-│   ├── checks-errors.log         # Filtered: errors/warnings only (±2 context)
-│   ├── coverage-delta.txt        # Source↔test mapping with change status
-│   └── BREAKING_CHANGES.md       # Removed pub symbols, changed signatures
-├── 30_context/
-│   ├── INLINE_FINDINGS.sarif     # Machine-readable SARIF findings
-│   ├── changed-tests.txt         # Test files modified in this PR
-│   └── <tooling>.txt             # cargo-tree, tsc-trace, etc.
-└── artifacts.zip                 # Everything zipped
-```
-
-Note: some runs have duplicates in `artifacts/` subdir — prefer files in root.
+Empty/missing newest dir → finding **P0**.
 
 ---
 
@@ -212,8 +79,7 @@ Note: some runs have duplicates in `artifacts/` subdir — prefer files in root.
 
 ### Philosophy
 
-Tryb: **Findings-max**. Nie kończ na "kilku punktach". Jeśli widać 25 osobnych
-problemów, wypisz 25. Lepiej 20 celnych findingów niż 5 ogólników.
+Tryb: **Findings-max**. Nie kończ na "kilku punktach". Jeśli widać 25 osobnych problemów, wypisz 25. Lepiej 20 celnych findingów niż 5 ogólników.
 
 Każdy finding MUSI mieć:
 
@@ -223,9 +89,9 @@ Każdy finding MUSI mieć:
 
 Zasady:
 
-- Nie łącz różnych tematów w 1 punkt. Jeden punkt = jeden problem.
-- Jeśli czegoś nie da się potwierdzić z artefaktów: oznacz **[VERIFY]**.
-- Rozdzielaj: **problem w kodzie** vs **problem narzędzia [TOOLING]**.
+- Jeden punkt = jeden problem (nie łącz tematów).
+- Czego nie da się potwierdzić z artefaktów: oznacz **[VERIFY]**.
+- Rozdzielaj **problem w kodzie** vs **problem narzędzia [TOOLING]**.
 
 ### P-Level Scale
 
@@ -240,91 +106,28 @@ Zasady:
 
 ## Reading Order (Obowiązkowy)
 
-Read artifacts in this order. For each: what to extract.
-
-### 1) `AI_INDEX.md` (if exists)
-
-- Verify it points to real paths. Lying index → finding P3 [TOOLING].
-
-### 2) `report.json` (canonical source of truth)
-
-- `meta`: PR url, branch, base
-- `gate`: allow_merge + policy_mode + reasons
-- `checks[]`: status (PASS/WARN/FAIL/ERROR), log_path, command
-- `diff.stats` + `diff.files[]`: scale, churn, hotspots, patch_path
-- `quality`: breaking / coverage / sarif / heuristics
-
-### 3) `00_summary/MERGE_GATE.json` + `SANITY.json`
-
-- Cross-check with `report.json`. Inconsistency → finding P2 [TOOLING].
-- Note: "All checks passed" with WARN/INLINE_FINDINGS present = misleading.
-
-### 4) `00_summary/pr-metadata.txt` + `file-status.txt` + `commit-list.txt`
-
-- Scope: how many files, what categories (A/M/D), commit progression
-- Look for branch drift (infra files not in PR scope)
-
-### 5) `30_context/INLINE_FINDINGS.sarif`
-
-- Every SARIF result = ready-made finding. Transfer all to findings list.
-
-### 6) `20_quality/*` (logs + results)
-
-- PASS gates: extract warnings from logs (cargo warns, tsc non-errors)
-- WARN/ERROR/FAIL gates: root cause + recommendation
-- `checks-errors.log`: high-signal filtered errors
-- `BREAKING_CHANGES.md`: assess real weight (P?)
-- `coverage-delta.txt`: flag critical "NO_TEST_CHANGE" entries
-
-### 7) `30_context/changed-tests.txt`
-
-- Cross-reference with source changes — untested source files → finding
-
-### 8) Diffs (selective, not exhaustive)
-
-- `10_diff/per-file-diffs/00-INDEX.txt` → top churn files
-- Per-file patches for hotspots
-- `10_diff/per-commit-diffs/00-SUMMARY.md` → commits of highest impact
-- Per-commit batches for line-level analysis
+1. **`AI_INDEX.md`** (if exists) — verify it points to real paths. Lying index → P3 [TOOLING].
+2. **`report.json`** (canonical) — `meta`, `gate.allow_merge` + `policy_mode` + reasons, `checks[]` (status/log_path/command), `diff.stats` + `diff.files[]` (scale/churn/hotspots), `quality` (breaking/coverage/sarif/heuristics).
+3. **`00_summary/MERGE_GATE.json` + `SANITY.json`** — cross-check with `report.json`. Inconsistency → P2 [TOOLING]. "All checks passed" with WARN/INLINE_FINDINGS = misleading.
+4. **`00_summary/pr-metadata.txt` + `file-status.txt` + `commit-list.txt`** — scope, A/M/D categories, commit progression. Look for branch drift (infra files outside PR scope).
+5. **`30_context/INLINE_FINDINGS.sarif`** — every SARIF result = ready-made finding. Transfer all to findings list.
+6. **`20_quality/*`** — PASS gates: extract warnings from logs (cargo warns, tsc non-errors). WARN/ERROR/FAIL: root cause + recommendation. `checks-errors.log` for high-signal filtered errors. `BREAKING_CHANGES.md`: assess real weight (P?). `coverage-delta.txt`: flag critical "NO_TEST_CHANGE" entries.
+7. **`30_context/changed-tests.txt`** — cross-reference with source changes. Untested source files → finding.
+8. **Diffs (selective)** — `10_diff/per-file-diffs/00-INDEX.txt` for top churn. Per-file patches for hotspots. `10_diff/per-commit-diffs/00-SUMMARY.md` for highest-impact commits.
 
 ---
 
 ## Mandatory Pattern Scans
 
-In per-file patches and/or `full.patch`, scan for these patterns:
+Scan per-file patches and `full.patch` for:
 
-### Rust
+**Rust** — `.unwrap()`, `.expect(`, `panic!`, `todo!`, `unsafe`, `dbg!`, `println!`, `#[allow(`
 
-- `.unwrap()`, `.expect(` — unhandled panics
-- `panic!`, `todo!` — incomplete code
-- `unsafe` — review justification
-- `dbg!`, `println!` — debug leftovers
-- `#[allow(` — suppressed warnings
+**TypeScript / JavaScript** — `any`, `as unknown as` (double cast), `@ts-ignore`, `@ts-expect-error`, `eslint-disable`, `// TODO|FIXME|HACK`, empty `catch {}` without log/rethrow, non-null assertion `!` on uncertain values, `console.log|warn|error` (should use secureLogger in Vista)
 
-### TypeScript / JavaScript
+**Security / PII** — logging tokens/emails/passwords/personal IDs, new telemetry without privacy review, new endpoints/command handlers without auth checks, hardcoded URLs/keys/secrets
 
-- `any` — type escape
-- `as unknown as` — double cast (type laundering)
-- `@ts-ignore`, `@ts-expect-error` — type suppression
-- `eslint-disable` — lint suppression
-- `// TODO`, `// FIXME`, `// HACK` — deferred work
-- Empty `catch {}` or `catch (e) {}` without log/rethrow
-- Non-null assertion `!` on uncertain values
-- `console.log`, `console.warn`, `console.error` — should use secureLogger (Vista)
-
-### Security / PII
-
-- Logging of tokens, emails, passwords, personal IDs
-- New telemetry events without privacy review
-- New endpoints / command handlers without auth checks
-- Hardcoded URLs, API keys, secrets
-
-### Data / Performance
-
-- Query in loop (N+1)
-- Missing batching for bulk operations
-- Large payloads without pagination
-- Unnecessary I/O in hot paths
+**Data / Performance** — query in loop (N+1), missing batching for bulk ops, large payloads without pagination, unnecessary I/O in hot paths
 
 Each "hit" in the diff = potential finding with evidence.
 
@@ -335,45 +138,19 @@ Each "hit" in the diff = potential finding with evidence.
 To prevent laconic reports:
 
 - **All** entries in `INLINE_FINDINGS.sarif`
-- **Top 10** files by churn (from `report.json` or `file-status.txt`) — read per-file patch
-- **All** files in core risk categories (by path): auth, payments, database, session, security, encryption, middleware
+- **Top 10** files by churn — read per-file patch
+- **All** files in core risk categories: auth, payments, database, session, security, encryption, middleware
 - **All** critical "NO_TEST_CHANGE" entries from `coverage-delta.txt`
 - **All** entries in `BREAKING_CHANGES.md` with assessed P-level
 - **Per-commit progression** for PRs with >5 commits — identify phases, risky transitions
 
 ---
 
-## Special Cases (Tooling)
-
-### Cargo Geiger panic
-
-`Matching variant not found` = tooling/misconfig (case-sensitive `--output-format`).
-→ Finding **P1 [TOOLING]** if it blocks quality signal. Recommend: fix flag or pin/upgrade.
-
-### Timeouts / "killed"
-
-`killed (>timeout)` for tsc trace / eslint json:
-→ Finding **P2 [TOOLING]** (missing quality signal). Recommend: increase timeout or disable with justification.
-
-### Gate inconsistencies
-
-`MERGE_GATE.json` says "All checks passed" but WARN/findings exist:
-→ Finding **P2 [TOOLING]** with recommendation: "All blocking checks passed" vs "Non-blocking issues present".
-
-### Branch drift
-
-Files changed outside PR scope (CI, infra, unrelated config):
-→ Finding **P1** if >10 files. Recommend: rebase on base branch.
-
----
-
 ## Output Format (Obowiązkowy)
 
-Final output ALWAYS has these 2 mandatory sections (in this order):
+Two mandatory sections, in this order:
 
 ### 1) Findings (P0/P1/P2/P3)
-
-Each finding in this format:
 
 ```
 - **[P?] <Title>** (optionally: [VERIFY] or [TOOLING])
@@ -383,7 +160,7 @@ Each finding in this format:
   - **Owner:** `author` / `reviewer` / `infra` (optional)
 ```
 
-Number findings for cross-referencing: P1-01, P1-02, P2-01, etc.
+Number for cross-referencing: `P1-01`, `P1-02`, `P2-01`, etc.
 
 ### 2) Before-Merge TODO (Markdown Checkboxes)
 
@@ -396,7 +173,7 @@ Number findings for cross-referencing: P1-01, P1-02, P2-01, etc.
 
 Each TODO references finding IDs. Include verification commands in code fences where applicable.
 
-### 3) Optional Sections (recommended)
+### 3) Optional Sections
 
 Add when they provide value:
 
@@ -404,64 +181,25 @@ Add when they provide value:
 - **Architecture Context**: diagram or description of affected subsystem
 - **Scope / What Changed**: based on `diff.stats` + top directories + top files
 - **Commit Progression**: phases of work for multi-commit PRs
-- **Test Coverage Matrix**: source file → test file → new tests count
+- **Test Coverage Matrix**: source → test → new tests count
 - **Security & Privacy Check**: PII in logs, data flows, event filtering
 - **QA Plan**: 5-15 manual + automated test recommendations
 - **Evidence Index**: links to key artifacts used
 
 ---
 
-## Policy System
-
-Create `.prview-policy.yml` in repo root:
-
-```yaml
-version: 1
-mode: warn # shadow | warn | block
-default_severity: warn
-checks:
-  cargo_audit: block
-  vitest: warn
-  eslint: ignore
-```
-
-Override at CLI: `--policy-mode block`
-
-Modes:
-
-- **shadow**: never blocks (observability only)
-- **warn**: blocks on `block` severity failures only
-- **block**: blocks on `block` AND `warn` severity failures
-
----
-
-## Profiles
-
-Auto-detected from repo contents. Override: `--profile <PROFILE>`.
-
-| Profile | Detection                   | Checks                                        |
-| ------- | --------------------------- | --------------------------------------------- |
-| rust    | Cargo.toml                  | cargo test, clippy, cargo audit, cargo geiger |
-| js      | package.json + source files | vitest, eslint, tsc, pnpm build               |
-| python  | pyproject.toml              | pytest, ruff, mypy                            |
-| mixed   | multiple detected           | all applicable                                |
-| generic | fallback                    | basic file analysis                           |
-
----
-
 ## 𝚅𝚒𝚋𝚎𝚌𝚛𝚊𝚏𝚝𝚎𝚍. Pipeline Integration
 
-### As input to vc-followup
+As input to `vc-followup`:
 
 ```bash
 prview --pr $PR_NUMBER --with-tests --with-lint
 ARTIFACTS="$VIBECRAFTED_ROOT/.prview/pr-artifacts/<branch>/latest"
 ```
 
-### Subagent delegation context
+Subagent delegation context:
 
 ```
-## Context Bootstrap
 - prview artifacts at: $VIBECRAFTED_ROOT/.prview/pr-artifacts/<branch>/latest/
 - Parse report.json first (canonical)
 - Read 00_summary/MERGE_GATE.json for quick verdict
@@ -469,7 +207,7 @@ ARTIFACTS="$VIBECRAFTED_ROOT/.prview/pr-artifacts/<branch>/latest"
 - Read 10_diff/per-file-diffs/ for hotspot patches
 ```
 
-### JSON pipeline
+JSON pipeline:
 
 ```bash
 prview --json --quiet | jq '.checks[] | select(.status == "Failed")'
@@ -481,9 +219,9 @@ prview --json --quiet | jq '.checks[] | select(.status == "Failed")'
 
 ### Tool usage
 
-- Using `--quick` as the default for PR review in this skill (it drops test/lint/security signal)
+- Using `--quick` as default for PR review (drops test/lint/security signal)
 - Running `--deep` on every PR when `--with-tests --with-lint` is enough (save `--deep` for merge gate / high-risk PRs)
-- Reading `full.patch` entirely for large PRs (use `per-file-diffs/` for focused review)
+- Reading `full.patch` entirely for large PRs (use `per-file-diffs/`)
 - Ignoring `report.json` and `MERGE_GATE.json` (parse structured data first)
 - Not using `--update` after amend/force-push (generates duplicate artifact sets)
 - Running without `--no-fetch` on slow networks
@@ -499,4 +237,4 @@ prview --json --quiet | jq '.checks[] | select(.status == "Failed")'
 
 ---
 
-_Created by M&K (c)2024-2026 VetCoders_
+_𝚅𝚒𝚋𝚎𝚌𝚛𝚊𝚏𝚝𝚎𝚍. with AI Agents by VetCoders (c)2024-2026 LibraxisAI_
