@@ -100,17 +100,24 @@ Do NOT use for:
 
 ## Research Safety
 
-Research mode is read-only for the source repository by default.
+Research mode is read-only for the source repository.
 
-- Do not stage, commit, amend, tag, branch, merge, rebase, push, stash, clean,
-  reset, checkout, switch, or run any other git write operation.
-- Do not edit repo source files, config, `.gitignore`, generated files, or
-  cleanup stray files unless the operator plan explicitly asks for source
-  modifications.
+- **Closure marker = filesystem artifacts**, not git. The run directory under
+  `$VIBECRAFTED_HOME/artifacts/<org>/<repo>/<YYYY_MMDD>/research/<run_id>/`
+  with report.md + meta.json + transcript.log is the deterministic anchor.
+  Operator verifies completion via `ls`, `cat meta.json | jq .status`, etc.
+  No git commits needed.
+- **No source mutation.** Do not edit repo source files, config, `.gitignore`,
+  generated files, or cleanup stray files unless the operator plan explicitly
+  asks for source modifications.
+- **No git writes.** Do not stage, commit, amend, tag, branch, merge, rebase,
+  push, stash, clean, reset, checkout, switch. Working tree must be unchanged
+  at the end of the run. Empty commits, `--allow-empty`, chore stamps —
+  forbidden across the board.
 - If research discovers an obvious fix, write the proposed fix, exact file
   references, and implementation notes to the report artifact instead of
   applying it.
-- Reports and plans still go under the run-scoped research directory:
+- Reports and plans go under the run-scoped research directory:
   `$VIBECRAFTED_HOME/artifacts/<org>/<repo>/<YYYY_MMDD>/research/<run_id>/`.
 - Codex workers must write the full markdown report to the given report path
   through the filesystem before exiting. The `codex exec --output-last-message`
@@ -269,78 +276,230 @@ Do not treat manual `observe --last` calls as sufficient observability for the
 workflow itself. The workflow should expose its state through launch metadata,
 the await helper, and durable report paths by default.
 
-### Step 5 — Synthesize
+### Step 5 — Synthesize (operator's expertise with line-precise citations)
 
-Read all three reports. For each research question, build a truth table:
+**Before you cite a single line of any source report, you MUST have read each
+report in full via layered slicing.** This is non-negotiable.
 
-| Question | Claude | Codex | Gemini | Consensus                          |
-| -------- | ------ | ----- | ------ | ---------------------------------- |
-| Q1       | X      | X     | X      | agreed                             |
-| Q2       | A      | A     | B      | 2:1 → A, investigate B's reasoning |
-| Q3       | X      | —     | X      | gap in Codex, cross-check          |
+Most research reports run 30-100KB. Tools have output caps that hit at
+~25KB and dump the rest to a file with a "see path: ..." warning. Skipping
+that file because it's "long" or working only from the warning text is
+exactly the failure mode this skill exists to prevent. A synthesis built
+from truncation warnings is a hallucination wearing the costume of expertise.
 
-Rules for synthesis:
+Procedure for each of the three source reports:
 
-- **3/3 agree** → high confidence, use as ground truth
-- **2/3 agree** → likely correct, but read the dissenting report carefully — it
-  may have found an edge case the others missed
-- **All disagree** → the question needs refinement or the domain is genuinely
-  ambiguous. Flag for user decision.
-- **One agent found nothing** → gap. Check if the question was answerable.
-  If yes, that agent's search strategy was weak — use the others.
+1. Read the file in full using offset/limit slicing in spans of ~1500-2000
+   lines (or ~80,000 chars), until you have covered the entire file.
+2. Note in your synthesis document, in section "0. Coverage statement",
+   exactly how many lines / bytes you read per source report. Example:
+   ```
+   ## 0. Coverage
+   - claude_<run_id>.md: 1842 lines, 71KB, 100% read in 2 spans
+   - codex_<run_id>.md: 2106 lines, 84KB, 100% read in 2 spans
+   - gemini_<run_id>.md: 1297 lines, 49KB, 100% read in 1 span
+   ```
+3. If a source report is too large to read in the available time/budget,
+   HALT and report the boundary clearly. Do NOT proceed to synthesis. Do
+   NOT cite line ranges you have not actually read. The operator will
+   re-dispatch with a narrower scope or grant more time.
 
-### Step 6 — Produce gap-free research document
+Only after coverage is complete do you build the synthesis below.
 
-Write the final document to
-`$VIBECRAFTED_HOME/artifacts/<org>/<repo>/<YYYY_MMDD>/research/<run_id>/summary.md`
-or a sibling synthesis document in that same run directory:
+**Synthesis = operator's expert opinion built ON the three reports, NOT a
+copy of them.**
+
+Anti-pattern (what we explicitly leave behind):
+
+- ❌ "patchwork meta-artifact" — verbatim concatenation of 3 reports glued
+  together. Becomes 30-50KB monolith with duplicate frontmatter, hard to
+  read, hard to ingest, no real synthesis. The reports already exist as
+  individual artifacts; copying them adds noise, not value.
+- ❌ "compressed view" — operator reads 3 reports, paraphrases to one short
+  synthesis, publishes only that. Individual findings get crushed; reader
+  loses the option to verify a specific claim against its source.
+
+Mandatory pattern (operator decision 2026-05-01, after rozmowa Maciej+Monika):
+
+- ✓ Synthesis is **a separate, concise document** that interprets the three
+  reports and points to **exact lines** in them for every non-trivial claim.
+- ✓ Reports stay as **individual artifacts** (`claude_<run_id>.md`,
+  `codex_<run_id>.md`, `gemini_<run_id>.md`). They are immutable expert
+  testimony — full content, full frontmatter, original style.
+- ✓ Synthesis cites them with file:line refs (e.g.
+  `claude_<run_id>.md:L42-58`). Reader who wants to verify clicks the ref
+  and reads the full source paragraph. Operator does not paraphrase the
+  expert; operator points at the expert.
+- ✓ When reports disagree, synthesis notes the dissent **with file:line
+  refs to each side** and gives the operator's reasoned judgment. The
+  reader can see exactly which paragraph in which report supports each
+  position.
+
+**Final synthesis form (operator+Monika decision 2026-05-01, rev 4)** has two
+distinct sections: **A. Convergent findings (deduplicated)** and **B. Signals
+(single-agent findings, potentially key insights)**. Voting / majority rules
+are explicitly rejected.
+
+### A. Convergent — deduplicate, do not repeat
+
+Findings on which two or three reports overlap get reduced to **one statement**.
+The reader does not need the same obvious point repeated three times. Cite the
+agreeing reports with file:line refs. If one of the three did not address the
+question, note that explicitly — silence is not disagreement.
+
+The operator's added value here is small (the agreement does the work), but
+the operator may add a one-line nuance if it sharpens the statement.
+
+### B. Signals — single-agent findings are rare and often pivotal
+
+A finding surfaced by **only one** of the three agents is **not less important
+than convergent findings**. It is a **signal** — a rare indicator that one
+expert saw something the others missed. In our experience these single-agent
+findings are often the actual direction the work needed to take.
+
+For every signal, the operator writes:
+
+- **what the signal says** (cited by file:line)
+- **why the other two missed it** (didn't address the question, gave a wrong
+  answer, ran a weaker search strategy, etc.)
+- **operator's signal verdict**:
+  - **amplify** — operator agrees, this signal is the right direction; treat
+    it as a real finding for downstream work
+  - **flag** — operator unsure, signal worth follow-up research or
+    runtime experiment before acting on it
+  - **acknowledge & reject** — operator read carefully, finds the signal
+    not credible (must explain why with reasoning, not handwave)
+
+Signals never get hidden in "consensus" or "minority" framing. They get a
+**dedicated section** in the synthesis where each one is named, cited, and
+adjudicated by the operator individually.
+
+### Step 6 — Produce the synthesis document
+
+Write the synthesis document to
+`$VIBECRAFTED_HOME/artifacts/<org>/<repo>/<YYYY_MMDD>/research/<run_id>/synthesis.md`
+in the run directory. **The three source reports remain as individual files
+in the same directory — DO NOT inline them.**
+
+**Document structure (kategoryczny — operator dyscyplinowany):**
 
 ```markdown
 ---
 run_id: <generated-unique-id>
-agent: <claude|codex|gemini>
 skill: vc-research
 project: <repo-name>
 status: completed
+operator_synthesis_by: <claude|codex|gemini|maciej|monika>
+source_reports:
+  - claude_<run_id>.md
+  - codex_<run_id>.md
+  - gemini_<run_id>.md
 ---
 
-# Research: <title>
+# Research Synthesis: <title>
 
-## Problem
+> Operator's expert interpretation of the three source reports. Each non-trivial
+> claim cites file:line in the source reports. The reports themselves remain
+> as immutable expert testimony in separate files — read them directly when
+> you want the full unfiltered evidence.
 
-<from Step 1>
+## 0. Coverage statement
 
-## Findings
+Each source report below was read in full via layered slicing before synthesis
+was written:
 
-### Q1: <question>
+- `claude_<run_id>.md`: <N> lines / <K>KB, 100% read in <M> spans
+- `codex_<run_id>.md`: <N> lines / <K>KB, 100% read in <M> spans
+- `gemini_<run_id>.md`: <N> lines / <K>KB, 100% read in <M> spans
 
-**Answer**: <synthesized from 3 reports>
-**Confidence**: high / medium / low
-**Sources**: <merged, deduplicated>
-**Dissent**: <if any agent disagreed, note why>
+If any report could not be read in full, this synthesis MUST halt at section 0
+with an explicit boundary statement. Citing line ranges from an unread
+report is forbidden.
 
-### Q2: ...
+## 1. Problem
 
-## Architecture Decision
+<from Step 1 — the actual question, not the symptom>
 
-- **Chosen approach**: <decision>
-- **Why**: <based on triangulated evidence>
-- **Alternatives rejected**: <with reasons from multiple agents>
+## 2A. Convergent findings (deduplicated — one statement per finding)
 
-## Implementation Notes
+> Findings where two or three experts agreed. Reduced to a single statement
+> per finding. Source refs cite the agreeing reports.
 
-- <concrete guidance, merged from all three reports>
-- <API signatures verified across sources>
-- <edge cases noted by any agent>
+### F1: <finding statement, in operator's voice>
 
-## Remaining Gaps
+**Sources**: `claude_<run_id>.md:L42-58`, `codex_<run_id>.md:L101-115`
+**Not addressed by**: Gemini (or "all three"; or omit if all addressed)
+**Operator note**: <one-line nuance if it sharpens, otherwise omit>
 
-- <questions none of the three could answer>
+### F2: ...
+
+## 2B. Signals (single-agent findings — POTENTIAL key insights)
+
+> Findings surfaced by only one of the three agents. NOT lower-priority than
+> convergent — often these are the actual direction the work needed to take.
+> Each signal gets named, cited, and adjudicated individually.
+
+### S1: <signal statement, in the agent's voice>
+
+**Source**: `gemini_<run_id>.md:L78-92`
+**Why others missed it**: <claude did not address Q3; codex addressed it but
+gave wrong answer because…; etc.>
+**Operator's verdict**: **amplify** | **flag for follow-up** | **acknowledge & reject**
+**Reasoning**: <if amplify: why the signal is right and convergent view incomplete.
+If flag: what experiment / further research would resolve it.
+If reject: what specifically in the signal's reasoning fails, with reference
+to repo evidence or named external knowledge — never handwave.>
+
+### S2: ...
+
+## 4. Architecture Decision
+
+- **Chosen approach**: <operator's decision>
+- **Why**: <reasoning citing specific findings via file:line>
+- **Alternatives rejected**:
+  - <alternative> — rejected per `<file>:Lxx-yy` because <reasoning>
+
+## 5. Implementation Notes
+
+- <concrete guidance — cite source for each non-trivial item>
+- <API signature: see `codex_<run_id>.md:L130-145` for verified syntax>
+
+## 6. Remaining Gaps
+
+- <questions none of the three could answer — cite where each agent gave up>
 - <areas needing hands-on experimentation>
+
+## 7. How to Read This
+
+- This synthesis is **operator's expertise**. The three reports it cites
+  remain as standalone artifacts in this directory — open them when you
+  want the full unfiltered text from each agent.
+- File:line refs are absolute to the report file (e.g. `claude_<run_id>.md:L42-58`
+  means lines 42-58 inclusive in that file).
+- If you disagree with operator's judgment, the source reports are right
+  there — read them and form your own view. That's what they are for.
 ```
 
-Present the summary to the user. This document is the input for
+**Imperatyw operatora (kategoryczny):**
+
+1. **Synthesis NIE zawiera verbatim treści raportów** — tylko cytaty file:line
+   do nich. Synthesis to **opinia eksperta** (operatora), nie copy-paste.
+2. **Reports zostają jako osobne pliki** w run directory. Są immutable expert
+   testimony — pełna treść, pełen frontmatter, oryginalny styl.
+3. **Każda nietrywialna teza w synthesis MUSI mieć file:line ref** do co
+   najmniej jednego raportu. Brak refa = anti-pattern (operator zmyśla).
+4. **Dissent jest cytowany z file:line do obu/wszystkich stron** + reasoned
+   judgment operatora dlaczego jedna strona przeważa.
+5. Synthesis jest krótki (zwykle 3-8KB). Wartość = jakość interpretacji +
+   precyzja cytowania, nie objętość.
+
+Present the synthesis document to the user. This is the input for
 vc-workflow Phase 3 (Implement) or standalone implementation.
+
+The reader who wants the **full unfiltered evidence** opens the three source
+report files directly. The reader who wants the **operator's reasoned judgment**
+reads the synthesis. Both audiences served, neither is forced to wade through
+the other's preferred view.
 
 ## Pipeline Integration
 

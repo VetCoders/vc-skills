@@ -138,9 +138,14 @@ EOF_RESEARCH_PROMPT
 - Write the final markdown report to the exact path below.
 
 ## Research Safety Contract
-- Research mode is read-only for the source repo by default.
-- **COMMIT**: forbidden. Do not stage, commit, amend, tag, branch, merge, rebase, push, stash, clean, reset, checkout, switch, or run any other git write operation.
+- Research mode is read-only for the source repo. Closure marker = the report
+  filesystem artifact (report.md + meta.json + transcript.log under the run
+  directory). No git writes are needed; operator verifies completion via
+  filesystem.
 - **SOURCE MUTATION**: forbidden unless the operator plan explicitly asks for source modifications. Do not edit repo source files, config, .gitignore, generated files, or cleanup stray files from this research worker.
+- **GIT WRITES forbidden**: do not stage, commit, amend, tag, branch, merge,
+  rebase, push, stash, clean, reset, checkout, switch. Working tree must be
+  unchanged at the end of the run.
 - If you discover a fix, describe it in the report instead of implementing it.
 
 Report path: $report_path
@@ -196,13 +201,47 @@ spawn_build_runtime_prompt() {
 - Do NOT invoke vc-agents, do NOT launch another external fleet, and do NOT reopen frontier selection.
 - The operator already made the vc-why-matrix choice for this mission; do not reinterpret it.
 - If the task reveals a wider unresolved surface, complete the assigned mission as far as honestly possible and record the boundary clearly in your report.
+
+## Layered Reading Discipline (NON-NEGOTIABLE)
+
+When any tool returns truncation warning + "see file: <path>" fallback because
+its output exceeded the runtime token cap, you MUST read the full file via
+layered slicing. Do not skip. Do not summarize from the warning text or the
+truncated preview. The whole point of the dump file is full evidence — using
+only the warning defeats the workflow.
+
+Concrete procedure:
+- Use the Read tool with offset/limit in spans of ~1500-2000 lines until you
+  have covered the entire file.
+- Or use Bash with python3: \`python3 -c "print(open(P).read()[A:B])"\` in spans
+  of ~80,000 chars until you have covered all bytes.
+- For very large files (>500KB) consider running grep / structured search
+  inside the dump first to locate relevant regions, then layer-read those
+  regions in full — but never substitute grep summary for actual reading
+  of the regions you're going to cite or rely on.
+- In your report, explicitly state how many spans you read and the total
+  coverage (e.g. "Read codex_report.md in 4 spans of 1800 lines each, total
+  7200 lines, 100% coverage"). This makes the operator audit trivial.
+
+Forbidden: writing analysis based on the truncation warning text, the first
+2KB preview, or the file's filename alone. If you do not have time to read
+the dump file, explicitly halt and report the boundary — do NOT fabricate
+coverage. Operator can re-dispatch with a tighter scope.
 EOF_LABEL
 
   cat >> "$runtime_file" <<'EOF_IMPLEMENT'
 ## Exit Contract
-- **COMMIT**: mandatory. One commit when done.
 - **REPORT**: mandatory. Write to the report path given at the end of this prompt.
-- **SCOPE**: do your work, commit, report, stop.
+  Filesystem artifact (report.md + meta.json + transcript.log) is the closure
+  marker. Operator verifies completion via filesystem, not git.
+- **COMMIT**: only if you produced staged changes that match the dispatched
+  scope. Regular commit with detailed message.
+  - NO empty commits. NO `--allow-empty`. NO chore stamps.
+  - If you have nothing to stage, do not commit. Report stands alone.
+  - Forbidden: `git push` to remote (operator publishes).
+  - Forbidden: branch switch, worktree, stashing other agents' WIP.
+- **SCOPE**: do your work, write report, optionally commit if real changes,
+  stop.
 EOF_IMPLEMENT
 
   cat >> "$runtime_file" <<EOF_PROMPT
