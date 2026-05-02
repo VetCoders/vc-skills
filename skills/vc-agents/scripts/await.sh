@@ -189,7 +189,7 @@ def list_meta_files(*, include_research: bool = False) -> list[Path]:
     return sorted(dict.fromkeys(metas))
 
 
-def load_meta(path: Path) -> dict | None:
+def load_meta(path: Path):
     try:
         return json.loads(path.read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError):
