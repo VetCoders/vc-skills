@@ -611,7 +611,11 @@ _launch_next_loop() {
     --success-hook "$success_hook"
     --failure-hook "$failure_hook"
   )
-  if [[ -n "$loop_model" && "$loop_agent" != "codex" ]]; then
+  if [[ -n "$loop_model" \
+        && "$loop_agent" != "codex" \
+        && "$loop_model" != "pending" \
+        && "$loop_model" != "unknown" \
+        && "$loop_model" != "null" ]]; then
     spawn_args+=(--model "$loop_model")
   fi
 
@@ -758,6 +762,9 @@ spawn_marbles_write_child_plan "$ancestor_plan" "$next_plan_tmp"
 
 _ancestor_agent="$(spawn_frontmatter_field "$next_plan_tmp" "agent")"
 _ancestor_model="$(spawn_frontmatter_field "$next_plan_tmp" "model")"
+case "$_ancestor_model" in
+  pending|unknown|null) _ancestor_model="" ;;
+esac
 
 # Determine if ancestor.md was explicitly steered by the previous child.
 # Steering requires: (a) ancestor has a non-empty agent, (b) it differs from

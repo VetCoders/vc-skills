@@ -121,7 +121,11 @@ def test_runtime_prompt_includes_vc_agents_worker_charter(tmp_path: Path) -> Non
     assert "Do NOT invoke vc-agents" in payload
     assert "do not reinterpret it" in payload
     assert "record the boundary clearly in your report" in payload
-    assert "**COMMIT**: mandatory. One commit when done." in payload
+    assert "**REPORT**: mandatory" in payload
+    assert "**COMMIT**:" in payload
+    assert "NO empty commits" in payload
+    assert "`--allow-empty`" in payload
+    assert "If you have nothing to stage, do not commit" in payload
 
 
 def test_research_runtime_prompt_forbids_commits_and_source_mutation(
@@ -146,9 +150,12 @@ def test_research_runtime_prompt_forbids_commits_and_source_mutation(
 
     payload = runtime_file.read_text(encoding="utf-8")
     assert "## Research Safety Contract" in payload
-    assert "**COMMIT**: forbidden" in payload
-    assert "git write operation" in payload
+    assert "**GIT WRITES forbidden**" in payload
+    assert "do not stage, commit, amend" in payload
+    assert "**SOURCE MUTATION**: forbidden" in payload
     assert "Do not edit repo source files" in payload
+    assert "Working tree must be" in payload
+    assert "unchanged at the end of the run" in payload
     assert "**COMMIT**: mandatory. One commit when done." not in payload
 
 

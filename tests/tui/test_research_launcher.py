@@ -242,7 +242,9 @@ def test_vc_research_skill_documents_read_only_source_repo_contract() -> None:
     payload = RESEARCH_SKILL.read_text(encoding="utf-8")
 
     assert "## Research Safety" in payload
-    assert "Research mode is read-only for the source repository" in payload
-    assert "Do not stage, commit, amend" in payload
-    assert "Do not edit repo source files" in payload
+    assert "read-only" in payload
+    assert "for the source repository" in payload
+    assert "No source mutation" in payload
+    assert "No git writes" in payload
+    assert "No stage, commit, amend" in payload
     assert "$VIBECRAFTED_HOME/artifacts/<org>/<repo>/<YYYY_MMDD>/" in payload
