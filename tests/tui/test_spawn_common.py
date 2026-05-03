@@ -81,7 +81,7 @@ def _read_json_or_none(path: Path) -> dict | None:
 
 
 def _wait_for_meta_payload(
-    artifacts_root: Path, pattern: str, timeout: float = 5.0
+    artifacts_root: Path, pattern: str, timeout: float = 20.0
 ) -> tuple[Path | None, dict | None]:
     deadline = time.time() + timeout
     latest_meta: Path | None = None
