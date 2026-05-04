@@ -2,4 +2,4 @@
 /target
 Cargo.lock
 /.ai-agents
-/.loctree
+*.txt

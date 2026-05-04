@@ -31,7 +31,7 @@ pub fn rewire_selected_clients(app: &AppState) -> Result<()> {
     for client in &app.clients {
         if client.selected && !client.already_rewired {
             let host_file = HostFile {
-                kind: client.kind,
+                kind: client.kind.clone(),
                 path: client.config_path.clone(),
                 format: match client.config_path.extension().and_then(|e| e.to_str()) {
                     Some("toml") => HostFormat::Toml,
@@ -40,7 +40,7 @@ pub fn rewire_selected_clients(app: &AppState) -> Result<()> {
             };
 
             // Use the socket_dir from app state
-            match rewire_host(&host_file, &app.socket_dir, "rmcp-mux-proxy", &[], false) {
+            match rewire_host(&host_file, &app.socket_dir, "rust-mux-proxy", &[], false) {
                 Ok(outcome) => {
                     if let Some(backup) = outcome.backup {
                         tracing::info!(

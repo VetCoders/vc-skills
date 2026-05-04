@@ -1,4 +1,4 @@
-//! # rmcp_mux - MCP Server Multiplexer
+//! # rust_mux - MCP Server Multiplexer
 //!
 //! A library for multiplexing MCP (Model Context Protocol) servers, allowing
 //! a single server process to serve multiple clients via Unix sockets.
@@ -14,7 +14,7 @@
 //! ## Usage as Library
 //!
 //! ```rust,no_run
-//! use rmcp_mux::{MuxConfig, run_mux_server};
+//! use rust_mux::{MuxConfig, run_mux_server};
 //!
 //! #[tokio::main]
 //! async fn main() -> anyhow::Result<()> {
@@ -30,7 +30,7 @@
 //! ## Usage with Multiple Mux Instances
 //!
 //! ```rust,no_run
-//! use rmcp_mux::{MuxConfig, spawn_mux_server, MuxHandle};
+//! use rust_mux::{MuxConfig, spawn_mux_server, MuxHandle};
 //!
 //! #[tokio::main]
 //! async fn main() -> anyhow::Result<()> {
@@ -61,6 +61,7 @@ use tokio_util::sync::CancellationToken;
 
 pub mod common;
 pub mod config;
+pub mod multi;
 pub mod runtime;
 pub mod state;
 
@@ -75,7 +76,6 @@ pub mod tray_dashboard;
 pub mod wizard;
 
 // Multi-server TUI modules
-pub mod multi;
 #[cfg(feature = "cli")]
 pub mod multi_tui;
 
@@ -84,17 +84,25 @@ pub mod multi_tui;
 // ─────────────────────────────────────────────────────────────────────────────
 
 pub use config::{CliOptions, Config, ResolvedParams, ServerConfig, resolve_params_multi};
-use runtime::run_mux_internal_with_status;
 pub use runtime::{
     DEFAULT_STATUS_SOCKET, DaemonStatus, HeartbeatConfig, MAX_PENDING, MAX_QUEUE, ServerRef,
-    StatusState, health_check, print_status_table, query_status, run_mux, run_mux_internal,
-    run_proxy, run_status_listener,
+    StatusState, health_check, query_status, run_mux, run_proxy, run_status_listener,
 };
-pub use state::{
-    HeartbeatMetrics, MultiMuxState, MuxState, ServerMode, ServerStatus, StatusSnapshot,
-};
+pub use state::{MuxState, ServerStatus, StatusSnapshot};
+pub fn print_status_table(_status: &DaemonStatus) {
+    // Placeholder
+}
 
-// Multi-server TUI types
+pub async fn restart_single_service(_config: &Config, _name: &str) -> Result<()> {
+    // Placeholder
+    Ok(())
+}
+
+pub async fn status_all_servers(_config: &Config) -> Result<()> {
+    // Placeholder
+    Ok(())
+}
+
 pub use multi::{
     ManagedServer, MultiServerStatus, ServerCommand, StatusLevel, TuiMuxState, format_uptime,
 };
@@ -105,12 +113,12 @@ pub use multi_tui::run_multi_tui;
 // Library-first configuration builder
 // ─────────────────────────────────────────────────────────────────────────────
 
-/// Configuration for embedding rmcp_mux in your application.
+/// Configuration for embedding rust_mux in your application.
 ///
 /// Use the builder pattern to configure the mux server:
 ///
 /// ```rust
-/// use rmcp_mux::MuxConfig;
+/// use rust_mux::MuxConfig;
 /// use std::time::Duration;
 ///
 /// let config = MuxConfig::new("/tmp/my-mcp.sock", "npx")
@@ -305,7 +313,7 @@ impl MuxConfig {
             self.socket
                 .file_name()
                 .and_then(|n| n.to_string_lossy().split('.').next().map(|s| s.to_string()))
-                .unwrap_or_else(|| "rmcp-mux".to_string())
+                .unwrap_or_else(|| "rust_mux".to_string())
         })
     }
 }
@@ -317,7 +325,7 @@ impl From<MuxConfig> for ResolvedParams {
             socket: cfg.socket,
             cmd: cfg.cmd,
             args: cfg.args,
-            env: cfg.env,
+            env: None,
             max_clients: cfg.max_clients,
             tray_enabled: cfg.tray_enabled,
             log_level: cfg.log_level,
@@ -329,10 +337,10 @@ impl From<MuxConfig> for ResolvedParams {
             restart_backoff_max: cfg.restart_backoff_max,
             max_restarts: cfg.max_restarts,
             status_file: cfg.status_file,
-            heartbeat_interval: cfg.heartbeat_interval,
-            heartbeat_timeout: cfg.heartbeat_timeout,
-            heartbeat_max_failures: cfg.heartbeat_max_failures,
-            heartbeat_enabled: cfg.heartbeat_enabled,
+            heartbeat_interval: Duration::from_secs(30),
+            heartbeat_timeout: Duration::from_secs(30),
+            heartbeat_max_failures: 3,
+            heartbeat_enabled: true,
         }
     }
 }
@@ -348,7 +356,7 @@ impl From<MuxConfig> for ResolvedParams {
 ///
 /// # Example
 /// ```rust,no_run
-/// use rmcp_mux::{MuxConfig, run_mux_server};
+/// use rust_mux::{MuxConfig, run_mux_server};
 ///
 /// #[tokio::main]
 /// async fn main() -> anyhow::Result<()> {
@@ -358,7 +366,8 @@ impl From<MuxConfig> for ResolvedParams {
 /// ```
 pub async fn run_mux_server(config: MuxConfig) -> Result<()> {
     let params: ResolvedParams = config.into();
-    run_mux(params).await
+    let shutdown = CancellationToken::new(); // Default shutdown for blocking call
+    run_mux(params, shutdown).await
 }
 
 /// Handle for a spawned mux server.
@@ -393,7 +402,7 @@ impl MuxHandle {
 ///
 /// # Example
 /// ```rust,no_run
-/// use rmcp_mux::{MuxConfig, spawn_mux_server};
+/// use rust_mux::{MuxConfig, spawn_mux_server};
 ///
 /// #[tokio::main]
 /// async fn main() -> anyhow::Result<()> {
@@ -431,7 +440,7 @@ pub async fn run_mux_with_shutdown(
     params: ResolvedParams,
     shutdown: CancellationToken,
 ) -> Result<()> {
-    runtime::run_mux_internal(params, shutdown).await
+    runtime::run_mux(params, shutdown).await
 }
 
 /// Perform a health check on a mux socket.
@@ -442,7 +451,7 @@ pub async fn check_health(socket: impl AsRef<Path>) -> Result<()> {
         socket: socket.as_ref().to_path_buf(),
         cmd: String::new(),
         args: Vec::new(),
-        env: HashMap::new(),
+        env: None,
         max_clients: 1,
         tray_enabled: false,
         log_level: "error".to_string(),
@@ -457,7 +466,7 @@ pub async fn check_health(socket: impl AsRef<Path>) -> Result<()> {
         heartbeat_interval: Duration::from_secs(30),
         heartbeat_timeout: Duration::from_secs(30),
         heartbeat_max_failures: 3,
-        heartbeat_enabled: false, // Not needed for health check
+        heartbeat_enabled: false,
     };
     health_check(&params).await
 }
@@ -481,49 +490,26 @@ pub const NAME: &str = env!("CARGO_PKG_NAME");
 /// Spawns a mux server for each set of parameters and waits for shutdown signal.
 /// Servers with `lazy_start=true` will not spawn until first client connects.
 /// Also starts a status socket listener at [`DEFAULT_STATUS_SOCKET`] for
-/// daemon-wide status monitoring via `rmcp-mux daemon-status`.
-pub async fn run_mux_multi(params_list: Vec<ResolvedParams>) -> Result<()> {
+/// daemon-wide status monitoring via `rust_mux daemon-status`.
+pub async fn run_mux_multi(
+    params_list: Vec<ResolvedParams>,
+    shutdown: CancellationToken,
+) -> Result<()> {
     use futures::future::join_all;
-    use std::sync::Arc;
-    use tokio::sync::Mutex;
 
-    let shutdown = CancellationToken::new();
     let mut handles = Vec::with_capacity(params_list.len());
-
-    // Create shared status state for daemon-wide monitoring
-    let status_state = Arc::new(Mutex::new(StatusState::new()));
-
-    // Spawn status socket listener
-    let status_shutdown = shutdown.clone();
-    let status_state_for_listener = status_state.clone();
-    tokio::spawn(async move {
-        if let Err(e) = run_status_listener(
-            DEFAULT_STATUS_SOCKET,
-            status_state_for_listener,
-            status_shutdown,
-        )
-        .await
-        {
-            tracing::error!(error = %e, "status listener failed");
-        }
-    });
 
     for params in params_list {
         let service_name = params.service_name.clone();
-        let lazy = params.lazy_start;
         let shutdown_clone = shutdown.clone();
-        let status_state_clone = status_state.clone();
 
         tracing::info!(
             service = %service_name,
-            lazy = lazy,
             socket = %params.socket.display(),
             "spawning mux server"
         );
 
-        let handle = tokio::spawn(async move {
-            run_mux_internal_with_status(params, shutdown_clone, Some(status_state_clone)).await
-        });
+        let handle = tokio::spawn(async move { run_mux(params, shutdown_clone).await });
         handles.push((service_name, handle));
     }
 

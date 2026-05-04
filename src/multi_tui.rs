@@ -195,7 +195,7 @@ fn render(
         )
         .header(header_row)
         .block(Block::default().borders(Borders::ALL).title(" Servers "))
-        .highlight_style(Style::default().add_modifier(Modifier::REVERSED));
+        .row_highlight_style(Style::default().add_modifier(Modifier::REVERSED));
 
         frame.render_stateful_widget(table, chunks[1], &mut app.table_state);
 

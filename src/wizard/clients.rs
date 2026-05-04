@@ -88,7 +88,7 @@ pub fn detect_clients() -> Vec<ClientEntry> {
 
     // Add clients with existing config files
     for host in hosts_with_config {
-        seen_kinds.insert((host.kind, host.path.clone()));
+        seen_kinds.insert((host.kind.clone(), host.path.clone()));
 
         let scan_result = scan_host_file(&host).ok();
 
@@ -102,7 +102,7 @@ pub fn detect_clients() -> Vec<ClientEntry> {
             .map(|r| {
                 r.services
                     .iter()
-                    .any(|s| s.command.contains("rmcp-mux") || s.command.contains("rmcp_mux"))
+                    .any(|s| s.command.contains("rust-mux") || s.command.contains("rust_mux"))
             })
             .unwrap_or(false);
 
@@ -119,7 +119,7 @@ pub fn detect_clients() -> Vec<ClientEntry> {
     // Now check for installed apps without config files
     for (kind, _format, config_path, indicator_paths) in get_known_clients() {
         // Skip if we already found this config
-        if seen_kinds.contains(&(kind, config_path.clone())) {
+        if seen_kinds.contains(&(kind.clone(), config_path.clone())) {
             continue;
         }
 

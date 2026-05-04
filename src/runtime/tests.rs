@@ -17,8 +17,8 @@ use crate::config::{
     CliOptions, Config, ResolvedParams, ServerConfig, expand_path, load_config, resolve_params,
 };
 use crate::state::{
-    MuxState, Pending, ServerStatus, StatusSnapshot, error_response, publish_status, reset_state,
-    set_id, snapshot_for_state,
+    MuxState, MuxStateConfig, Pending, ServerStatus, StatusSnapshot, error_response,
+    publish_status, reset_state, set_id, snapshot_for_state,
 };
 
 use super::client::handle_client_message;
@@ -113,17 +113,17 @@ impl CliOptions for TestCli {
 }
 
 fn test_state_with_max(max: usize) -> Arc<Mutex<MuxState>> {
-    Arc::new(Mutex::new(MuxState::new(
-        max,
-        "test".into(),
-        1_048_576,
-        Duration::from_secs(30),
-        Duration::from_secs(1),
-        Duration::from_secs(30),
-        5,
-        0,
-        None,
-    )))
+    Arc::new(Mutex::new(MuxState::new(MuxStateConfig {
+        max_active_clients: max,
+        service_name: "test".into(),
+        max_request_bytes: 1_048_576,
+        request_timeout: Duration::from_secs(30),
+        restart_backoff: Duration::from_secs(1),
+        restart_backoff_max: Duration::from_secs(30),
+        max_restarts: 5,
+        queue_depth: 0,
+        child_pid: None,
+    })))
 }
 
 fn test_state() -> Arc<Mutex<MuxState>> {
@@ -149,7 +149,7 @@ fn params_with_socket(socket: PathBuf) -> ResolvedParams {
         socket,
         cmd: "echo".into(),
         args: vec![],
-        env: HashMap::new(),
+        env: Some(HashMap::new()),
         max_clients: 5,
         tray_enabled: false,
         log_level: "info".into(),
@@ -803,7 +803,10 @@ async fn status_file_writer_persists_snapshot() {
     let path = dir.path().join("status.json");
     let base = StatusSnapshot {
         service_name: "svc".into(),
+        name: "svc".into(),
         server_status: ServerStatus::Starting,
+        status_text: "Starting".into(),
+        level: crate::multi::StatusLevel::Ok,
         health_status: crate::state::HealthStatus::Starting,
         restarts: 0,
         connected_clients: 0,

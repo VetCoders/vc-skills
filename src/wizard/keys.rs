@@ -45,94 +45,82 @@ pub fn handle_key(app: &mut AppState, key: KeyEvent) -> Result<bool> {
         }
 
         // Tab to switch panels
-        KeyCode::Tab => {
-            if app.editing.is_none() {
-                app.active_panel = match app.active_panel {
-                    Panel::ServiceList => Panel::Editor,
-                    Panel::Editor => Panel::ServiceList,
-                    Panel::ConfirmDialog => Panel::ConfirmDialog,
-                };
-                update_message(app);
-            }
+        KeyCode::Tab if app.editing.is_none() => {
+            app.active_panel = match app.active_panel {
+                Panel::ServiceList => Panel::Editor,
+                Panel::Editor => Panel::ServiceList,
+                Panel::ConfirmDialog => Panel::ConfirmDialog,
+            };
+            update_message(app);
         }
 
-        KeyCode::BackTab => {
-            if app.editing.is_none() {
-                app.active_panel = match app.active_panel {
-                    Panel::ServiceList => Panel::Editor,
-                    Panel::Editor => Panel::ServiceList,
-                    Panel::ConfirmDialog => Panel::ConfirmDialog,
-                };
-                update_message(app);
-            }
+        KeyCode::BackTab if app.editing.is_none() => {
+            app.active_panel = match app.active_panel {
+                Panel::ServiceList => Panel::Editor,
+                Panel::Editor => Panel::ServiceList,
+                Panel::ConfirmDialog => Panel::ConfirmDialog,
+            };
+            update_message(app);
         }
 
         // Navigation
-        KeyCode::Up => {
-            if app.editing.is_none() {
-                match (app.wizard_step, app.active_panel) {
-                    (WizardStep::ServerSelection, Panel::ServiceList) => {
-                        if app.selected_service > 0 {
-                            sync_form_to_service(app);
-                            app.selected_service -= 1;
-                            load_service_to_form(app);
-                        }
-                    }
-                    (WizardStep::ServerSelection, Panel::Editor) => {
-                        app.current_field = previous_field(app.current_field);
-                    }
-                    (WizardStep::ClientSelection, Panel::ServiceList) => {
-                        if app.selected_client > 0 {
-                            app.selected_client -= 1;
-                        }
-                    }
-                    (WizardStep::Confirmation, _) => {
-                        // Navigate through save options
-                        app.confirm_choice = previous_confirm_choice(app.confirm_choice);
-                    }
-                    (WizardStep::HealthCheck, _) => {
-                        // Toggle between Ok and TryAgain
-                        app.health_choice = match app.health_choice {
-                            HealthCheckChoice::Ok => HealthCheckChoice::TryAgain,
-                            HealthCheckChoice::TryAgain => HealthCheckChoice::Ok,
-                        };
-                    }
-                    _ => {}
+        KeyCode::Up if app.editing.is_none() => {
+            match (app.wizard_step, app.active_panel) {
+                (WizardStep::ServerSelection, Panel::ServiceList) if app.selected_service > 0 => {
+                    sync_form_to_service(app);
+                    app.selected_service -= 1;
+                    load_service_to_form(app);
                 }
+                (WizardStep::ServerSelection, Panel::Editor) => {
+                    app.current_field = previous_field(app.current_field);
+                }
+                (WizardStep::ClientSelection, Panel::ServiceList) if app.selected_client > 0 => {
+                    app.selected_client -= 1;
+                }
+                (WizardStep::Confirmation, _) => {
+                    // Navigate through save options
+                    app.confirm_choice = previous_confirm_choice(app.confirm_choice);
+                }
+                (WizardStep::HealthCheck, _) => {
+                    // Toggle between Ok and TryAgain
+                    app.health_choice = match app.health_choice {
+                        HealthCheckChoice::Ok => HealthCheckChoice::TryAgain,
+                        HealthCheckChoice::TryAgain => HealthCheckChoice::Ok,
+                    };
+                }
+                _ => {}
             }
         }
 
-        KeyCode::Down => {
-            if app.editing.is_none() {
-                match (app.wizard_step, app.active_panel) {
-                    (WizardStep::ServerSelection, Panel::ServiceList) => {
-                        if app.selected_service < app.services.len().saturating_sub(1) {
-                            sync_form_to_service(app);
-                            app.selected_service += 1;
-                            load_service_to_form(app);
-                        }
-                    }
-                    (WizardStep::ServerSelection, Panel::Editor) => {
-                        app.current_field = next_field(app.current_field);
-                    }
-                    (WizardStep::ClientSelection, Panel::ServiceList) => {
-                        if app.selected_client < app.clients.len().saturating_sub(1) {
-                            app.selected_client += 1;
-                        }
-                    }
-                    (WizardStep::Confirmation, _) => {
-                        // Navigate through save options
-                        app.confirm_choice = next_confirm_choice(app.confirm_choice);
-                    }
-                    (WizardStep::HealthCheck, _) => {
-                        // Toggle between Ok and TryAgain
-                        app.health_choice = match app.health_choice {
-                            HealthCheckChoice::Ok => HealthCheckChoice::TryAgain,
-                            HealthCheckChoice::TryAgain => HealthCheckChoice::Ok,
-                        };
-                    }
-                    _ => {}
+        KeyCode::Down if app.editing.is_none() => {
+            match (app.wizard_step, app.active_panel) {
+                (WizardStep::ServerSelection, Panel::ServiceList)
+                    if app.selected_service < app.services.len().saturating_sub(1) =>
+                {
+                    sync_form_to_service(app);
+                    app.selected_service += 1;
+                    load_service_to_form(app);
                 }
+                (WizardStep::ServerSelection, Panel::Editor) => {
+                    app.current_field = next_field(app.current_field);
+                }
+                (WizardStep::ClientSelection, Panel::ServiceList)
+                    if app.selected_client < app.clients.len().saturating_sub(1) =>
+                {
+                    app.selected_client += 1;
+                }
+                (WizardStep::Confirmation, _) => {
+                    // Navigate through save options
+                    app.confirm_choice = next_confirm_choice(app.confirm_choice);
+                }
+                (WizardStep::HealthCheck, _) => {
+                    // Toggle between Ok and TryAgain
+                    app.health_choice = match app.health_choice {
+                        HealthCheckChoice::Ok => HealthCheckChoice::TryAgain,
+                        HealthCheckChoice::TryAgain => HealthCheckChoice::Ok,
+                    };
+                }
+                _ => {}
             }
         }
 
@@ -144,22 +132,23 @@ pub fn handle_key(app: &mut AppState, key: KeyEvent) -> Result<bool> {
                     app.active_panel = Panel::Editor;
                     update_message(app);
                 }
-                (WizardStep::ServerSelection, Panel::Editor) => {
-                    if app.current_field == Field::Tray {
-                        app.form.tray = !app.form.tray;
-                        app.form.dirty = true;
-                    } else {
-                        app.editing = Some(app.current_field);
-                        app.message = "Editing... Esc to finish".into();
-                    }
+                (WizardStep::ServerSelection, Panel::Editor)
+                    if app.current_field == Field::Tray =>
+                {
+                    app.form.tray = !app.form.tray;
+                    app.form.dirty = true;
                 }
-                (WizardStep::ClientSelection, Panel::ServiceList) => {
+                (WizardStep::ServerSelection, Panel::Editor) => {
+                    app.editing = Some(app.current_field);
+                    app.message = "Editing... Esc to finish".into();
+                }
+                (WizardStep::ClientSelection, Panel::ServiceList)
+                    if app.selected_client < app.clients.len() =>
+                {
                     // Toggle client selection on Enter as well
-                    if app.selected_client < app.clients.len() {
-                        app.clients[app.selected_client].selected =
-                            !app.clients[app.selected_client].selected;
-                        update_step2_message(app);
-                    }
+                    app.clients[app.selected_client].selected =
+                        !app.clients[app.selected_client].selected;
+                    update_step2_message(app);
                 }
                 (WizardStep::Confirmation, _) => {
                     // Execute the selected action
@@ -176,42 +165,40 @@ pub fn handle_key(app: &mut AppState, key: KeyEvent) -> Result<bool> {
         // Space toggles selection (in ServiceList for both steps) or tray (in Editor)
         KeyCode::Char(' ') => {
             match (app.wizard_step, app.active_panel) {
-                (WizardStep::ServerSelection, Panel::ServiceList) => {
+                (WizardStep::ServerSelection, Panel::ServiceList)
+                    if app.selected_service < app.services.len() =>
+                {
                     // Toggle selection for current server
-                    if app.selected_service < app.services.len() {
-                        app.services[app.selected_service].selected =
-                            !app.services[app.selected_service].selected;
-                        let selected_count = app.services.iter().filter(|s| s.selected).count();
-                        app.message = format!(
-                            "STEP 1: {} servers selected | Space: toggle | Tab: edit | n: next step",
-                            selected_count
-                        );
-                    }
+                    app.services[app.selected_service].selected =
+                        !app.services[app.selected_service].selected;
+                    let selected_count = app.services.iter().filter(|s| s.selected).count();
+                    app.message = format!(
+                        "STEP 1: {} servers selected | Space: toggle | Tab: edit | n: next step",
+                        selected_count
+                    );
                 }
-                (WizardStep::ServerSelection, Panel::Editor) => {
-                    if app.current_field == Field::Tray {
-                        app.form.tray = !app.form.tray;
-                        app.form.dirty = true;
-                    }
+                (WizardStep::ServerSelection, Panel::Editor)
+                    if app.current_field == Field::Tray =>
+                {
+                    app.form.tray = !app.form.tray;
+                    app.form.dirty = true;
                 }
-                (WizardStep::ClientSelection, Panel::ServiceList) => {
+                (WizardStep::ClientSelection, Panel::ServiceList)
+                    if app.selected_client < app.clients.len() =>
+                {
                     // Toggle selection for current client
-                    if app.selected_client < app.clients.len() {
-                        app.clients[app.selected_client].selected =
-                            !app.clients[app.selected_client].selected;
-                        update_step2_message(app);
-                    }
+                    app.clients[app.selected_client].selected =
+                        !app.clients[app.selected_client].selected;
+                    update_step2_message(app);
                 }
                 _ => {}
             }
         }
 
         // Escape
-        KeyCode::Esc => {
-            if app.editing.is_some() {
-                app.editing = None;
-                update_message(app);
-            }
+        KeyCode::Esc if app.editing.is_some() => {
+            app.editing = None;
+            update_message(app);
         }
 
         // Next step with 'n' key

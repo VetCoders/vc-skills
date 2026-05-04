@@ -5,8 +5,8 @@ All notable changes to this project will be documented in this file.
 ## [0.4.0] - 2025-12-26
 
 ### Breaking Changes
-- **Default paths changed** from `~/.rmcp_servers/rmcp_mux/` to `~/.rmcp-servers/rmcp-mux/`.
-- **Proxy command** changed from `rmcp_mux_proxy` to `rmcp-mux-proxy`.
+- **Default paths changed** from `~/.rmcp_servers/rmcp_mux/` to `~/.rmcp-servers/rust-mux/`.
+- **Proxy command** changed from `rmcp_mux_proxy` to `rust-mux-proxy`.
 
 ### Added
 - **Daemon Status Socket** - Query running daemon status via Unix socket.
@@ -18,9 +18,9 @@ All notable changes to this project will be documented in this file.
 - **Standalone Build** - Inlined common types, no workspace dependencies.
 
 ### Changed
-- Default socket directory: `~/.rmcp-servers/rmcp-mux/sockets`.
-- Default service name: `rmcp-mux` (hyphenated).
-- Detection now matches both `rmcp-mux` and legacy `rmcp_mux` patterns.
+- Default socket directory: `~/.rmcp-servers/rust-mux/sockets`.
+- Default service name: `rust-mux` (hyphenated).
+- Detection now matches both `rust-mux` and legacy `rmcp_mux` patterns.
 - Updated to Rust Edition 2024 (stable).
 
 ### Fixed
@@ -34,7 +34,7 @@ All notable changes to this project will be documented in this file.
 ## [0.3.0] - 2025-12-04
 
 ### Added
-- **Library-first architecture** – rmcp-mux is now an embeddable Rust library, not just a CLI tool.
+- **Library-first architecture** – rust-mux is now an embeddable Rust library, not just a CLI tool.
 - `MuxConfig` builder for programmatic configuration:
   ```rust
   let config = MuxConfig::new("/tmp/mcp.sock", "npx")
@@ -51,102 +51,28 @@ All notable changes to this project will be documented in this file.
 - Feature flags: `cli` (wizard, scan, binaries) and `tray` (system tray icon).
 
 ### Changed
-- **Package renamed** from `rmcp_mux` to `rmcp-mux` (crates.io convention).
-- **Binary renamed** from `rmcp_mux` to `rmcp-mux`, proxy from `rmcp_mux_proxy` to `rmcp-mux-proxy`.
-- **Library name** remains `rmcp_mux` (Rust identifier requirement) – use `use rmcp_mux::*` in code.
-- Project structure reorganized:
-  - `src/lib.rs` – new library entry point with public API.
-  - `src/bin/rmcp_mux.rs` – CLI binary (requires `cli` feature).
-  - `src/bin/rmcp_mux_proxy.rs` – proxy binary (requires `cli` feature).
-- `runtime/mod.rs` split: `run_mux` now delegates to `run_mux_internal` with external shutdown support.
-- `config.rs`: `resolve_params` now generic over `CliOptions` trait.
-- Default features: `["cli", "tray"]` – use `default-features = false` for library-only.
-
-### Migration Guide
-**From CLI to Library:**
-```rust
-// Before: rmcp-mux --socket /tmp/mcp.sock --cmd npx -- @mcp/server
-// After:
-use rmcp_mux::{MuxConfig, run_mux_server};
-let config = MuxConfig::new("/tmp/mcp.sock", "npx")
-    .with_args(vec!["@mcp/server".into()]);
-run_mux_server(config).await?;
-```
-
-**Multiple servers in one process:**
-```rust
-use rmcp_mux::{MuxConfig, spawn_mux_server};
-let h1 = spawn_mux_server(MuxConfig::new("/tmp/a.sock", "server-a")).await?;
-let h2 = spawn_mux_server(MuxConfig::new("/tmp/b.sock", "server-b")).await?;
-// Both run in single process, sharing tokio runtime
-```
-
-## [0.2.1] - 2025-11-27
+- **Rebranded: `rmcp_mux` → `rust-mux`.** Crate name hyphenated on crates.io per convention; module path `rust_mux`. Binary `rmcp_mux_proxy` → `rust_mux_proxy`. All internal imports `use rmcp_mux::` → `use rust_mux::`. User-facing `RMCP_MUX_*` environment variables preserved for backward compatibility.
+- **Moved to Loctree org:** `https://github.com/VetCoders/rust-mux` → `https://github.com/Loctree/rust-mux`.
 
 ### Added
-- **Three-step wizard flow** for comprehensive MCP configuration:
-  - **Step 1: Server Detection** – Detects running MCP server processes via `ps`, loads existing config, allows selection with `Space`, shows health status indicators.
-  - **Step 2: Client Detection** – Discovers MCP client applications (Codex, Cursor, VSCode, Claude, JetBrains), shows rewire status, allows selection for rewiring.
-  - **Step 3: Confirmation** – Summary of selections with save options: Save All, Mux Only, Clipboard, Back, Exit.
-- Clipboard support (`pbcopy` on macOS) for copying config without writing files.
-- Client rewiring functionality – automatically updates client configs to use `rmcp_mux_proxy`.
-- Health status indicators in wizard: green dot (healthy), red dot (unhealthy), gray circle (unknown).
-- Source indicators in wizard: `[C]` for config-based servers, `[D]` for detected processes.
+- Package metadata: `description`, `repository`, `homepage`, `documentation`, `readme`, `keywords`, `categories`, `license = "MIT OR Apache-2.0"`, and `authors = ["Maciej Gad <void@div0.space>", "Monika Szymanska <hello@vetcoders.io>"]` in `Cargo.toml` for proper crates.io listing and discovery.
 
-### Changed
-- **Major refactoring** of `wizard.rs` (1829 LOC) into modular structure:
-  - `wizard/types.rs` – Enums and structs (WizardStep, Field, Panel, ServiceEntry, ClientEntry, etc.)
-  - `wizard/services.rs` – Service loading, MCP process detection, health checks
-  - `wizard/clients.rs` – Client (host application) detection
-  - `wizard/ui.rs` – All UI drawing functions (ratatui)
-  - `wizard/keys.rs` – Key event handling
-  - `wizard/persist.rs` – Config persistence and client rewiring
-  - `wizard/mod.rs` – Entry point and re-exports
-- **Major refactoring** of `runtime.rs` (1596 LOC) into modular structure:
-  - `runtime/types.rs` – ServerEvent and constants (MAX_QUEUE, MAX_PENDING)
-  - `runtime/client.rs` – Client connection handling
-  - `runtime/server.rs` – MCP child process management with restart logic
-  - `runtime/proxy.rs` – STDIO proxy for mux socket
-  - `runtime/status.rs` – Status file writing
-  - `runtime/mod.rs` – Main mux loop, health check, timeout reaper
-  - `runtime/tests.rs` – All runtime tests (753 LOC)
-- Improved wizard navigation: `n` for next step, `p` for previous step.
-- Backup files (`.bak`) created for all modified configs.
-
-### Fixed
-- Redundant `scan_host_file` calls in client detection – now scans once and reuses result.
-
-## [0.2.0] - 2025-11-24
+## 0.2.0 - 2025-11-24
 
 ### Added
-- Optional tray icon (`--tray`) showing live server status, client and pending counts, and restart reasons. ([5eefde4](https://github.com/Loctree/rmcp-mux/commit/5eefde4))
-- Config file support (JSON/YAML/TOML) with auto-detection and CLI overrides. ([5eefde4](https://github.com/Loctree/rmcp-mux/commit/5eefde4))
-- `rmcp_mux_proxy` helper binary plus launchd template and installer tweaks for easier setup. ([04e5402](https://github.com/Loctree/rmcp-mux/commit/04e5402))
-- GitHub Actions CI workflow for formatting, linting, testing, and coverage, including an async proxy forwarding test. ([ad2b9aa](https://github.com/Loctree/rmcp-mux/commit/ad2b9aa))
-- Mux hooks, Semgrep rules, and expanded README documentation. ([e80083c](https://github.com/Loctree/rmcp-mux/commit/e80083c))
+- Optional tray icon (`--tray`) showing live server status, client and pending counts, and restart reasons. ([5eefde4](https://github.com/LibraxisAI/rust_mux/commit/5eefde4))
+- Config file support (JSON/YAML/TOML) with auto-detection and CLI overrides. ([5eefde4](https://github.com/LibraxisAI/rust_mux/commit/5eefde4))
+- `rust-mux-proxy` helper binary plus launchd template and installer tweaks for easier setup. ([04e5402](https://github.com/LibraxisAI/rust_mux/commit/04e5402))
+- GitHub Actions CI workflow for formatting, linting, testing, and coverage, including an async proxy forwarding test. ([ad2b9aa](https://github.com/LibraxisAI/rust_mux/commit/ad2b9aa))
+- Mux hooks, Semgrep rules, and expanded README documentation. ([e80083c](https://github.com/LibraxisAI/rust_mux/commit/e80083c))
 - `health` subcommand to resolve config and assert socket reachability, plus unit tests for healthy/missing sockets.
 
 ### Changed
-- Refactored mux state management and tray functionality into dedicated `state` and `tray` modules, with tray dependencies gated behind an optional `tray` feature; CI updated to run with `--no-default-features`. ([0d60764](https://github.com/Loctree/rmcp-mux/commit/0d60764), [ad2b9aa](https://github.com/Loctree/rmcp-mux/commit/ad2b9aa))
+- Refactored mux state management and tray functionality into dedicated `state` and `tray` modules, with tray dependencies gated behind an optional `tray` feature; CI updated to run with `--no-default-features`. ([0d60764](https://github.com/LibraxisAI/rust_mux/commit/0d60764), [ad2b9aa](https://github.com/LibraxisAI/rust_mux/commit/ad2b9aa))
 
-## [0.1.5] - 2025-11-20
-
-### Added
-- JSON status snapshots (`--status-file` / `status_file`) including PID, queue depth, request limits, restart/backoff settings.
+## 0.1.5
+- Added JSON status snapshots (`--status-file` / `status_file`) including PID, queue depth, request limits, restart/backoff settings.
 - Hardened runtime: lazy child start, request size guard, request timeouts, capped restart backoff, max restarts.
-- Status writer task for tray/automation; MuxState now tracks queue depth and child PID.
-
-### Changed
 - Config/Wizard/Scan updated to surface new fields; defaults documented in README.
+- Status writer task for tray/automation; MuxState now tracks queue depth and child PID.
 - Tests cover initialize cache, resets, status snapshots, and proxy; CI runs fmt/clippy/tests/tarpaulin with `--no-default-features` (tray off in CI).
-
-## [0.1.0] - 2025-11-15
-
-### Added
-- Initial release of rmcp-mux.
-- Single MCP server child process management.
-- Unix socket listener for multiple clients.
-- JSON-RPC ID rewriting per client.
-- Initialize request caching and fan-out.
-- Child process restart on failure.
-- Basic CLI interface with `--socket`, `--cmd`, `--max-active-clients`, `--log-level`.

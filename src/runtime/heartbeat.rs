@@ -140,6 +140,16 @@ pub enum HeartbeatEvent {
     Response { id: String },
 }
 
+pub struct HeartbeatInspectorContext {
+    pub to_server_tx: mpsc::Sender<Value>,
+    pub heartbeat_rx: mpsc::UnboundedReceiver<HeartbeatEvent>,
+    pub state: Arc<Mutex<MuxState>>,
+    pub active_clients: Arc<Semaphore>,
+    pub status_tx: watch::Sender<StatusSnapshot>,
+    pub restart_tx: mpsc::UnboundedSender<String>,
+    pub shutdown: CancellationToken,
+}
+
 /// Spawn the heartbeat inspector task.
 ///
 /// This task periodically sends ping probes to the backend server and monitors
@@ -148,24 +158,19 @@ pub enum HeartbeatEvent {
 ///
 /// # Arguments
 /// * `config` - Heartbeat configuration parameters
-/// * `to_server_tx` - Channel to send requests to the backend server
-/// * `heartbeat_rx` - Channel to receive heartbeat response notifications
-/// * `state` - Shared mux state
-/// * `active_clients` - Active client semaphore for status updates
-/// * `status_tx` - Status update channel
-/// * `restart_tx` - Channel to signal server restart
-/// * `shutdown` - Cancellation token for graceful shutdown
-#[allow(clippy::too_many_arguments)]
 pub fn spawn_heartbeat_inspector(
     config: HeartbeatConfig,
-    to_server_tx: mpsc::Sender<Value>,
-    mut heartbeat_rx: mpsc::UnboundedReceiver<HeartbeatEvent>,
-    state: Arc<Mutex<MuxState>>,
-    active_clients: Arc<Semaphore>,
-    status_tx: watch::Sender<StatusSnapshot>,
-    restart_tx: mpsc::UnboundedSender<String>,
-    shutdown: CancellationToken,
+    context: HeartbeatInspectorContext,
 ) -> tokio::task::JoinHandle<()> {
+    let HeartbeatInspectorContext {
+        to_server_tx,
+        mut heartbeat_rx,
+        state,
+        active_clients,
+        status_tx,
+        restart_tx,
+        shutdown,
+    } = context;
     tokio::spawn(async move {
         if !config.enabled {
             debug!("heartbeat inspector disabled");

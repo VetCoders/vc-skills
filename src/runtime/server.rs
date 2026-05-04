@@ -16,38 +16,10 @@ use tokio_util::codec::{FramedRead, FramedWrite};
 use tokio_util::sync::CancellationToken;
 use tracing::{debug, error, info, warn};
 
-use crate::state::{MuxState, ServerStatus, StatusSnapshot, publish_status, reset_state, set_id};
+use crate::state::{MuxState, ServerStatus, StatusSnapshot, publish_status, set_id};
 
 use super::client::update_queue_depth;
 use super::types::ServerEvent;
-
-/// Handle events from the server (messages and resets).
-///
-/// Note: This function is kept for backwards compatibility but is not currently
-/// used. The runtime now uses `handle_server_events_with_heartbeat` which
-/// filters heartbeat responses.
-#[allow(dead_code)]
-pub async fn handle_server_events(
-    state: Arc<Mutex<MuxState>>,
-    active_clients: Arc<Semaphore>,
-    status_tx: watch::Sender<StatusSnapshot>,
-    mut rx: mpsc::UnboundedReceiver<ServerEvent>,
-) {
-    while let Some(evt) = rx.recv().await {
-        match evt {
-            ServerEvent::Message(msg) => {
-                if let Err(e) =
-                    handle_server_message(msg, &state, &active_clients, &status_tx).await
-                {
-                    warn!("server message routing failed: {e}");
-                }
-            }
-            ServerEvent::Reset(reason) => {
-                reset_state(&state, &reason, &active_clients, &status_tx).await;
-            }
-        }
-    }
-}
 
 /// Handle a single message from the server.
 pub async fn handle_server_message(
@@ -133,25 +105,57 @@ pub async fn handle_server_message(
     Ok(())
 }
 
+pub struct ServerManagerConfig {
+    pub cmd: String,
+    pub args: Vec<String>,
+    pub env: HashMap<String, String>,
+    pub lazy_start: bool,
+    pub restart_backoff: Duration,
+    pub restart_backoff_max: Duration,
+    pub max_restarts: u64,
+}
+
+pub struct ServerManagerChannels {
+    pub to_server_rx: mpsc::Receiver<Value>,
+    pub to_server_meter: mpsc::Sender<Value>,
+    pub server_events_tx: mpsc::UnboundedSender<ServerEvent>,
+    pub heartbeat_restart_rx: mpsc::UnboundedReceiver<String>,
+}
+
+pub struct ServerManagerState {
+    pub state: Arc<Mutex<MuxState>>,
+    pub active_clients: Arc<Semaphore>,
+    pub status_tx: watch::Sender<StatusSnapshot>,
+    pub shutdown: CancellationToken,
+}
+
 /// Manage the MCP server child process with restart logic.
-#[allow(clippy::too_many_arguments)]
 pub async fn server_manager(
-    cmd: String,
-    args: Vec<String>,
-    env: HashMap<String, String>,
-    mut to_server_rx: mpsc::Receiver<Value>,
-    to_server_meter: mpsc::Sender<Value>,
-    server_events_tx: mpsc::UnboundedSender<ServerEvent>,
-    state: Arc<Mutex<MuxState>>,
-    active_clients: Arc<Semaphore>,
-    status_tx: watch::Sender<StatusSnapshot>,
-    shutdown: CancellationToken,
-    lazy_start: bool,
-    restart_backoff: Duration,
-    restart_backoff_max: Duration,
-    max_restarts: u64,
-    mut heartbeat_restart_rx: mpsc::UnboundedReceiver<String>,
+    config: ServerManagerConfig,
+    channels: ServerManagerChannels,
+    runtime: ServerManagerState,
 ) -> Result<()> {
+    let ServerManagerConfig {
+        cmd,
+        args,
+        env,
+        lazy_start,
+        restart_backoff,
+        restart_backoff_max,
+        max_restarts,
+    } = config;
+    let ServerManagerChannels {
+        mut to_server_rx,
+        to_server_meter,
+        server_events_tx,
+        mut heartbeat_restart_rx,
+    } = channels;
+    let ServerManagerState {
+        state,
+        active_clients,
+        status_tx,
+        shutdown,
+    } = runtime;
     let mut backoff = restart_backoff;
     let mut restarts = 0u64;
 

@@ -5,11 +5,11 @@ use clap::Parser;
 use tokio::io::{self, AsyncRead, AsyncWrite, AsyncWriteExt};
 use tokio::net::UnixStream;
 
-/// Lightweight STDIO↔Unix-socket proxy for rmcp_mux.
+/// Lightweight STDIO↔Unix-socket proxy for rust-mux.
 #[derive(Parser, Debug)]
-#[command(author, version, about = "Proxy STDIO to an rmcp_mux socket")]
+#[command(author, version, about = "Proxy STDIO to a rust-mux socket")]
 struct ProxyCli {
-    /// Path to the Unix socket exposed by rmcp_mux (e.g. ~/mcp-sockets/memory.sock).
+    /// Path to the Unix socket exposed by rust-mux (e.g. ~/mcp-sockets/memory.sock).
     #[arg(long)]
     socket: PathBuf,
 }

@@ -1,9 +1,9 @@
-# rmcp-mux – AI-facing Overview
+# rust-mux – AI-facing Overview
 
 > **Version:** 0.3.0
 > **Last updated:** 2025-12-04
 
-This document provides a concise technical overview for AI agents working with the rmcp-mux codebase.
+This document provides a concise technical overview for AI agents working with the rust-mux codebase.
 
 ## Purpose
 
@@ -25,7 +25,7 @@ Core features:
 ### Library Usage (Recommended)
 
 ```rust
-use rmcp_mux::{MuxConfig, run_mux_server};
+use rust_mux::{MuxConfig, run_mux_server};
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
@@ -43,14 +43,14 @@ async fn main() -> anyhow::Result<()> {
 cargo build --release
 
 # Run mux daemon
-./target/release/rmcp-mux \
-  --socket ~/.rmcp-servers/rmcp-mux/sockets/memory.sock \
+./target/release/rust-mux \
+  --socket ~/.rmcp-servers/rust-mux/sockets/memory.sock \
   --cmd npx -- @modelcontextprotocol/server-memory \
   --max-active-clients 5 \
-  --status-file ~/.rmcp-servers/rmcp-mux/status.json
+  --status-file ~/.rmcp-servers/rust-mux/status.json
 
 # Host side: use bundled proxy
-rmcp-mux-proxy --socket ~/.rmcp-servers/rmcp-mux/sockets/memory.sock
+rust-mux-proxy --socket ~/.rmcp-servers/rust-mux/sockets/memory.sock
 ```
 
 ## Project Structure (v0.3.0)
@@ -63,8 +63,8 @@ src/
 ├── scan.rs              # Host discovery, rewiring (feature: cli)
 ├── tray.rs              # Tray icon (feature: tray)
 ├── bin/
-│   ├── rmcp_mux.rs      # CLI binary (feature: cli)
-│   └── rmcp_mux_proxy.rs    # STDIO↔socket proxy (feature: cli)
+│   ├── rust-mux.rs      # CLI binary (feature: cli)
+│   └── rust-mux-proxy.rs    # STDIO↔socket proxy (feature: cli)
 ├── runtime/             # Mux daemon core
 │   ├── mod.rs           # run_mux, run_mux_internal, health_check
 │   ├── types.rs         # ServerEvent, MAX_QUEUE, MAX_PENDING
@@ -161,7 +161,7 @@ Default path: `~/.codex/mcp.json` (override `--config`, pick `--service` key und
 ## Three-Step Wizard
 
 ```bash
-rmcp-mux wizard --config ~/.codex/mcp-mux.toml
+rust-mux wizard --config ~/.codex/mcp-mux.toml
 ```
 
 1. **Server Detection** – scans `ps` for MCP processes, loads config, toggles with `Space`
@@ -235,9 +235,19 @@ cargo tarpaulin --all-targets --no-default-features --out Lcov
    - Build with `--no-default-features` for library-only.
 
 3. **Naming convention:**
-   - Package name: `rmcp-mux` (crates.io, Cargo.toml)
-   - Library name: `rmcp_mux` (Rust identifier, `use rmcp_mux::*`)
-   - Binary names: `rmcp-mux`, `rmcp-mux-proxy`
+   - Package name: `rust-mux` (crates.io, Cargo.toml)
+   - Library name: `rust_mux` (Rust identifier, `use rust_mux::*`)
+   - Binary names: `rust-mux`, `rust-mux-proxy`
+- Share a single MCP server process (e.g., `npx @modelcontextprotocol/server-memory`) across many MCP hosts via a Unix socket.
+- Rewrite JSON-RPC IDs per client, cache `initialize`, enforce request limits/timeouts, restart child with backoff, and expose status for UI/automation.
+## Quick start
+# Run mux daemon
+./target/release/rust-mux \
+  --socket ~/.rmcp-servers/rust-mux/sockets/memory.sock \
+  --status-file ~/.rmcp-servers/rust-mux/status.json
+
+# Host side: use bundled proxy
+rust-mux-proxy --socket ~/.rmcp-servers/rust-mux/sockets/memory.sock
 
 4. **Single child model:** One MCP server per socket. Multiple services = multiple MuxConfig instances.
 
@@ -245,26 +255,24 @@ cargo tarpaulin --all-targets --no-default-features --out Lcov
 
 6. **Error handling:** Use `anyhow::Result` and `.with_context()` for all fallible operations.
 
-7. **Tests:** Colocated in each module as `#[cfg(test)] mod tests`. Use `tempfile::tempdir()` for filesystem tests.
+## Status snapshots
+- Written atomically to `status_file` on every state change.
+- Contains: service_name, server_status, restarts, connected/active clients, pending count, queue_depth, child_pid, max_request_bytes, restart backoff settings, last_reset, initialize cache flag.
 
-8. **Workspace:** `.ai-agents/` is AI scratch space. Keep helper files there, document in `AI_GUIDELINES.md`.
+## Tooling / commands
+- `scan`: discover host configs (Codex/Cursor/Claude/JetBrains), build mux manifest/snippets.
+- `rewire`: apply proxy command into host configs (creates `.bak`; `--dry-run` to preview).
+- `status`: check host configs point to `rust-mux-proxy`.
+- `wizard` (ratatui): guided editor for mux config and host rewiring (writes backups; `--dry-run` supported).
 
-9. **Code style:**
-   - Imports: std → external crates → crate-local
-   - English comments only
-   - Run `cargo fmt` before committing
+## Testing / CI
+- Local: `cargo fmt`, `cargo clippy --all-targets --no-default-features -- -D warnings`, `cargo test --no-default-features`.
+- Coverage: `cargo tarpaulin --all-targets --no-default-features --out Lcov`.
+- CI workflow: `.github/workflows/ci.yml` (fmt/clippy/test/tarpaulin, tray feature off).
 
-## CI Workflow
+## Notes for agents
+- Comments/docs in English only.
+- Tray feature is feature-gated; CI builds with `--no-default-features` to avoid GUI deps.
+- `.ai-agents/**` is scratch space (do not commit). `AGENTS.md` is deprecated/cringe; ignore.
+- Prefer `rust-mux-proxy` over `socat` for host STDIO integration.
 
-`.github/workflows/ci.yml`:
-- `cargo fmt --check`
-- `cargo clippy --all-targets --no-default-features -- -D warnings`
-- `cargo test --no-default-features`
-- `cargo tarpaulin` (coverage)
-
-## See Also
-
-- [README.md](README.md) – User documentation
-- [CHANGELOG.md](CHANGELOG.md) – Version history
-- [docs/integration.md](docs/integration.md) – Library integration guide
-- [.ai-agents/AI_GUIDELINES.md](.ai-agents/AI_GUIDELINES.md) – Detailed development guidelines

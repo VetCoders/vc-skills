@@ -15,7 +15,9 @@ use tokio_util::sync::CancellationToken;
 use tracing::{error, info, warn};
 
 use crate::config::ResolvedParams;
-use crate::state::{MuxState, StatusSnapshot, error_response, publish_status, snapshot_for_state};
+use crate::state::{
+    MuxState, MuxStateConfig, StatusSnapshot, error_response, publish_status, snapshot_for_state,
+};
 #[cfg(feature = "tray")]
 use crate::tray::{find_tray_icon, spawn_tray};
 
@@ -27,7 +29,8 @@ mod status;
 mod types;
 
 pub use heartbeat::{
-    HeartbeatConfig, HeartbeatEvent, is_heartbeat_response, spawn_heartbeat_inspector,
+    HeartbeatConfig, HeartbeatEvent, HeartbeatInspectorContext, is_heartbeat_response,
+    spawn_heartbeat_inspector,
 };
 pub use proxy::run_proxy;
 pub(crate) use status::spawn_status_writer;
@@ -39,7 +42,7 @@ pub use types::MAX_PENDING;
 pub use types::MAX_QUEUE;
 
 use client::handle_client;
-use server::server_manager;
+use server::{ServerManagerChannels, ServerManagerConfig, ServerManagerState, server_manager};
 use types::ServerEvent;
 
 /// Handle events from the server with heartbeat response detection.
@@ -133,28 +136,23 @@ async fn reap_timeouts(
     }
 }
 
-/// Start the mux daemon with resolved parameters.
+/// Start the mux daemon with external shutdown control.
 ///
-/// Creates its own shutdown token that responds to Ctrl+C.
-/// For embedded use with external shutdown control, use [`run_mux_internal`].
-pub async fn run_mux(params: ResolvedParams) -> Result<()> {
-    let shutdown = CancellationToken::new();
-    let shutdown_signal = shutdown.clone();
-    tokio::spawn(async move {
-        let _ = tokio::signal::ctrl_c().await;
-        shutdown_signal.cancel();
-    });
+/// This is the library-facing entry point used by the binary and embedding API.
+/// Callers own the [`CancellationToken`] so multiple mux instances can be
+/// supervised from a shared runtime.
+pub async fn run_mux(params: ResolvedParams, shutdown: CancellationToken) -> Result<()> {
     run_mux_internal(params, shutdown).await
 }
 
 /// Start the mux daemon with external shutdown control.
 ///
-/// This variant accepts an external [`CancellationToken`] for programmatic
-/// shutdown, useful when embedding rmcp_mux in larger applications.
+/// Backward-compatible alias for callers that explicitly name the internal
+/// variant. New code should call [`run_mux`].
 ///
 /// # Example
 /// ```rust,no_run
-/// use rmcp_mux::config::ResolvedParams;
+/// use rust_mux::config::ResolvedParams;
 /// use tokio_util::sync::CancellationToken;
 ///
 /// async fn run_embedded(params: ResolvedParams) {
@@ -167,7 +165,7 @@ pub async fn run_mux(params: ResolvedParams) -> Result<()> {
 ///         shutdown_clone.cancel();
 ///     });
 ///
-///     rmcp_mux::runtime::run_mux_internal(params, shutdown).await.unwrap();
+///     rust_mux::runtime::run_mux_internal(params, shutdown).await.unwrap();
 /// }
 /// ```
 pub async fn run_mux_internal(params: ResolvedParams, shutdown: CancellationToken) -> Result<()> {
@@ -216,17 +214,17 @@ pub async fn run_mux_internal_with_status(
         .with_context(|| format!("failed to bind socket {}", socket_path.display()))?;
     info!("rmcp_mux listening on {}", socket_path.display());
 
-    let state = Arc::new(Mutex::new(MuxState::new(
-        max_clients,
-        service_name.as_ref().clone(),
+    let state = Arc::new(Mutex::new(MuxState::new(MuxStateConfig {
+        max_active_clients: max_clients,
+        service_name: service_name.as_ref().clone(),
         max_request_bytes,
         request_timeout,
         restart_backoff,
         restart_backoff_max,
         max_restarts,
-        0,
-        None,
-    )));
+        queue_depth: 0,
+        child_pid: None,
+    })));
 
     // Initialize heartbeat metrics with enabled state
     {
@@ -309,21 +307,27 @@ pub async fn run_mux_internal_with_status(
     let to_server_tx_for_server = to_server_tx.clone();
     tokio::spawn(async move {
         if let Err(e) = server_manager(
-            cmd.clone(),
-            args.clone(),
-            env.clone(),
-            to_server_rx,
-            to_server_tx_for_server,
-            server_events_tx,
-            server_state,
-            server_active,
-            status_for_server,
-            server_shutdown,
-            lazy_start,
-            restart_backoff,
-            restart_backoff_max,
-            max_restarts,
-            heartbeat_restart_rx,
+            ServerManagerConfig {
+                cmd: cmd.clone(),
+                args: args.clone(),
+                env: env.clone().unwrap_or_default(),
+                lazy_start,
+                restart_backoff,
+                restart_backoff_max,
+                max_restarts,
+            },
+            ServerManagerChannels {
+                to_server_rx,
+                to_server_meter: to_server_tx_for_server,
+                server_events_tx,
+                heartbeat_restart_rx,
+            },
+            ServerManagerState {
+                state: server_state,
+                active_clients: server_active,
+                status_tx: status_for_server,
+                shutdown: server_shutdown,
+            },
         )
         .await
         {
@@ -339,13 +343,15 @@ pub async fn run_mux_internal_with_status(
     let heartbeat_to_server = to_server_tx.clone();
     let _heartbeat_handle = spawn_heartbeat_inspector(
         heartbeat_config,
-        heartbeat_to_server,
-        heartbeat_event_rx,
-        heartbeat_state,
-        heartbeat_active,
-        heartbeat_status,
-        heartbeat_restart_tx,
-        heartbeat_shutdown,
+        HeartbeatInspectorContext {
+            to_server_tx: heartbeat_to_server,
+            heartbeat_rx: heartbeat_event_rx,
+            state: heartbeat_state,
+            active_clients: heartbeat_active,
+            status_tx: heartbeat_status,
+            restart_tx: heartbeat_restart_tx,
+            shutdown: heartbeat_shutdown,
+        },
     );
 
     // Timeout reaper
