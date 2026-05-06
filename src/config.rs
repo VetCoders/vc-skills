@@ -117,7 +117,8 @@ pub fn safe_read_to_string(path: &Path) -> Result<String> {
     let safe_path = vetted_existing_file(path)?;
     let mut data = String::new();
     // `safe_path` is canonicalized, must be a regular file, and rejects `..`.
-    let mut input = File::open(&safe_path) // nosemgrep: rust.actix.path-traversal.tainted-path.tainted-path
+    // nosemgrep: rust.actix.path-traversal.tainted-path.tainted-path
+    let mut input = File::open(&safe_path)
         .with_context(|| format!("failed to open {}", safe_path.display()))?;
     input
         .read_to_string(&mut data)
@@ -132,7 +133,8 @@ pub fn safe_copy_file(src: &Path, dst: &Path) -> Result<()> {
     let mut input = File::open(&safe_src) // nosemgrep: rust.actix.path-traversal.tainted-path.tainted-path
         .with_context(|| format!("failed to open {}", safe_src.display()))?;
     // `safe_dst` is anchored under a canonicalized directory and rejects `..`.
-    let mut output = File::create(&safe_dst) // nosemgrep: rust.actix.path-traversal.tainted-path.tainted-path
+    // nosemgrep: rust.actix.path-traversal.tainted-path.tainted-path
+    let mut output = File::create(&safe_dst)
         .with_context(|| format!("failed to create {}", safe_dst.display()))?;
     io::copy(&mut input, &mut output).with_context(|| {
         format!(
@@ -170,42 +172,6 @@ pub fn load_config(path: &Path) -> Result<Option<Config>> {
 
 pub fn safe_copy(src: &Path, dst: &Path) -> Result<()> {
     safe_copy_file(src, dst)
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use tempfile::tempdir;
-
-    #[test]
-    fn safe_read_rejects_parent_traversal() {
-        let dir = tempdir().expect("tempdir");
-        let file = dir.path().join("config.json");
-        fs::write(&file, "{}").expect("write");
-        let traversing = dir.path().join("nested/../config.json");
-
-        let err = safe_read_to_string(&traversing).expect_err("must reject parent traversal");
-
-        assert!(
-            err.to_string().contains("parent traversal"),
-            "unexpected error: {err}"
-        );
-    }
-
-    #[test]
-    fn safe_copy_rejects_parent_traversal_destination() {
-        let dir = tempdir().expect("tempdir");
-        let src = dir.path().join("config.json");
-        fs::write(&src, "{}").expect("write");
-        let dst = dir.path().join("backup/../config.bak");
-
-        let err = safe_copy_file(&src, &dst).expect_err("must reject parent traversal");
-
-        assert!(
-            err.to_string().contains("parent traversal"),
-            "unexpected error: {err}"
-        );
-    }
 }
 
 pub trait CliOptions {
@@ -508,4 +474,40 @@ pub fn resolve_params(cli: &dyn CliOptions, config: Option<&Config>) -> Result<R
         heartbeat_max_failures,
         heartbeat_enabled,
     })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use tempfile::tempdir;
+
+    #[test]
+    fn safe_read_rejects_parent_traversal() {
+        let dir = tempdir().expect("tempdir");
+        let file = dir.path().join("config.json");
+        fs::write(&file, "{}").expect("write");
+        let traversing = dir.path().join("nested/../config.json");
+
+        let err = safe_read_to_string(&traversing).expect_err("must reject parent traversal");
+
+        assert!(
+            err.to_string().contains("parent traversal"),
+            "unexpected error: {err}"
+        );
+    }
+
+    #[test]
+    fn safe_copy_rejects_parent_traversal_destination() {
+        let dir = tempdir().expect("tempdir");
+        let src = dir.path().join("config.json");
+        fs::write(&src, "{}").expect("write");
+        let dst = dir.path().join("backup/../config.bak");
+
+        let err = safe_copy_file(&src, &dst).expect_err("must reject parent traversal");
+
+        assert!(
+            err.to_string().contains("parent traversal"),
+            "unexpected error: {err}"
+        );
+    }
 }

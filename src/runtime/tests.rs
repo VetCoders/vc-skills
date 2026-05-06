@@ -143,7 +143,7 @@ fn tmp_path(name: &str) -> PathBuf {
         .duration_since(UNIX_EPOCH)
         .expect("time went backwards")
         .as_nanos();
-    env::temp_dir().join(format!("{}-{}", name, nanos))
+    PathBuf::from("target/test-tmp").join(format!("{}-{}", name, nanos))
 }
 
 fn params_with_socket(socket: PathBuf) -> ResolvedParams {
@@ -307,12 +307,9 @@ async fn reset_state_broadcasts_errors() {
 
 #[test]
 fn expand_path_expands_home() {
-    let home = tmp_path("home-test");
-    fs::create_dir_all(&home).expect("create home temp dir");
-    // SAFETY: Test runs single-threaded, no concurrent access to env
-    unsafe { env::set_var("HOME", &home) };
+    let home = std::env::var_os("HOME").expect("HOME should be set for path expansion tests");
     let expanded = expand_path("~/socket.sock");
-    assert!(expanded.starts_with(&home));
+    assert_eq!(expanded, PathBuf::from(home).join("socket.sock"));
 }
 
 #[test]

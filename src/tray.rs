@@ -234,11 +234,9 @@ fn default_icon() -> Icon {
 
 pub fn find_tray_icon() -> Option<LoadedIcon> {
     let candidates = [
+        PathBuf::from("public/icon.png"),
         PathBuf::from("../public/icon.png"),
-        std::env::current_exe()
-            .ok()
-            .and_then(|p| p.parent().map(|d| d.join("../public/icon.png")))
-            .unwrap_or_else(|| PathBuf::from("../public/icon.png")),
+        PathBuf::from(concat!(env!("CARGO_MANIFEST_DIR"), "/public/icon.png")),
     ];
 
     for path in candidates {
@@ -272,7 +270,7 @@ mod tests {
             .duration_since(UNIX_EPOCH)
             .expect("time went backwards")
             .as_nanos();
-        std::env::temp_dir().join(format!("{}-{}", name, nanos))
+        PathBuf::from("target/test-tmp").join(format!("{}-{}", name, nanos))
     }
 
     #[test]

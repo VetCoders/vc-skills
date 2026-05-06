@@ -35,7 +35,9 @@ use anyhow::{Context, Result, anyhow};
 use serde::Serialize;
 
 use crate::config::{safe_copy_file, safe_read_to_string};
-use crate::scan::{ConfigSchema, HostFile, HostFormat, HostKind, HostService, scan_host_file};
+use crate::scan::{
+    ConfigSchema, HostFile, HostFormat, HostKind, HostService, ScanResult, scan_host_file,
+};
 
 #[derive(Debug, Clone, Serialize, PartialEq, Eq)]
 pub enum DangerStatus {
@@ -126,71 +128,11 @@ pub fn plan_danger_rewrite(
         };
 
         if scan.services.is_empty() {
-            actions.push(DangerAction {
-                source: source.clone(),
-                status: DangerStatus::SkippedEmpty,
-                new_contents: None,
-                change_lines: Vec::new(),
-                skip_reason: Some("no MCP servers found in this config; nothing to rewrite".into()),
-                existing_services: Vec::new(),
-            });
+            push_empty_action(&mut actions, source.clone());
             continue;
         }
 
-        let original = match safe_read_to_string(&source.path) {
-            Ok(s) => s,
-            Err(err) => {
-                actions.push(DangerAction {
-                    source: source.clone(),
-                    status: DangerStatus::SkippedInvalid,
-                    new_contents: None,
-                    change_lines: Vec::new(),
-                    skip_reason: Some(format!("read error: {err}")),
-                    existing_services: Vec::new(),
-                });
-                continue;
-            }
-        };
-
-        let rewrite = match source.format {
-            HostFormat::Json => rewrite_json_keep_other_keys(
-                &original,
-                &source.path,
-                source.schema,
-                &scan.services,
-                proxy_cmd,
-                proxy_args,
-                socket_dir,
-            ),
-            HostFormat::Toml => rewrite_toml_keep_other_tables(
-                &original,
-                &source.path,
-                source.kind,
-                &scan.services,
-                proxy_cmd,
-                proxy_args,
-                socket_dir,
-            ),
-        };
-
-        match rewrite {
-            Ok((new_contents, change_lines)) => actions.push(DangerAction {
-                source: source.clone(),
-                status: DangerStatus::Planned,
-                new_contents: Some(new_contents),
-                change_lines,
-                skip_reason: None,
-                existing_services: scan.services,
-            }),
-            Err(err) => actions.push(DangerAction {
-                source: source.clone(),
-                status: DangerStatus::SkippedInvalid,
-                new_contents: None,
-                change_lines: Vec::new(),
-                skip_reason: Some(format!("rewrite failed: {err}")),
-                existing_services: scan.services,
-            }),
-        }
+        push_rewrite_action(&mut actions, scan, proxy_cmd, proxy_args, socket_dir);
     }
 
     DangerPlan {
@@ -198,6 +140,134 @@ pub fn plan_danger_rewrite(
         proxy_cmd: proxy_cmd.to_string(),
         proxy_args: proxy_args.to_vec(),
         socket_dir: socket_dir.to_path_buf(),
+    }
+}
+
+/// Plan danger rewrites from already-scanned sources.
+///
+/// The wizard uses this after STEP 2 so operator deselections are preserved:
+/// callers can filter `scan.services` before planning, while unknown or
+/// unselected entries in the original file remain untouched by the rewriter.
+pub fn plan_danger_rewrite_for_scans(
+    scans: &[ScanResult],
+    proxy_cmd: &str,
+    proxy_args: &[String],
+    socket_dir: &Path,
+) -> DangerPlan {
+    let mut actions = Vec::with_capacity(scans.len());
+    for scan in scans {
+        let source = &scan.host;
+        if !source.eligible_for_danger {
+            actions.push(DangerAction {
+                source: source.clone(),
+                status: DangerStatus::SkippedIneligible,
+                new_contents: None,
+                change_lines: Vec::new(),
+                skip_reason: Some(format!(
+                    "{} has no verified strict-config flag; use the safe path instructions instead",
+                    source.kind.display_name()
+                )),
+                existing_services: scan.services.clone(),
+            });
+            continue;
+        }
+
+        if scan.services.is_empty() {
+            push_empty_action(&mut actions, source.clone());
+            continue;
+        }
+
+        push_rewrite_action(
+            &mut actions,
+            scan.clone(),
+            proxy_cmd,
+            proxy_args,
+            socket_dir,
+        );
+    }
+
+    DangerPlan {
+        actions,
+        proxy_cmd: proxy_cmd.to_string(),
+        proxy_args: proxy_args.to_vec(),
+        socket_dir: socket_dir.to_path_buf(),
+    }
+}
+
+fn push_empty_action(actions: &mut Vec<DangerAction>, source: HostFile) {
+    actions.push(DangerAction {
+        source,
+        status: DangerStatus::SkippedEmpty,
+        new_contents: None,
+        change_lines: Vec::new(),
+        skip_reason: Some(
+            "no selected MCP servers found in this config; nothing to rewrite".into(),
+        ),
+        existing_services: Vec::new(),
+    });
+}
+
+fn push_rewrite_action(
+    actions: &mut Vec<DangerAction>,
+    scan: ScanResult,
+    proxy_cmd: &str,
+    proxy_args: &[String],
+    socket_dir: &Path,
+) {
+    let source = &scan.host;
+    let original = match safe_read_to_string(&source.path) {
+        Ok(s) => s,
+        Err(err) => {
+            actions.push(DangerAction {
+                source: source.clone(),
+                status: DangerStatus::SkippedInvalid,
+                new_contents: None,
+                change_lines: Vec::new(),
+                skip_reason: Some(format!("read error: {err}")),
+                existing_services: Vec::new(),
+            });
+            return;
+        }
+    };
+
+    let rewrite = match source.format {
+        HostFormat::Json => rewrite_json_keep_other_keys(
+            &original,
+            &source.path,
+            source.schema,
+            &scan.services,
+            proxy_cmd,
+            proxy_args,
+            socket_dir,
+        ),
+        HostFormat::Toml => rewrite_toml_keep_other_tables(
+            &original,
+            &source.path,
+            source.kind,
+            &scan.services,
+            proxy_cmd,
+            proxy_args,
+            socket_dir,
+        ),
+    };
+
+    match rewrite {
+        Ok((new_contents, change_lines)) => actions.push(DangerAction {
+            source: source.clone(),
+            status: DangerStatus::Planned,
+            new_contents: Some(new_contents),
+            change_lines,
+            skip_reason: None,
+            existing_services: scan.services,
+        }),
+        Err(err) => actions.push(DangerAction {
+            source: source.clone(),
+            status: DangerStatus::SkippedInvalid,
+            new_contents: None,
+            change_lines: Vec::new(),
+            skip_reason: Some(format!("rewrite failed: {err}")),
+            existing_services: scan.services,
+        }),
     }
 }
 

@@ -47,20 +47,20 @@ where
 #[cfg(test)]
 mod tests {
     use super::run_proxy;
-    use std::env;
     use std::path::PathBuf;
+    use tempfile::{TempDir, tempdir};
     use tokio::io::{AsyncReadExt, AsyncWriteExt, duplex};
     use tokio::net::UnixListener;
 
-    fn socket_path(name: &str) -> PathBuf {
-        let mut p = env::temp_dir();
-        p.push(format!("{name}-{}.sock", uuid::Uuid::new_v4()));
-        p
+    fn socket_path(name: &str) -> (TempDir, PathBuf) {
+        let dir = tempdir().expect("tempdir");
+        let path = dir.path().join(format!("{name}.sock"));
+        (dir, path)
     }
 
     #[tokio::test]
     async fn proxy_forwards_bytes() {
-        let path = socket_path("proxy-test");
+        let (_dir, path) = socket_path("proxy-test");
         let listener = UnixListener::bind(&path).expect("bind socket");
 
         // Echo server task

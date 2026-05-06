@@ -20,13 +20,13 @@ use anyhow::{Context, Result};
 
 use crate::config::expand_path;
 use crate::danger::{
-    DangerStatus, execute_plan, format_preview, plan_danger_rewrite, rollback_commands,
+    DangerStatus, execute_plan, format_preview, plan_danger_rewrite_for_scans, rollback_commands,
 };
 use crate::mux_gen::{
     build_mux_outputs, build_per_client_outputs, default_mux_dir, per_client_instructions,
     safe_path_instructions, write_mux_outputs, write_per_client_outputs,
 };
-use crate::scan::{HostFile, MergeOutcome, ScanResult, scan_host_file};
+use crate::scan::{HostService, MergeOutcome, ScanResult, scan_host_file};
 
 use super::types::{AppState, SourceStatus};
 
@@ -37,10 +37,15 @@ use super::types::{AppState, SourceStatus};
 /// Re-scan the operator's selected sources so the strategies see the same
 /// services they had on STEP 2.
 fn selected_scans(app: &AppState) -> Vec<ScanResult> {
+    let filter = SelectedServiceFilter::from_app(app);
     app.sources
         .iter()
         .filter(|s| s.selected && matches!(s.status, SourceStatus::Ok { .. }))
         .filter_map(|s| scan_host_file(&s.host_file).ok())
+        .map(|mut scan| {
+            scan.services.retain(|svc| filter.matches(svc));
+            scan
+        })
         .collect()
 }
 
@@ -68,17 +73,88 @@ fn build_merge_from_services(app: &AppState) -> MergeOutcome {
     }
 }
 
-/// Selected sources, restricted to those eligible for the danger flow.
-fn danger_eligible_sources(app: &AppState) -> Vec<HostFile> {
-    app.sources
-        .iter()
-        .filter(|s| {
-            s.selected
-                && matches!(s.status, SourceStatus::Ok { .. })
-                && s.host_file.eligible_for_danger
-        })
-        .map(|s| s.host_file.clone())
+/// Selected sources, filtered to the operator's STEP 2 server selection and
+/// restricted to sources eligible for the danger flow.
+fn selected_danger_scans(app: &AppState) -> Vec<ScanResult> {
+    selected_scans(app)
+        .into_iter()
+        .filter(|scan| scan.host.eligible_for_danger)
         .collect()
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+struct ServiceExactKey {
+    name: String,
+    shape: ServiceShapeKey,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+struct ServiceShapeKey {
+    command: String,
+    args: Vec<String>,
+    socket: Option<String>,
+    env: Vec<(String, String)>,
+}
+
+struct SelectedServiceFilter {
+    exact: std::collections::HashSet<ServiceExactKey>,
+    conflict_shapes: std::collections::HashSet<ServiceShapeKey>,
+}
+
+impl SelectedServiceFilter {
+    fn from_app(app: &AppState) -> Self {
+        let mut exact = std::collections::HashSet::new();
+        let mut conflict_shapes = std::collections::HashSet::new();
+
+        for svc in app.services.iter().filter(|svc| svc.selected) {
+            let shape = ServiceShapeKey {
+                command: svc.config.cmd.clone().unwrap_or_default(),
+                args: svc.config.args.clone().unwrap_or_default(),
+                socket: svc.config.socket.clone(),
+                env: sorted_env(svc.config.env.as_ref()),
+            };
+            exact.insert(ServiceExactKey {
+                name: svc.name.clone(),
+                shape: shape.clone(),
+            });
+
+            // merge_services renames divergent same-name variants with
+            // `<name>-from-<kind>`, while the source file still carries the
+            // original name. Shape fallback keeps those explicit selections
+            // routeable without making the UI store another parallel ID.
+            if svc.name.contains("-from-") {
+                conflict_shapes.insert(shape);
+            }
+        }
+
+        Self {
+            exact,
+            conflict_shapes,
+        }
+    }
+
+    fn matches(&self, svc: &HostService) -> bool {
+        let shape = ServiceShapeKey {
+            command: svc.command.clone(),
+            args: svc.args.clone(),
+            socket: svc.socket.clone(),
+            env: sorted_env(svc.env.as_ref()),
+        };
+        self.exact.contains(&ServiceExactKey {
+            name: svc.name.clone(),
+            shape: shape.clone(),
+        }) || self.conflict_shapes.contains(&shape)
+    }
+}
+
+fn sorted_env(env: Option<&std::collections::HashMap<String, String>>) -> Vec<(String, String)> {
+    let Some(env) = env else {
+        return Vec::new();
+    };
+    let mut entries: Vec<(String, String)> =
+        env.iter().map(|(k, v)| (k.clone(), v.clone())).collect();
+    entries.sort_by(|a, b| a.0.cmp(&b.0));
+    entries
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -152,8 +228,8 @@ pub fn run_unified_generate(app: &AppState) -> Result<String> {
 /// Write per-client mux config files plus a shared daemon `config.toml`.
 pub fn run_per_client_generate(app: &AppState) -> Result<String> {
     let scans = selected_scans(app);
-    if scans.is_empty() {
-        return Ok("No selected sources parsed cleanly — nothing generated.".into());
+    if scans.iter().all(|scan| scan.services.is_empty()) {
+        return Ok("No selected services parsed cleanly — nothing generated.".into());
     }
     let mux_dir = default_mux_dir();
     let outputs = build_per_client_outputs(&scans, &mux_dir, "rust-mux-proxy", &[])?;
@@ -230,15 +306,15 @@ pub fn run_danger_auto_configure(app: &AppState) -> Result<String> {
     if merge.services.is_empty() {
         return Ok("No services selected — danger flow has nothing to do.".into());
     }
-    let sources = danger_eligible_sources(app);
-    if sources.is_empty() {
+    let scans = selected_danger_scans(app);
+    if scans.is_empty() {
         return Ok(
             "No selected sources are eligible for danger rewrite (or none parsed cleanly).".into(),
         );
     }
 
-    let plan = plan_danger_rewrite(
-        &sources,
+    let plan = plan_danger_rewrite_for_scans(
+        &scans,
         "rust-mux-proxy",
         &[],
         &expand_path("~/.config/mux/sockets"),
@@ -365,10 +441,12 @@ pub fn start_tray_daemon(app: &AppState) -> Result<String> {
 mod tests {
     use super::*;
     use crate::config::ServerConfig;
+    use crate::scan::{Confidence, ConfigSchema, HostFile, HostFormat, HostKind};
     use crate::wizard::types::{
-        AppState, CustomPathInput, ServiceEntry, ServiceSource, Strategy, SummaryAction,
-        TrayChoice, WizardStep,
+        AppState, CustomPathInput, ServiceEntry, ServiceSource, SourceEntry, Strategy,
+        SummaryAction, TrayChoice, WizardStep,
     };
+    use std::fs;
     use tempfile::tempdir;
 
     fn make_app(tmp: &std::path::Path) -> AppState {
@@ -423,6 +501,85 @@ mod tests {
         }
     }
 
+    fn claude_source(path: std::path::PathBuf) -> HostFile {
+        HostFile {
+            kind: HostKind::Claude,
+            path,
+            format: HostFormat::Json,
+            schema: ConfigSchema::McpServersJson,
+            confidence: Confidence::High,
+            writable: true,
+            eligible_for_danger: true,
+        }
+    }
+
+    fn service_entry(name: &str, package: &str, selected: bool) -> ServiceEntry {
+        ServiceEntry {
+            name: name.into(),
+            config: ServerConfig {
+                socket: None,
+                cmd: Some("npx".into()),
+                args: Some(vec![package.into()]),
+                env: None,
+                max_active_clients: Some(5),
+                tray: Some(false),
+                service_name: Some(name.into()),
+                log_level: Some("info".into()),
+                lazy_start: Some(false),
+                max_request_bytes: Some(1_048_576),
+                request_timeout_ms: Some(30_000),
+                restart_backoff_ms: Some(1_000),
+                restart_backoff_max_ms: Some(30_000),
+                max_restarts: Some(5),
+                status_file: None,
+                heartbeat_interval_ms: Some(30_000),
+                heartbeat_timeout_ms: Some(30_000),
+                heartbeat_max_failures: Some(3),
+                heartbeat_enabled: Some(true),
+            },
+            health: super::super::types::HealthStatus::Unknown,
+            source: ServiceSource::Client {
+                kind: HostKind::Claude,
+                path: std::path::PathBuf::from("/tmp/claude.json"),
+            },
+            pid: None,
+            selected,
+        }
+    }
+
+    fn app_with_two_source_services(tmp: &std::path::Path) -> (AppState, std::path::PathBuf) {
+        let path = tmp.join("claude.json");
+        fs::write(
+            &path,
+            r#"{
+              "mcpServers": {
+                "memory": {
+                  "command": "npx",
+                  "args": ["@modelcontextprotocol/server-memory"]
+                },
+                "brave": {
+                  "command": "npx",
+                  "args": ["@modelcontextprotocol/server-brave-search"]
+                }
+              }
+            }"#,
+        )
+        .expect("write source");
+
+        let host = claude_source(path.clone());
+        let mut app = make_app(tmp);
+        app.sources = vec![SourceEntry {
+            host_file: host,
+            status: SourceStatus::Ok { servers_found: 2 },
+            selected: true,
+        }];
+        app.services = vec![
+            service_entry("memory", "@modelcontextprotocol/server-memory", true),
+            service_entry("brave", "@modelcontextprotocol/server-brave-search", false),
+        ];
+        (app, path)
+    }
+
     #[test]
     fn unified_dry_run_does_not_write_files() {
         let dir = tempdir().expect("tempdir");
@@ -452,6 +609,56 @@ mod tests {
         assert!(
             summary.contains("No selected sources") || summary.contains("nothing generated"),
             "summary: {summary}"
+        );
+    }
+
+    #[test]
+    fn per_client_scans_honor_step2_deselection() {
+        let dir = tempdir().expect("tempdir");
+        let (app, _) = app_with_two_source_services(dir.path());
+
+        let scans = selected_scans(&app);
+
+        assert_eq!(scans.len(), 1);
+        assert_eq!(scans[0].services.len(), 1);
+        assert_eq!(scans[0].services[0].name, "memory");
+    }
+
+    #[test]
+    fn danger_plan_rewrites_only_step2_selected_services() {
+        let dir = tempdir().expect("tempdir");
+        let (app, _) = app_with_two_source_services(dir.path());
+
+        let scans = selected_danger_scans(&app);
+        let plan = plan_danger_rewrite_for_scans(&scans, "rust-mux-proxy", &[], dir.path());
+
+        assert_eq!(plan.actions.len(), 1);
+        let action = &plan.actions[0];
+        assert!(matches!(action.status, DangerStatus::Planned));
+        assert_eq!(action.existing_services.len(), 1);
+        assert_eq!(action.existing_services[0].name, "memory");
+
+        let rewritten: serde_json::Value =
+            serde_json::from_str(action.new_contents.as_ref().expect("contents"))
+                .expect("rewritten json");
+        let servers = rewritten
+            .get("mcpServers")
+            .and_then(|v| v.as_object())
+            .expect("mcpServers");
+        assert_eq!(
+            servers
+                .get("memory")
+                .and_then(|v| v.get("command"))
+                .and_then(|v| v.as_str()),
+            Some("rust-mux-proxy")
+        );
+        assert_eq!(
+            servers
+                .get("brave")
+                .and_then(|v| v.get("command"))
+                .and_then(|v| v.as_str()),
+            Some("npx"),
+            "deselected servers must stay in the source file untouched"
         );
     }
 
