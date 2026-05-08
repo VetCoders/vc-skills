@@ -149,7 +149,7 @@ fn discover_prism_files(home: &Path) -> Vec<PathBuf> {
 }
 
 fn collect_prisms(path: &Path, depth: usize, files: &mut Vec<PathBuf>) {
-    if depth > 6 || !path.is_dir() {
+    if depth > 6 || !is_plain_dir(path) {
         return;
     }
     let Ok(entries) = fs::read_dir(path) else {
@@ -163,10 +163,16 @@ fn collect_prisms(path: &Path, depth: usize, files: &mut Vec<PathBuf>) {
             }
             continue;
         }
-        if entry_path.is_dir() {
+        if is_plain_dir(&entry_path) {
             collect_prisms(&entry_path, depth + 1, files);
         }
     }
+}
+
+fn is_plain_dir(path: &Path) -> bool {
+    fs::symlink_metadata(path)
+        .map(|meta| meta.is_dir() && !meta.file_type().is_symlink())
+        .unwrap_or(false)
 }
 
 fn safe_prism_file(path: &Path) -> anyhow::Result<PathBuf> {

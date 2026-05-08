@@ -9,6 +9,9 @@ use vibecrafted_operator::skills_catalog::{
     CATALOG, SkillAgent, SkillPayload, build_skill_launch_command,
 };
 
+#[cfg(unix)]
+use std::os::unix::fs::symlink;
+
 #[test]
 fn catalog_covers_existing_vibecrafted_skill_directories() {
     let skill_root = Path::new("/Users/polyversai/Libraxis/vc-runtime/vibecrafted/skills");
@@ -170,4 +173,35 @@ fn polarize_intent_discovery_skips_malformed_prisms_without_hiding_valid_intents
     assert_eq!(intents.len(), 1);
     assert_eq!(intents[0].run_id, "polr-valid");
     assert_eq!(intents[0].band, PolarizeBand::Pass);
+}
+
+#[cfg(unix)]
+#[test]
+fn polarize_intent_discovery_does_not_follow_symlinked_directories() {
+    let home = tempdir().unwrap();
+    let escaped = tempdir().unwrap();
+    let valid_prism = home
+        .path()
+        .join("artifacts/VetCoders/vc-operator/2026_0508/polarize/polr-valid/prism.json");
+    let escaped_prism = escaped
+        .path()
+        .join("VetCoders/vc-operator/2026_0508/polarize/polr-escaped/prism.json");
+    fs::create_dir_all(valid_prism.parent().unwrap()).unwrap();
+    fs::create_dir_all(escaped_prism.parent().unwrap()).unwrap();
+    fs::write(
+        &valid_prism,
+        r#"{"schema_version":"loctree.prism.v1","total_score":9,"run_id":"polr-valid"}"#,
+    )
+    .unwrap();
+    fs::write(
+        &escaped_prism,
+        r#"{"schema_version":"loctree.prism.v1","total_score":14,"run_id":"polr-escaped"}"#,
+    )
+    .unwrap();
+    symlink(escaped.path(), home.path().join("artifacts/escaped-link")).unwrap();
+
+    let intents = current_intents_from_home(home.path(), Path::new("/tmp/repo"));
+
+    assert_eq!(intents.len(), 1);
+    assert_eq!(intents[0].run_id, "polr-valid");
 }
