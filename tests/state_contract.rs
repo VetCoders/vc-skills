@@ -11,6 +11,7 @@ use vibecrafted_operator::config::AppConfig;
 use vibecrafted_operator::launch::{
     LaunchKind, LaunchRequest, LaunchRuntime, build_launch_command,
 };
+use vibecrafted_operator::skills_catalog::CATALOG;
 use vibecrafted_operator::state::{
     ControlPlaneState, RenderedRun, RunKind, RunSnapshot, classify_run,
 };
@@ -598,7 +599,7 @@ fn mux_health_deep_actions_surface_per_known_service() {
         artifact_title: String::new(),
         artifact_lines: Vec::new(),
         mux_summaries: Vec::new(),
-            polarize_intents: Vec::new(),
+        polarize_intents: Vec::new(),
     };
 
     // No mux summaries → only per-run actions. Existing surface preserved.
@@ -729,7 +730,7 @@ fn mux_status_lines_render_healthy_and_attention_headers() {
         artifact_title: String::new(),
         artifact_lines: Vec::new(),
         mux_summaries: Vec::new(),
-            polarize_intents: Vec::new(),
+        polarize_intents: Vec::new(),
     };
 
     // No mux services → empty render, never a misleading "0 healthy" header.
@@ -902,12 +903,13 @@ fn deep_controls_expose_attach_resume_and_artifacts() {
         artifact_title: String::new(),
         artifact_lines: Vec::new(),
         mux_summaries: Vec::new(),
-            polarize_intents: Vec::new(),
+        polarize_intents: Vec::new(),
     };
 
+    let actions = app.deep_actions();
     assert_eq!(
-        app.deep_actions(),
-        vec![
+        &actions[..5],
+        &[
             DeepAction::AttachSession("repo-run-42".to_string()),
             DeepAction::ResumeSession {
                 agent: "codex".to_string(),
@@ -918,6 +920,7 @@ fn deep_controls_expose_attach_resume_and_artifacts() {
             DeepAction::OpenRoot("/tmp/repo".into()),
         ]
     );
+    assert_eq!(actions.len(), 5 + CATALOG.len());
 }
 
 #[test]
@@ -978,7 +981,7 @@ fn native_artifact_viewer_reads_files_and_clipboard_payload_prefers_resume_comma
         artifact_title: String::new(),
         artifact_lines: Vec::new(),
         mux_summaries: Vec::new(),
-            polarize_intents: Vec::new(),
+        polarize_intents: Vec::new(),
     };
 
     assert_eq!(
@@ -1021,7 +1024,7 @@ fn empty_state_detail_lines_offer_human_quick_start() {
         artifact_title: String::new(),
         artifact_lines: Vec::new(),
         mux_summaries: Vec::new(),
-            polarize_intents: Vec::new(),
+        polarize_intents: Vec::new(),
     };
 
     let lines = app.detail_lines();
@@ -1061,7 +1064,7 @@ fn prompt_lines_include_human_kind_copy_and_command_preview() {
         artifact_title: String::new(),
         artifact_lines: Vec::new(),
         mux_summaries: Vec::new(),
-            polarize_intents: Vec::new(),
+        polarize_intents: Vec::new(),
     };
 
     let lines = app.prompt_lines();
@@ -1103,7 +1106,7 @@ fn tab_navigation_wraps_and_dispatch_focus_tracks_selected_field() {
         artifact_title: String::new(),
         artifact_lines: Vec::new(),
         mux_summaries: Vec::new(),
-            polarize_intents: Vec::new(),
+        polarize_intents: Vec::new(),
     };
 
     app.previous_tab();
@@ -1174,17 +1177,17 @@ fn tab_labels_surface_monitor_dispatch_and_controls_context() {
         artifact_title: String::new(),
         artifact_lines: Vec::new(),
         mux_summaries: Vec::new(),
-            polarize_intents: Vec::new(),
+        polarize_intents: Vec::new(),
     };
 
     let labels = app.tab_labels();
     assert_eq!(labels[0], "Monitor live 1");
     assert_eq!(labels[1], "Dispatch marbles/gemini");
-    assert_eq!(labels[2], "Controls 5");
+    assert_eq!(labels[2], format!("Controls {}", 5 + CATALOG.len()));
 
     app.selected = 1;
     let labels = app.tab_labels();
-    assert_eq!(labels[2], "Controls -");
+    assert_eq!(labels[2], format!("Controls {}", CATALOG.len()));
 }
 
 #[test]
@@ -1274,7 +1277,7 @@ fn changing_launch_kind_reorients_the_operator_into_dispatch() {
         artifact_title: String::new(),
         artifact_lines: Vec::new(),
         mux_summaries: Vec::new(),
-            polarize_intents: Vec::new(),
+        polarize_intents: Vec::new(),
     };
 
     app.set_launch_kind(LaunchKind::Review);

@@ -86,7 +86,12 @@ pub fn current_intents_from_home(home: &Path, _launch_root: &Path) -> Vec<Polari
         .into_iter()
         .filter_map(|path| read_intent(&path).ok().map(|intent| (mtime(&path), intent)))
         .collect::<Vec<_>>();
-    rows.sort_by(|left, right| right.0.cmp(&left.0).then_with(|| right.1.run_id.cmp(&left.1.run_id)));
+    rows.sort_by(|left, right| {
+        right
+            .0
+            .cmp(&left.0)
+            .then_with(|| right.1.run_id.cmp(&left.1.run_id))
+    });
     rows.into_iter().map(|(_, intent)| intent).collect()
 }
 
@@ -95,11 +100,7 @@ pub fn read_intent(path: &Path) -> anyhow::Result<PolarizeIntent> {
         .with_context(|| format!("failed to read prism payload {}", path.display()))?;
     let payload: PrismPayload = serde_json::from_str(&text)
         .with_context(|| format!("failed to parse prism payload {}", path.display()))?;
-    let score = payload
-        .total_score
-        .or(payload.score)
-        .unwrap_or(0)
-        .min(15) as u8;
+    let score = payload.total_score.or(payload.score).unwrap_or(0).min(15) as u8;
     let band = payload
         .band
         .as_deref()
@@ -126,7 +127,11 @@ pub fn read_intent(path: &Path) -> anyhow::Result<PolarizeIntent> {
 pub fn prism_preview_lines(path: &Path) -> anyhow::Result<Vec<String>> {
     let text = fs::read_to_string(path)
         .with_context(|| format!("failed to read prism payload {}", path.display()))?;
-    let mut lines = text.lines().take(400).map(ToOwned::to_owned).collect::<Vec<_>>();
+    let mut lines = text
+        .lines()
+        .take(400)
+        .map(ToOwned::to_owned)
+        .collect::<Vec<_>>();
     if text.lines().count() > 400 {
         lines.push("[truncated after 400 lines]".to_string());
     }
@@ -151,7 +156,7 @@ fn collect_prisms(path: &Path, depth: usize, files: &mut Vec<PathBuf>) {
     for entry in entries.flatten() {
         let entry_path = entry.path();
         if entry_path.file_name().and_then(|value| value.to_str()) == Some("prism.json") {
-            if is_safe_file(&entry_path) {
+            if is_polarize_prism(&entry_path) && is_safe_file(&entry_path) {
                 files.push(entry_path);
             }
             continue;
@@ -167,6 +172,14 @@ fn is_safe_file(path: &Path) -> bool {
         return false;
     };
     !meta.file_type().is_symlink() && path.is_file()
+}
+
+fn is_polarize_prism(path: &Path) -> bool {
+    path.parent()
+        .and_then(Path::parent)
+        .and_then(Path::file_name)
+        .and_then(|value| value.to_str())
+        == Some("polarize")
 }
 
 fn mtime(path: &Path) -> SystemTime {

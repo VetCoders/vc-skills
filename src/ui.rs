@@ -962,6 +962,27 @@ mod tests {
     }
 
     #[test]
+    fn monitor_tab_renders_polarize_intent_panel() {
+        use crate::polarize::{PolarizeBand, PolarizeIntent};
+        use std::path::PathBuf;
+
+        let mut app = sample_app();
+        app.polarize_intents = vec![PolarizeIntent {
+            band: PolarizeBand::Doctrine,
+            score: 14,
+            run_id: "polr-123".to_string(),
+            prism_path: PathBuf::from("/tmp/polarize/polr-123/prism.json"),
+        }];
+
+        let rendered = render_to_string(&app);
+
+        assert!(rendered.contains("polarize"));
+        assert!(rendered.contains("doctrine"));
+        assert!(rendered.contains("score 14"));
+        assert!(rendered.contains("polr-123"));
+    }
+
+    #[test]
     fn monitor_tab_skips_mux_panel_when_summaries_empty() {
         let app = sample_app();
         let rendered = render_to_string(&app);
