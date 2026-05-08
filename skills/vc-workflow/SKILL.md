@@ -216,7 +216,7 @@ Do not stop at implementation. Proceed through the convergence boundary:
    - **DO NOT STOP.** Do not present a diff summary with broken tests or known gaps.
    - Invoke `vc-marbles` to loop until gates are green (P0=0) and the codebase stops lying.
 3. **Product Truth (`vc-polarize`)** — Once the code is stable (gates pass), check for "conceptual smear" (e.g., conflicting docs, ambiguous public interfaces, or architectural "split brains" where two valid paths compete).
-   - If the concept is smeared (high prism score), invoke `vc-polarize` to choose one axis, reject alternatives, and align the product surface (docs, artifacts, release briefs).
+   - If the concept is smeared, run `vc-polarize --task <concept>` and let the prism band-action contract decide: `0..4 abort`, `5..8 memo`, `9..12 full pass`, `13..15 doctrine pass with regression contract`.
 4. **Handoff** — Present the final diff summary and/or `THESIS.md` ready for `dou` and Release.
 
 ## Quick Reference
