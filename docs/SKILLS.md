@@ -42,6 +42,9 @@ workflow.
   face. `vc-justdo`, `vibecrafted justdo`, and per-agent `*-justdo` helpers are
   compatibility aliases only; they stay listed here so installed operator
   environments do not silently break.
+- Every `vc-*` workflow skill inherits the Living Tree rule: stay in the
+  operator's current checkout and branch; do not create or move into git
+  worktrees unless the operator explicitly asks for a worktree in that prompt.
 - `vc-review` needs a bounded review target: a PR number, branch diff, commit
   range, or generated review artifact pack.
 - `vc-followup` is intentionally broader: it audits the post-implementation

@@ -109,6 +109,12 @@ needs it:
   hardens distinct seams.
 - Never change branches during active work. The intent is to stay on the
   current working branch and keep building inside that living tree.
+- Never create, switch to, or move execution into a git worktree unless the
+  operator explicitly asks for a worktree. Generic "isolate this" or "work in
+  parallel" language is not enough.
+- If the current checkout is too poisoned to continue safely, report the
+  substrate failure to the operator/runtime layer instead of escaping into a
+  side tree.
 - Plans may explicitly instruct the agent to finish and harden one seam, spawn
   another `vc-agents` worker for the next plan, commit locally for
   preservation, and continue.

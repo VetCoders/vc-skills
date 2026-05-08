@@ -87,6 +87,9 @@ flowchart TD
 - `vibecrafted implement` is the canonical autonomous delivery command. The
   `justdo` command and `vc-justdo` helper remain aliases for installed
   agents and old prompts, not the official front face.
+- All workflows run in the operator's current checkout and current branch.
+  Git worktrees are forbidden unless the operator explicitly asks for a
+  worktree; "parallel", "isolate", or "clean branch" wording is not enough.
 - `vc-review` reviews a bounded target such as PR 14, `HEAD~10..HEAD`, a branch
   diff, or a generated artifact pack. Use `vc-followup` when the question is
   broader: where the implementation is heading, what still feels unfinished,

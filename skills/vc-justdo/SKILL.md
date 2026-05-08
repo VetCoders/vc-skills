@@ -25,6 +25,12 @@ compatibility:
 
 # vc-justdo — Alias of `vc-implement`
 
+## Living Tree / Worktree Rule
+
+This alias inherits the canonical `vc-implement` living-tree contract: run in the operator's current checkout and current branch. Do not create, switch to, or move execution into a git worktree unless the operator explicitly asks for a worktree in this prompt.
+
+See [Living Tree Rule](../LIVING_TREE_RULE.md).
+
 > **Use `vc-implement` going forward.** This skill name is an alias kept
 > alive so agents (Codex, Claude, Gemini sessions, plugin marketplaces) that
 > already learned `vc-justdo` keep working without disruption.
