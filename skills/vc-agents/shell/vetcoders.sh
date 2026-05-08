@@ -865,6 +865,7 @@ _vetcoders_contract_reset() {
   _vetcoders_contract_root=""
   _vetcoders_contract_tail=""
   _vetcoders_contract_no_aicx=""
+  _vetcoders_contract_no_context_corpus=""
 }
 
 _vetcoders_append_tail() {
@@ -900,6 +901,9 @@ _vetcoders_parse_contract() {
         ;;
       --no-aicx)
         _vetcoders_contract_no_aicx=1
+        ;;
+      --no-context-corpus)
+        _vetcoders_contract_no_context_corpus=1
         ;;
       --session)
         shift
@@ -1119,18 +1123,208 @@ _vetcoders_write_polarize_prism_payload() {
   printf '%s\n' "$payload_file"
 }
 
+_vetcoders_polarize_score() {
+  local prism_json="$1"
+  python3 - "$prism_json" <<'PY'
+import json
+import pathlib
+import sys
+
+data = json.loads(pathlib.Path(sys.argv[1]).read_text(encoding="utf-8"))
+print(int(data.get("total_score", 0)))
+PY
+}
+
+_vetcoders_polarize_band_select() {
+  local prism_json="$1"
+  python3 - "$prism_json" <<'PY'
+import json
+import pathlib
+import sys
+
+data = json.loads(pathlib.Path(sys.argv[1]).read_text(encoding="utf-8"))
+score = int(data.get("total_score", 0))
+if score < 5:
+    print("abort")
+elif score < 9:
+    print("memo")
+elif score < 13:
+    print("pass")
+else:
+    print("doctrine")
+PY
+}
+
+_vetcoders_polarize_band_range() {
+  case "${1:-}" in
+    abort) printf '0..4\n' ;;
+    memo) printf '5..8\n' ;;
+    pass) printf '9..12\n' ;;
+    doctrine) printf '13..15\n' ;;
+    *) printf 'unknown\n' ;;
+  esac
+}
+
+_vetcoders_capture_session_uuid() {
+  local agent_log="$1"
+  [[ -r "$agent_log" ]] || return 0
+  grep -oE 'session: [0-9a-f-]{36}' "$agent_log" | tail -n1 | awk '{print $2}'
+}
+
+_vetcoders_write_polarize_memo() {
+  local prism_json="$1"
+  local run_id="$2"
+  local root="$3"
+  local task="${4:-}"
+  local band="${5:-memo}"
+  local score memo_file
+
+  score="$(_vetcoders_polarize_score "$prism_json")" || return 1
+  memo_file="$(_vetcoders_store_dir "$root")/polarize/$run_id/memo.md"
+  mkdir -p "$(dirname "$memo_file")"
+  {
+    printf '# vc-polarize memo\n\n'
+    printf 'Run: %s\n' "$run_id"
+    printf 'Band: %s (score %s/15)\n' "$band" "$score"
+    [[ -z "$task" ]] || printf 'Task: %s\n' "$task"
+    printf 'Prism payload: %s\n\n' "$prism_json"
+    printf 'Runner action: memo only. No full polarize agent pass was dispatched.\n'
+  } > "$memo_file"
+  printf '%s\n' "$memo_file"
+}
+
+_vetcoders_polarize_emit_context_pack() {
+  local agent="$1"
+  local session_uuid="$2"
+  local prism_json="$3"
+  local run_id="$4"
+  local target_repo="$5"
+  local band="$6"
+  local task="${7:-}"
+  local org_repo org repo date pack_dir slug raw_path sidecar_path
+
+  org_repo="$(_vetcoders_org_repo "$target_repo" 2>/dev/null || true)"
+  if [[ "$org_repo" == */* ]]; then
+    org="${org_repo%%/*}"
+    repo="${org_repo##*/}"
+  else
+    org="local"
+    repo="$(basename "$target_repo")"
+  fi
+
+  date="$(date +%Y_%m%d)"
+  pack_dir="$HOME/.aicx/context-corpus/$org/$repo/$date/loct-context-pack/$run_id"
+  slug="${run_id}_${band}"
+  raw_path="$pack_dir/raw/${slug}.md"
+  sidecar_path="$pack_dir/sidecars/${slug}.json"
+  mkdir -p "$pack_dir/raw" "$pack_dir/sidecars"
+
+  if [[ "$band" == "memo" ]]; then
+    local memo_file
+    memo_file="$(_vetcoders_write_polarize_memo "$prism_json" "$run_id" "$target_repo" "$task" "$band")" || return 0
+    cp "$memo_file" "$raw_path" || return 0
+  else
+    [[ -n "$session_uuid" ]] || {
+      printf 'vc-polarize: no session UUID found; skipping context-pack emission.\n' >&2
+      return 0
+    }
+    command -v aicx >/dev/null 2>&1 || {
+      printf 'vc-polarize: aicx not found; skipping context-pack emission. Use --no-context-corpus to silence this optional step.\n' >&2
+      return 0
+    }
+    aicx extract --agent "$agent" --session "$session_uuid" --output "$raw_path" || {
+      printf 'vc-polarize: aicx extract failed for session %s; skipping context-pack emission.\n' "$session_uuid" >&2
+      return 0
+    }
+  fi
+
+  python3 - "$prism_json" "$sidecar_path" "$band" "$target_repo" "$slug" "$raw_path" "$task" <<'PY'
+import hashlib
+import json
+import pathlib
+import re
+import subprocess
+import sys
+
+prism_path, sidecar_path, band, target_repo, slug, raw_path, task = sys.argv[1:]
+prism = json.loads(pathlib.Path(prism_path).read_text(encoding="utf-8"))
+try:
+    head = subprocess.check_output(
+        ["git", "-C", target_repo, "rev-parse", "HEAD"],
+        text=True,
+        stderr=subprocess.DEVNULL,
+    ).strip()
+except Exception:
+    head = "unknown"
+
+terms = []
+for framing in prism.get("task_framings", []):
+    value = framing.get("task", "")
+    terms.extend(re.findall(r"[A-Za-z0-9][A-Za-z0-9_-]*", value.lower()))
+terms.extend(re.findall(r"[A-Za-z0-9][A-Za-z0-9_-]*", task.lower()))
+keywords = sorted(set(terms)) or ["polarize"]
+allowed = ["format_examples"] if band == "memo" else [
+    "format_examples",
+    "section_order",
+    "keyword_index",
+]
+raw_bytes = pathlib.Path(raw_path).read_bytes()
+sidecar = {
+    "schema_version": "context_corpus.v1",
+    "artifact_family": "loct-context-pack",
+    "truth_status": {
+        "role": "example",
+        "runtime_authoritative": False,
+        "stale_against_current_head": False,
+        "current_head_when_ingested": head,
+    },
+    "learning_use": {
+        "allowed": allowed,
+        "forbidden": ["current_code_truth", "implementation_claims", "gate_status"],
+    },
+    "keywords": keywords,
+    "band": band,
+    "total_score": prism.get("total_score"),
+    "slug": slug,
+    "content_sha256": hashlib.sha256(raw_bytes).hexdigest(),
+}
+sidecar_file = pathlib.Path(sidecar_path)
+sidecar_file.write_text(json.dumps(sidecar, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+index_entry = {
+    "id": slug,
+    "path": f"raw/{slug}.md",
+    "artifact_family": "loct-context-pack",
+    "schema_version": "context_corpus.v1",
+    "truth_status.role": "example",
+    "keywords": keywords,
+    "band": band,
+}
+idx_path = sidecar_file.parent.parent / "index.jsonl"
+with idx_path.open("a", encoding="utf-8") as handle:
+    handle.write(json.dumps(index_entry, sort_keys=True) + "\n")
+PY
+}
+
 _vetcoders_compose_polarize_prompt() {
   local prompt_text="${1:-}"
   local file_path="${2:-}"
   local task="${3:-}"
   local payload_file="${4:-}"
   local prism_command="${5:-}"
+  local band="${6:-}"
+  local score="${7:-}"
   local base payload_body
 
   base="$(_vetcoders_compose_skill_prompt "polarize" "$prompt_text" "$file_path")" || return 1
   if [[ -n "$task" ]]; then
     base+=$'\n\n'
     base+="Polarize task: $task"
+  fi
+  if [[ -n "$band" && -n "$score" ]]; then
+    base+=$'\n'
+    base+="Band: $band (score $score/15)"
+    base+=$'\n'
+    base+="Runner action: $band"
   fi
   if [[ -n "$payload_file" ]]; then
     payload_body="$(cat "$payload_file")"
@@ -1287,6 +1481,31 @@ _vetcoders_prompt() {
   _vetcoders_spawn_plan "$tool" "$mode" "$prompt_file" --runtime "$(_vetcoders_default_runtime)"
 }
 
+_vetcoders_dispatch_skill_prompt() {
+  local tool="$1"
+  local skill="$2"
+  local skill_code="$3"
+  local loop_nr="$4"
+  local run_id="$5"
+  local run_lock="$6"
+  local prompt="$7"
+  shift 7
+
+  (
+    # shellcheck disable=SC2030
+    export VIBECRAFTED_RUN_ID="$run_id"
+    # shellcheck disable=SC2030
+    export VIBECRAFTED_RUN_LOCK="$run_lock"
+    # shellcheck disable=SC2030
+    export VIBECRAFTED_SKILL_CODE="$skill_code"
+    # shellcheck disable=SC2030
+    export VIBECRAFTED_LOOP_NR="$loop_nr"
+    # shellcheck disable=SC2030
+    export VIBECRAFTED_SKILL_NAME="$skill"
+    _vetcoders_prompt_text "$tool" implement "$prompt" "$@"
+  )
+}
+
 _vetcoders_observe() {
   local tool="$1"
   shift
@@ -1395,6 +1614,7 @@ _vetcoders_skill() {
   local tool="$1"
   local skill="$2"
   shift 2
+  # shellcheck disable=SC2031
   local loop_nr="${VIBECRAFTED_LOOP_NR:-0}"
   local inherited_run_id
   local inherited_run_lock
@@ -1422,11 +1642,35 @@ _vetcoders_skill() {
   if [[ -z "$run_lock" || ! -f "$run_lock" ]]; then
     run_lock="$(_vetcoders_create_run_lock "$run_id" "$tool" "$skill" "$root")" || return 1
   fi
-  local prompt prism_payload prism_command
+  local prompt prism_payload prism_command prism_band prism_score memo_file
   if [[ "$skill" == "polarize" && -n "$_vetcoders_contract_task" ]]; then
     prism_payload="$(_vetcoders_write_polarize_prism_payload "$root" "$run_id" "$_vetcoders_contract_task" "$_vetcoders_contract_no_aicx")" || return 1
     prism_command="$(_vetcoders_polarize_prism_command_text "$root" "$_vetcoders_contract_task" "$_vetcoders_contract_no_aicx")"
-    prompt="$(_vetcoders_compose_polarize_prompt "$_vetcoders_contract_prompt" "$_vetcoders_contract_file" "$_vetcoders_contract_task" "$prism_payload" "$prism_command")" || return 1
+    prism_band="$(_vetcoders_polarize_band_select "$prism_payload")" || return 1
+    prism_score="$(_vetcoders_polarize_score "$prism_payload")" || return 1
+    case "$prism_band" in
+      abort)
+        printf 'vc-polarize aborted: prism score %s/15 is below threshold. Inspect %s\n' "$prism_score" "$prism_payload" >&2
+        return 12
+        ;;
+      memo)
+        memo_file="$(_vetcoders_write_polarize_memo "$prism_payload" "$run_id" "$root" "$_vetcoders_contract_task" "$prism_band")" || return 1
+        if [[ -z "$_vetcoders_contract_no_context_corpus" ]]; then
+          _vetcoders_polarize_emit_context_pack "$tool" "" "$prism_payload" "$run_id" "$root" "$prism_band" "$_vetcoders_contract_task"
+        else
+          printf 'vc-polarize: --no-context-corpus set; skipped context-corpus emission.\n' >&2
+        fi
+        printf 'vc-polarize: emitted local memo (band %s, score %s/15). No agent dispatched. Memo: %s\n' "$(_vetcoders_polarize_band_range "$prism_band")" "$prism_score" "$memo_file"
+        return 0
+        ;;
+      pass|doctrine)
+        prompt="$(_vetcoders_compose_polarize_prompt "$_vetcoders_contract_prompt" "$_vetcoders_contract_file" "$_vetcoders_contract_task" "$prism_payload" "$prism_command" "$prism_band" "$prism_score")" || return 1
+        ;;
+      *)
+        printf 'vc-polarize: unknown prism band %s from %s\n' "$prism_band" "$prism_payload" >&2
+        return 1
+        ;;
+    esac
   else
     if [[ -n "$_vetcoders_contract_task" ]]; then
       if [[ -n "$_vetcoders_contract_prompt" ]]; then
@@ -1438,18 +1682,25 @@ _vetcoders_skill() {
   fi
   local spawn_args=(--runtime "$(_vetcoders_effective_runtime)")
   [[ -n "$_vetcoders_contract_root" ]] && spawn_args+=(--root "$_vetcoders_contract_root")
-  (
-    # shellcheck disable=SC2030
-    export VIBECRAFTED_RUN_ID="$run_id"
-    # shellcheck disable=SC2030
-    export VIBECRAFTED_RUN_LOCK="$run_lock"
-    # shellcheck disable=SC2030
-    export VIBECRAFTED_SKILL_CODE="$skill_code"
-    export VIBECRAFTED_LOOP_NR="$loop_nr"
-    # shellcheck disable=SC2030
-    export VIBECRAFTED_SKILL_NAME="$skill"
-    _vetcoders_prompt_text "$tool" implement "$prompt" "${spawn_args[@]}"
-  )
+  if [[ "$skill" == "polarize" && "$prism_band" =~ ^(pass|doctrine)$ ]]; then
+    local dispatch_output dispatch_status agent_log session_uuid
+    agent_log="$(_vetcoders_store_dir "$root")/polarize/$run_id/${tool}.stdout.log"
+    mkdir -p "$(dirname "$agent_log")"
+    dispatch_output="$(_vetcoders_dispatch_skill_prompt "$tool" "$skill" "$skill_code" "$loop_nr" "$run_id" "$run_lock" "$prompt" "${spawn_args[@]}")"
+    dispatch_status=$?
+    printf '%s\n' "$dispatch_output"
+    printf '%s\n' "$dispatch_output" > "$agent_log"
+    [[ "$dispatch_status" -eq 0 ]] || return "$dispatch_status"
+    if [[ -z "$_vetcoders_contract_no_context_corpus" ]]; then
+      session_uuid="$(_vetcoders_capture_session_uuid "$agent_log")"
+      _vetcoders_polarize_emit_context_pack "$tool" "$session_uuid" "$prism_payload" "$run_id" "$root" "$prism_band" "$_vetcoders_contract_task"
+    else
+      printf 'vc-polarize: --no-context-corpus set; skipped context-corpus emission.\n' >&2
+    fi
+    return 0
+  fi
+
+  _vetcoders_dispatch_skill_prompt "$tool" "$skill" "$skill_code" "$loop_nr" "$run_id" "$run_lock" "$prompt" "${spawn_args[@]}"
 }
 
 _vetcoders_skill_entry() {
@@ -2035,7 +2286,7 @@ _vetcoders_skill_wrapper_usage() {
       printf '       vc-marbles <pause|stop|resume|session|inspect|delete|gc> [args]\n' >&2
       ;;
     polarize)
-      printf 'Usage: vc-polarize <claude|codex|gemini> --task <text> [--prompt <text>] [--file <path>] [--no-aicx]\n' >&2
+      printf 'Usage: vc-polarize <claude|codex|gemini> --task <text> [--prompt <text>] [--file <path>] [--no-aicx] [--no-context-corpus]\n' >&2
       printf '       vc-polarize <claude|codex|gemini> [--prompt <text>] [--file <path>]\n' >&2
       ;;
     *)
