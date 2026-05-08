@@ -334,16 +334,15 @@ impl App {
                 self.polarize_intents.len()
             ));
         } else {
-            lines.push(format!(
-                "Polarize intents ({} doctrine):",
-                doctrine
-            ));
+            lines.push(format!("Polarize intents ({} doctrine):", doctrine));
         }
-        lines.extend(
-            self.polarize_intents
-                .iter()
-                .map(|intent| format!("  {} {}", polarize_marker(intent.band), intent.summary_line())),
-        );
+        lines.extend(self.polarize_intents.iter().map(|intent| {
+            format!(
+                "  {} {}",
+                polarize_marker(intent.band),
+                intent.summary_line()
+            )
+        }));
         lines
     }
 

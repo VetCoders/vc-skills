@@ -34,7 +34,9 @@ fn catalog_covers_existing_vibecrafted_skill_directories() {
 
     assert_eq!(catalog, existing);
     assert!(
-        CATALOG.iter().any(|entry| entry.slug == "vc-polarize" && entry.emphasized()),
+        CATALOG
+            .iter()
+            .any(|entry| entry.slug == "vc-polarize" && entry.emphasized()),
         "vc-polarize must be an emphasized operator entrypoint"
     );
 }
