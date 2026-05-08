@@ -7,7 +7,7 @@ authors = ["VetCoders"]
 description = "Rust operator console for Vibecrafted"
 readme = "README.md"
 homepage = "https://vibecrafted.io"
-repository = "https://github.com/VetCoders/vibecrafted"
+repository = "https://github.com/VetCoders/vc-operator"
 documentation = "https://docs.rs/vibecrafted-operator"
 
 [dependencies]
