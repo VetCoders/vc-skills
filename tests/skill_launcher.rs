@@ -127,7 +127,7 @@ fn polarize_intent_ingests_prism_payload_and_renders_band_action() {
     fs::create_dir_all(prism.parent().unwrap()).unwrap();
     fs::write(
         &prism,
-        r#"{"schema_version":"loctree.prism.v1","total_score":13}"#,
+        r#"{"schema_version":"loctree.prism.v1.1","total_score":13,"band_action":"doctrine"}"#,
     )
     .unwrap();
 
@@ -138,11 +138,30 @@ fn polarize_intent_ingests_prism_payload_and_renders_band_action() {
     assert!(
         intent
             .summary_line()
-            .contains("canonical doctrine plus regression contract")
+            .contains("doctrine pass with regression contract")
     );
 
     let intents = current_intents_from_home(home.path(), Path::new("/tmp/repo"));
     assert_eq!(intents, vec![intent]);
+}
+
+#[test]
+fn polarize_intent_prefers_canonical_band_action_over_score_fallback() {
+    let home = tempdir().unwrap();
+    let prism = home
+        .path()
+        .join("artifacts/VetCoders/vc-operator/2026_0508/polarize/polr-action/prism.json");
+    fs::create_dir_all(prism.parent().unwrap()).unwrap();
+    fs::write(
+        &prism,
+        r#"{"schema_version":"loctree.prism.v1.1","total_score":13,"band_action":"pass"}"#,
+    )
+    .unwrap();
+
+    let intent = read_intent(&prism).unwrap();
+
+    assert_eq!(intent.band, PolarizeBand::Pass);
+    assert_eq!(intent.score, 13);
 }
 
 #[test]
@@ -158,7 +177,7 @@ fn polarize_intent_discovery_skips_malformed_prisms_without_hiding_valid_intents
     fs::create_dir_all(malformed_prism.parent().unwrap()).unwrap();
     fs::write(
         &valid_prism,
-        r#"{"schema_version":"loctree.prism.v1","total_score":9,"run_id":"polr-valid"}"#,
+        r#"{"schema_version":"loctree.prism.v1.1","total_score":9,"band_action":"pass","run_id":"polr-valid"}"#,
     )
     .unwrap();
     fs::write(
@@ -190,12 +209,12 @@ fn polarize_intent_discovery_does_not_follow_symlinked_directories() {
     fs::create_dir_all(escaped_prism.parent().unwrap()).unwrap();
     fs::write(
         &valid_prism,
-        r#"{"schema_version":"loctree.prism.v1","total_score":9,"run_id":"polr-valid"}"#,
+        r#"{"schema_version":"loctree.prism.v1.1","total_score":9,"band_action":"pass","run_id":"polr-valid"}"#,
     )
     .unwrap();
     fs::write(
         &escaped_prism,
-        r#"{"schema_version":"loctree.prism.v1","total_score":14,"run_id":"polr-escaped"}"#,
+        r#"{"schema_version":"loctree.prism.v1.1","total_score":14,"band_action":"doctrine","run_id":"polr-escaped"}"#,
     )
     .unwrap();
     symlink(escaped.path(), home.path().join("artifacts/escaped-link")).unwrap();

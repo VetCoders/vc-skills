@@ -54,6 +54,16 @@ Use `v` to cycle `terminal` / `visible` / `headless` launch modes and `d` on a
 selected run to enter deep controls for attach / resume / report / transcript
 actions.
 
+### Polarize
+
+`vc-polarize` is highlighted in the Dispatch skill catalog because it is the
+post-marbles gate for choosing one sharp product truth. When recent prism
+payloads exist, the Controls tab also surfaces Polarize intents from
+`$VIBECRAFTED_HOME/artifacts/**/polarize/*/prism.json`, using Loctree's
+`band_action` (`abort`, `memo`, `pass`, `doctrine`) as the canonical launch
+decision. See the Vibecrafted `skills/vc-polarize/SKILL.md` doctrine for the
+runner contract.
+
 ## MCP daemon visibility (rust-mux)
 
 The console surfaces live status from the

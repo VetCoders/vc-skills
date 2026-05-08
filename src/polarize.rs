@@ -34,10 +34,10 @@ impl PolarizeBand {
 
     pub fn recommended_action(self) -> &'static str {
         match self {
-            PolarizeBand::Abort => "no corpus entry",
-            PolarizeBand::Memo => "local note or Loctree tag",
-            PolarizeBand::Pass => "context-corpus entry",
-            PolarizeBand::Doctrine => "canonical doctrine plus regression contract",
+            PolarizeBand::Abort => "abort before agent dispatch",
+            PolarizeBand::Memo => "memo only",
+            PolarizeBand::Pass => "full polarize pass",
+            PolarizeBand::Doctrine => "doctrine pass with regression contract",
         }
     }
 }
@@ -73,6 +73,8 @@ struct PrismPayload {
     run_id: Option<String>,
     #[serde(default)]
     band: Option<String>,
+    #[serde(default)]
+    band_action: Option<String>,
 }
 
 pub fn current_intents(launch_root: &Path) -> Vec<PolarizeIntent> {
@@ -103,9 +105,10 @@ pub fn read_intent(path: &Path) -> anyhow::Result<PolarizeIntent> {
         .with_context(|| format!("failed to parse prism payload {}", path.display()))?;
     let score = payload.total_score.or(payload.score).unwrap_or(0).min(15) as u8;
     let band = payload
-        .band
+        .band_action
         .as_deref()
         .and_then(parse_band)
+        .or_else(|| payload.band.as_deref().and_then(parse_band))
         .unwrap_or_else(|| PolarizeBand::from_score(score));
     let run_id = payload
         .run_id
