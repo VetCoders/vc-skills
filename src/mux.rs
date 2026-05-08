@@ -107,7 +107,8 @@ impl MuxStatusSnapshot {
     /// IO errors and JSON-shape errors carry the path in the chain so the
     /// operator overlay can pinpoint which mux service is misbehaving.
     pub fn read(path: &Path) -> Result<Self> {
-        let raw = fs::read_to_string(path)
+        let path = safe_status_file(path)?;
+        let raw = fs::read_to_string(&path)
             .with_context(|| format!("failed to read rust-mux status file {}", path.display()))?;
         Self::from_json(&raw).with_context(|| format!("rust-mux status file {}", path.display()))
     }
@@ -132,6 +133,23 @@ impl MuxStatusSnapshot {
         }
         parts.join(" ")
     }
+}
+
+fn safe_status_file(path: &Path) -> Result<PathBuf> {
+    if path.extension().and_then(|ext| ext.to_str()) != Some("json") {
+        anyhow::bail!("refusing non-json rust-mux status file {}", path.display());
+    }
+    let meta = fs::symlink_metadata(path)
+        .with_context(|| format!("failed to inspect rust-mux status file {}", path.display()))?;
+    if meta.file_type().is_symlink() || !meta.is_file() {
+        anyhow::bail!("refusing unsafe rust-mux status file {}", path.display());
+    }
+    fs::canonicalize(path).with_context(|| {
+        format!(
+            "failed to canonicalize rust-mux status file {}",
+            path.display()
+        )
+    })
 }
 
 /// Canonical default location where rust-mux services drop their status
@@ -437,6 +455,39 @@ mod tests {
         assert!(
             chain.contains(missing.to_string_lossy().as_ref()),
             "error chain should embed the path: {chain}"
+        );
+    }
+
+    #[test]
+    fn read_refuses_non_json_status_file() {
+        let dir = tempfile::tempdir().unwrap();
+        let status = dir.path().join("status.txt");
+        fs::write(&status, RUNNING_FIXTURE).unwrap();
+
+        let err = MuxStatusSnapshot::read(&status).expect_err("non-json status must be refused");
+        let chain = format!("{err:#}");
+        assert!(
+            chain.contains("refusing non-json rust-mux status file"),
+            "error chain should explain the refused path shape: {chain}"
+        );
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn read_refuses_symlinked_status_file() {
+        use std::os::unix::fs::symlink;
+
+        let dir = tempfile::tempdir().unwrap();
+        let real = dir.path().join("real.json");
+        let linked = dir.path().join("status.json");
+        fs::write(&real, RUNNING_FIXTURE).unwrap();
+        symlink(&real, &linked).unwrap();
+
+        let err = MuxStatusSnapshot::read(&linked).expect_err("symlinked status must be refused");
+        let chain = format!("{err:#}");
+        assert!(
+            chain.contains("refusing unsafe rust-mux status file"),
+            "error chain should explain the refused symlink: {chain}"
         );
     }
 
