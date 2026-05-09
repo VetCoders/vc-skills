@@ -2,12 +2,10 @@ use std::path::{Path, PathBuf};
 use std::time::Duration;
 
 use anyhow::{Context, Result};
+pub use mux_agent::ipc::{ClientKind, IpcEvent, MuxControlCommand, MuxControlResponse};
 use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
 use tokio::net::UnixStream;
 use tracing::{debug, warn};
-
-pub use mux_agent::ipc::command::{ClientKind, MuxControlCommand, MuxControlResponse};
-pub use mux_agent::ipc::event::IpcEvent;
 
 use crate::state::update_tray_status;
 use crate::types::TrayStatus;
@@ -17,6 +15,50 @@ pub fn default_socket_path() -> PathBuf {
         .map(PathBuf::from)
         .unwrap_or_else(|| PathBuf::from("."))
         .join(".rust-mux/ipc/control.sock")
+}
+
+pub fn client_label(kind: &ClientKind) -> String {
+    match kind {
+        ClientKind::Claude => "Claude".to_string(),
+        ClientKind::Codex => "Codex".to_string(),
+        ClientKind::Gemini => "Gemini".to_string(),
+        ClientKind::Junie => "Junie".to_string(),
+        ClientKind::Generic { name } => name.clone(),
+    }
+}
+
+pub enum TrayUpdate {
+    Status(TrayStatus),
+    Alert(String),
+    None,
+}
+
+pub fn from_mux_event(event: IpcEvent) -> TrayUpdate {
+    match event {
+        IpcEvent::StateChange { .. } => {
+            // We ignore general state changes as ServerHealth tells us about restarts.
+            TrayUpdate::None
+        }
+        IpcEvent::RouteUpdate { .. } => TrayUpdate::Status(TrayStatus::Routing),
+        IpcEvent::ServerHealth {
+            restarts,
+            last_error,
+            ..
+        } => TrayUpdate::Status(tray_status_from_health(restarts, last_error.as_ref())),
+        IpcEvent::ClientDrift { client, .. } => {
+            TrayUpdate::Alert(format!("Drift detected for {}", client))
+        }
+    }
+}
+
+pub fn tray_status_from_health(restarts: u64, last_error: Option<&String>) -> TrayStatus {
+    if restarts > 0 && last_error.is_some() {
+        TrayStatus::Failed
+    } else if restarts > 0 {
+        TrayStatus::Restarting
+    } else {
+        TrayStatus::Idle
+    }
 }
 
 pub async fn subscribe_loop(socket_path: PathBuf) {
@@ -52,45 +94,20 @@ async fn subscribe_once(socket_path: &Path) -> Result<()> {
     while let Some(line) = lines.next_line().await? {
         let response: MuxControlResponse = serde_json::from_str(&line)?;
         if let MuxControlResponse::Event(event) = response {
-            handle_event(event)?;
+            match from_mux_event(event) {
+                TrayUpdate::Status(status) => {
+                    let _ = update_tray_status(status);
+                }
+                TrayUpdate::Alert(msg) => {
+                    warn!("Tray Alert: {}", msg);
+                }
+                TrayUpdate::None => {} // No-op
+            }
         } else {
             debug!("mux subscribe response: {response:?}");
         }
     }
     anyhow::bail!("mux IPC stream closed")
-}
-
-fn handle_event(event: IpcEvent) -> Result<()> {
-    match event {
-        IpcEvent::StateChange { service: _, from: _, to } => {
-            let status = match to.as_str() {
-                "failed" => TrayStatus::Failed,
-                "restarting" => TrayStatus::Restarting,
-                "routing" => TrayStatus::Routing,
-                "saturated" => TrayStatus::Saturated,
-                _ => TrayStatus::Idle,
-            };
-            update_tray_status(status);
-            Ok(())
-        }
-        IpcEvent::ServerHealth { name: _, rss_mb: _, restarts, last_error } => {
-            let status = if restarts > 0 && last_error.is_some() {
-                TrayStatus::Failed
-            } else if restarts > 0 {
-                TrayStatus::Restarting
-            } else {
-                TrayStatus::Idle
-            };
-            update_tray_status(status);
-            Ok(())
-        }
-        IpcEvent::RouteUpdate { .. } => {
-            Ok(())
-        }
-        IpcEvent::ClientDrift { .. } => {
-            Ok(())
-        }
-    }
 }
 
 pub async fn send_command(
@@ -106,7 +123,7 @@ pub async fn send_command(
     serde_json::from_str(&line).context("decode mux response")
 }
 
-async fn write_request<W>(writer: &mut W, command: &MuxControlCommand) -> Result<()> 
+async fn write_request<W>(writer: &mut W, command: &MuxControlCommand) -> Result<()>
 where
     W: AsyncWriteExt + Unpin,
 {
@@ -132,23 +149,14 @@ pub async fn restart_service(socket_path: &Path, name: &str) -> Result<MuxContro
 }
 
 pub async fn verify_client(socket_path: &Path, client_kind: ClientKind) -> Result<String> {
-    let kind_str = match &client_kind {
-        ClientKind::Claude => "Claude",
-        ClientKind::Codex => "Codex",
-        ClientKind::Gemini => "Gemini",
-        ClientKind::Junie => "Junie",
-        ClientKind::Generic { name } => name.as_str(),
-    };
-
+    let kind_label = client_label(&client_kind);
     match send_command(socket_path, &MuxControlCommand::Verify { client_kind }).await? {
-        MuxControlResponse::VerifyResult(result) => {
-            let detail = if result.ok {
-                "ok".to_string()
-            } else {
-                format!("drift, {} non-mux endpoints", result.non_mux_servers.len())
-            };
-            Ok(format!("{kind_str}: {detail}"))
-        }
+        MuxControlResponse::VerifyResult(result) => Ok(format!(
+            "{}: {} ({} non-mux servers)",
+            kind_label,
+            if result.ok { "ok" } else { "drift" },
+            result.non_mux_servers.len()
+        )),
         MuxControlResponse::Error(message) => anyhow::bail!(message),
         other => Ok(format!("{other:?}")),
     }
@@ -156,15 +164,16 @@ pub async fn verify_client(socket_path: &Path, client_kind: ClientKind) -> Resul
 
 pub async fn route_snapshot(socket_path: PathBuf) -> Result<String> {
     match send_command(&socket_path, &MuxControlCommand::RouteSnapshot).await? {
-        MuxControlResponse::Routes(routes) => {
-            Ok(serde_json::to_string_pretty(&routes)?)
-        }
+        MuxControlResponse::Routes(routes) => Ok(serde_json::to_string_pretty(&routes)?),
         MuxControlResponse::Error(message) => anyhow::bail!(message),
         other => Ok(format!("{other:?}")),
     }
 }
 
-// Diagnostics is no longer part of MuxControlCommand. So we will fail if called.
-pub async fn diagnostics(_socket_path: PathBuf) -> Result<String> {
-    anyhow::bail!("Diagnostics command is not supported by the canonical schema");
+pub async fn diagnostics(socket_path: PathBuf) -> Result<String> {
+    match send_command(&socket_path, &MuxControlCommand::GetStatus).await? {
+        MuxControlResponse::Status(status) => Ok(serde_json::to_string_pretty(&status)?),
+        MuxControlResponse::Error(message) => anyhow::bail!(message),
+        other => Ok(format!("{other:?}")),
+    }
 }

@@ -54,7 +54,14 @@ pub fn build_menu() -> Result<(Menu, MenuIds)> {
     let mut verify_clients = Vec::new();
     let verify_menu = Submenu::new("Verify Clients", true);
     for kind in [ClientKind::Claude, ClientKind::Codex, ClientKind::Gemini] {
-        let item = MenuItem::new(crate::ipc_client::client_label(&kind), true, None);
+        let label = match &kind {
+            ClientKind::Claude => "Claude",
+            ClientKind::Codex => "Codex",
+            ClientKind::Gemini => "Gemini",
+            ClientKind::Junie => "Junie",
+            ClientKind::Generic { name } => name.as_str(),
+        };
+        let item = MenuItem::new(label, true, None);
         verify_clients.push((kind, item.id().clone()));
         verify_menu.append(&item)?;
     }

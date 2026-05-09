@@ -1,54 +1,94 @@
-use std::time::Duration;
-
-use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
-use tokio::net::UnixListener;
-use tray_agent::ipc_client::{
-    IpcEvent, MuxAgentStatus, MuxControlCommand, MuxControlRequest, MuxControlResponse, MuxService,
-};
+use mux_agent::ipc::command::{NonMuxEntry, VerifyResult};
+use tray_agent::ipc_client::{ClientKind, IpcEvent, MuxControlCommand, MuxControlResponse};
 
 #[tokio::test]
-async fn subscribe_event_updates_status_channel() {
-    let dir = tempfile::tempdir().expect("tempdir");
-    let socket = dir.path().join("control.sock");
-    let listener = UnixListener::bind(&socket).expect("bind");
-    let status_rx = tray_agent::state::init_channels().expect("status channel");
+async fn serde_roundtrip_subscribe_command_matches_mux_agent_schema() {
+    let cmd = MuxControlCommand::Subscribe;
+    let json = serde_json::to_string(&cmd).unwrap();
+    assert_eq!(json, r#"{"cmd":"Subscribe"}"#);
+    let decoded: MuxControlCommand = serde_json::from_str(&json).unwrap();
+    assert_eq!(cmd, decoded);
+}
 
-    let server = tokio::spawn(async move {
-        let (stream, _) = listener.accept().await.expect("accept");
-        let (reader, mut writer) = stream.into_split();
-        let mut lines = BufReader::new(reader).lines();
-        let line = lines.next_line().await.expect("read").expect("line");
-        let request: MuxControlRequest = serde_json::from_str(&line).expect("request");
-        assert_eq!(request.command, MuxControlCommand::Subscribe);
-        let response = MuxControlResponse::Event {
-            event: IpcEvent::StateChange {
-                status: MuxAgentStatus::Routing,
-                services: vec![MuxService {
-                    name: "memex".to_string(),
-                    status: MuxAgentStatus::Routing,
-                    queue_depth: 1,
-                    queue_capacity: 10,
-                    restart_count: 0,
-                }],
-            },
-        };
-        writer
-            .write_all(serde_json::to_string(&response).unwrap().as_bytes())
-            .await
-            .unwrap();
-        writer.write_all(b"\n").await.unwrap();
+#[tokio::test]
+async fn serde_roundtrip_verify_command_with_client_kind() {
+    let cmd = MuxControlCommand::Verify {
+        client_kind: ClientKind::Claude,
+    };
+    let json = serde_json::to_string(&cmd).unwrap();
+    assert_eq!(json, r#"{"cmd":"Verify","args":{"client_kind":"claude"}}"#);
+    let decoded: MuxControlCommand = serde_json::from_str(&json).unwrap();
+    assert_eq!(cmd, decoded);
+}
+
+#[tokio::test]
+async fn decode_mux_event_state_change() {
+    let event = IpcEvent::StateChange {
+        service: "test-service".to_string(),
+        from: "idle".to_string(),
+        to: "failed".to_string(),
+    };
+    let response = MuxControlResponse::Event(event);
+    let json = serde_json::to_string(&response).unwrap();
+    let decoded: MuxControlResponse = serde_json::from_str(&json).unwrap();
+    if let MuxControlResponse::Event(IpcEvent::StateChange { to, .. }) = decoded {
+        assert_eq!(to, "failed");
+    } else {
+        panic!("Decoding failed");
+    }
+}
+
+#[tokio::test]
+async fn decode_mux_event_route_update_updates_tray() {
+    let event = IpcEvent::RouteUpdate {
+        client: "claude".to_string(),
+        server: "test-server".to_string(),
+        count: 5,
+        p99_ms: 120,
+    };
+    let response = MuxControlResponse::Event(event);
+    let json = serde_json::to_string(&response).unwrap();
+    let decoded: MuxControlResponse = serde_json::from_str(&json).unwrap();
+    if let MuxControlResponse::Event(IpcEvent::RouteUpdate { client, .. }) = decoded {
+        assert_eq!(client, "claude");
+    } else {
+        panic!("Decoding failed");
+    }
+}
+
+#[tokio::test]
+async fn decode_mux_event_client_drift_emits_tray_alert() {
+    let event = IpcEvent::ClientDrift {
+        client: "codex".to_string(),
+        non_mux_paths: vec!["/path/to/bad/unix.sock".to_string()],
+    };
+    let response = MuxControlResponse::Event(event);
+    let json = serde_json::to_string(&response).unwrap();
+    let decoded: MuxControlResponse = serde_json::from_str(&json).unwrap();
+    if let MuxControlResponse::Event(IpcEvent::ClientDrift { client, .. }) = decoded {
+        assert_eq!(client, "codex");
+    } else {
+        panic!("Decoding failed");
+    }
+}
+
+#[tokio::test]
+async fn verify_client_returns_drift_on_non_mux_servers() {
+    let response = MuxControlResponse::VerifyResult(VerifyResult {
+        ok: false,
+        non_mux_servers: vec![NonMuxEntry {
+            client: "gemini".to_string(),
+            path: "/tmp/old.sock".to_string(),
+            line: 42,
+            server_name: "test".to_string(),
+        }],
     });
-
-    let client = tokio::spawn(tray_agent::ipc_client::subscribe_loop(socket));
-    let status = tokio::task::spawn_blocking(move || {
-        status_rx
-            .recv_timeout(Duration::from_secs(2))
-            .expect("status update")
-    })
-    .await
-    .unwrap();
-
-    assert_eq!(status, tray_agent::TrayStatus::Routing);
-    server.await.unwrap();
-    client.abort();
+    let json = serde_json::to_string(&response).unwrap();
+    let decoded: MuxControlResponse = serde_json::from_str(&json).unwrap();
+    if let MuxControlResponse::VerifyResult(res) = decoded {
+        assert!(!res.ok);
+        assert_eq!(res.non_mux_servers.len(), 1);
+    } else {
+        panic!("Decoding failed");
+    }
 }

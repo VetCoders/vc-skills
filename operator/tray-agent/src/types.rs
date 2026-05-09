@@ -85,6 +85,8 @@ impl MenuIds {
     pub fn resolve_verify_client(&self, id: &MenuId) -> Option<ClientKind> {
         self.verify_clients
             .iter()
-            .find_map(|(kind, item_id)| (item_id == id).then(|| kind.clone()))
+            .find_map(|(kind, item_id): &(ClientKind, MenuId)| {
+                (item_id == id).then(|| kind.clone())
+            })
     }
 }

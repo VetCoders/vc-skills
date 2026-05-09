@@ -25,8 +25,8 @@ pub enum FfiClientKind {
     Claude,
     Codex,
     Gemini,
-    Cursor,
-    Other { value: String },
+    Junie,
+    Generic { name: String },
 }
 
 impl From<ClientKind> for FfiClientKind {
@@ -35,8 +35,8 @@ impl From<ClientKind> for FfiClientKind {
             ClientKind::Claude => FfiClientKind::Claude,
             ClientKind::Codex => FfiClientKind::Codex,
             ClientKind::Gemini => FfiClientKind::Gemini,
-            ClientKind::Cursor => FfiClientKind::Cursor,
-            ClientKind::Other(s) => FfiClientKind::Other { value: s },
+            ClientKind::Junie => FfiClientKind::Junie,
+            ClientKind::Generic { name } => FfiClientKind::Generic { name },
         }
     }
 }
@@ -47,8 +47,8 @@ impl From<FfiClientKind> for ClientKind {
             FfiClientKind::Claude => ClientKind::Claude,
             FfiClientKind::Codex => ClientKind::Codex,
             FfiClientKind::Gemini => ClientKind::Gemini,
-            FfiClientKind::Cursor => ClientKind::Cursor,
-            FfiClientKind::Other { value } => ClientKind::Other(value),
+            FfiClientKind::Junie => ClientKind::Junie,
+            FfiClientKind::Generic { name } => ClientKind::Generic { name },
         }
     }
 }
@@ -133,8 +133,7 @@ pub async fn subscribe_events(callback: Box<dyn EventCallback>) -> Result<(), Mu
         let stream = stream_res.unwrap();
         let (reader, mut writer) = stream.into_split();
         let command = MuxControlCommand::Subscribe;
-        let request = tray_agent::ipc_client::MuxControlRequest::new(1, command);
-        let encoded = serde_json::to_string(&request).unwrap() + "\n";
+        let encoded = serde_json::to_string(&command).unwrap() + "\n";
 
         use tokio::io::AsyncWriteExt;
         if let Err(e) = writer.write_all(encoded.as_bytes()).await {
@@ -154,19 +153,15 @@ pub async fn subscribe_events(callback: Box<dyn EventCallback>) -> Result<(), Mu
 #[uniffi::export]
 pub async fn get_server_status() -> Result<Vec<FfiServerStatus>, MuxError> {
     let socket = get_socket_path()?;
-    let res = send_command(&socket, &MuxControlCommand::Diagnostics).await?;
-    if let MuxControlResponse::Diagnostics { snapshot, .. } = res {
-        Ok(snapshot
-            .services
-            .into_iter()
-            .map(|s| FfiServerStatus {
-                name: s.name,
-                status: format!("{:?}", s.status),
-                queue_depth: s.queue_depth as u32,
-                queue_capacity: s.queue_capacity as u32,
-                restart_count: s.restart_count,
-            })
-            .collect())
+    let res = send_command(&socket, &MuxControlCommand::GetStatus).await?;
+    if let MuxControlResponse::Status(snapshot) = res {
+        Ok(vec![FfiServerStatus {
+            name: snapshot.service_name.clone(),
+            status: format!("{:?}", snapshot.server_status),
+            queue_depth: snapshot.pending_requests as u32,
+            queue_capacity: snapshot.max_active_clients as u32,
+            restart_count: snapshot.restarts,
+        }])
     } else {
         Err(MuxError::Core {
             msg: "Unexpected response".into(),
@@ -178,14 +173,13 @@ pub async fn get_server_status() -> Result<Vec<FfiServerStatus>, MuxError> {
 pub async fn get_routes() -> Result<Vec<FfiRoute>, MuxError> {
     let socket = get_socket_path()?;
     let res = send_command(&socket, &MuxControlCommand::RouteSnapshot).await?;
-    if let MuxControlResponse::RouteSnapshot { snapshot, .. } = res {
-        Ok(snapshot
-            .routes
+    if let MuxControlResponse::Routes(routes) = res {
+        Ok(routes
             .into_iter()
             .map(|r| FfiRoute {
-                client: r.client.into(),
-                service: r.service,
-                state: r.state,
+                client: FfiClientKind::Generic { name: r.client }, // Or map based on name
+                service: r.server,
+                state: r.status,
             })
             .collect())
     } else {
@@ -206,11 +200,11 @@ pub async fn verify_client(kind: FfiClientKind) -> Result<FfiVerifyResult, MuxEr
         },
     )
     .await?;
-    if let MuxControlResponse::Verify { result, .. } = res {
+    if let MuxControlResponse::VerifyResult(result) = res {
         Ok(FfiVerifyResult {
-            kind: result.kind.into(),
+            kind: ckind.into(),
             ok: result.ok,
-            detail: result.detail,
+            detail: format!("{} non-mux", result.non_mux_servers.len()),
         })
     } else {
         Err(MuxError::Core {
@@ -228,7 +222,6 @@ pub async fn restart_service(name: String) -> Result<(), MuxError> {
 
 #[uniffi::export]
 pub async fn get_recent_logs(service: String, _lines: u32) -> Result<Vec<String>, MuxError> {
-    // Actually not defined in MuxControlCommand. Let's return empty or unimplemented.
     Ok(vec![format!(
         "Logs for {} not implemented in backend",
         service
@@ -246,7 +239,9 @@ mod tests {
         let back: ClientKind = ffi.into();
         assert_eq!(original, back);
 
-        let original = ClientKind::Other("test".to_string());
+        let original = ClientKind::Generic {
+            name: "test".to_string(),
+        };
         let ffi: FfiClientKind = original.clone().into();
         let back: ClientKind = ffi.into();
         assert_eq!(original, back);
