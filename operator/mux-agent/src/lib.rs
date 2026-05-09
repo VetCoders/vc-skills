@@ -68,6 +68,7 @@ pub mod state;
 // CLI-only modules (feature-gated)
 #[cfg(feature = "cli")]
 pub mod danger;
+pub mod ipc;
 #[cfg(feature = "cli")]
 pub mod mux_gen;
 #[cfg(feature = "cli")]

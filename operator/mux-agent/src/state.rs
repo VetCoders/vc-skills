@@ -7,7 +7,7 @@ use serde_json::Value;
 use tokio::sync::{Mutex, Semaphore, mpsc, watch};
 
 #[cfg_attr(not(feature = "tray"), allow(dead_code))]
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub enum ServerStatus {
     Starting,
     Running,
@@ -35,7 +35,7 @@ pub struct DaemonStatus {
 }
 
 #[cfg_attr(not(feature = "tray"), allow(dead_code))]
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct StatusSnapshot {
     pub service_name: String,
     pub name: String, // Alias for service_name
@@ -104,9 +104,10 @@ pub struct MuxState {
     pub server_initialized: bool,
     pub started_at: Option<Instant>,
     pub in_backoff: bool,
+    pub event_tx: Option<tokio::sync::broadcast::Sender<crate::ipc::event::IpcEvent>>,
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize, Default)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize, Default)]
 pub struct HeartbeatMetrics {
     pub enabled: bool,
     pub latency_ms: Option<u64>,
@@ -136,6 +137,7 @@ pub struct MuxStateConfig {
     pub max_restarts: u64,
     pub queue_depth: usize,
     pub child_pid: Option<u32>,
+    pub event_tx: Option<tokio::sync::broadcast::Sender<crate::ipc::event::IpcEvent>>,
 }
 
 impl MuxState {
@@ -165,6 +167,7 @@ impl MuxState {
             server_initialized: false,
             started_at: None,
             in_backoff: false,
+            event_tx: config.event_tx,
         }
     }
 
@@ -294,6 +297,15 @@ pub async fn publish_status(
         .max_active_clients
         .saturating_sub(active_clients.available_permits());
     let snapshot = snapshot_for_state(&st, active);
+
+    if let Some(ref tx) = st.event_tx {
+        let _ = tx.send(crate::ipc::event::IpcEvent::StateChange {
+            service: st.service_name.clone(),
+            from: "Unknown".into(),
+            to: format!("{:?}", st.server_status),
+        });
+    }
+
     drop(st);
     let _ = status_tx.send(snapshot);
 }
@@ -343,6 +355,7 @@ mod tests {
             max_restarts: 5,
             queue_depth: 0,
             child_pid: None,
+            event_tx: None,
         });
 
         let first = state.next_request_id();
