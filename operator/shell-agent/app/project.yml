@@ -29,6 +29,9 @@ targets:
         GENERATE_INFOPLIST_FILE: true
         INFOPLIST_KEY_NSPrincipalClass: NSApplication
         INFOPLIST_KEY_LSUIElement: false
+        INFOPLIST_KEY_CFBundleExecutable: Vibecrafted
+        INFOPLIST_KEY_CFBundleName: Vibecrafted
+        INFOPLIST_KEY_LSApplicationCategoryType: public.app-category.developer-tools
         SWIFT_OBJC_BRIDGING_HEADER: "Vibecrafted/Bridge/shell_agent_ffiFFI.h"
         CODE_SIGN_IDENTITY: "-"
         CODE_SIGN_STYLE: Manual
@@ -39,7 +42,8 @@ targets:
     dependencies:
       - framework: ../../target/release/libshell_agent_ffi.dylib
         embed: true
-    preBuildScripts:
-      - name: "Build Rust FFI"
-        script: |
-          bash ${SRCROOT}/../scripts/build-rust.sh || true
+    postBuildScripts:
+      - script: |
+          bash $SRCROOT/../scripts/build-rust-binaries.sh || true
+        name: Build Rust binaries
+        shell: /bin/bash

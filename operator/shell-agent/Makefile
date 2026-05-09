@@ -26,11 +26,20 @@ app: bindings xcode
 	@echo "App built: build/Vibecrafted.app"
 
 dmg:
-	# TODO: Call scripts/build-dmg.sh here for multi-binary bundle (T6 follow-up)
-	@bash scripts/build-dmg.sh
-
+	@./scripts/build-dmg.sh
 
 dmg-signed:
-	# TODO: Call scripts/build-dmg.sh here for multi-binary bundle (T6 follow-up)
-	@SIGNING_IDENTITY="Developer ID Application: Maciej Gad (MW223P3NPX)" bash scripts/build-dmg.sh
+	@SIGNING_IDENTITY="Developer ID Application: Maciej Gad (MW223P3NPX)" ./scripts/build-dmg.sh
+
+app-debug: bindings xcode
+	@cargo build --workspace --release
+	@xcodebuild -project app/Vibecrafted.xcodeproj -scheme Vibecrafted -configuration Debug build
+	@BUILT_APP=$$(find app/build/DerivedData -name Vibecrafted.app -type d | head -1); \
+	if [ -n "$$BUILT_APP" ]; then \
+		cp ../target/release/rust-mux "$$BUILT_APP/Contents/MacOS/vc-mux-daemon"; \
+		cp ../target/release/vc-mux-tray "$$BUILT_APP/Contents/MacOS/vc-mux-tray"; \
+		cp ../target/release/vc-operator "$$BUILT_APP/Contents/MacOS/vc-operator-tui"; \
+		chmod +x "$$BUILT_APP/Contents/MacOS/"*; \
+	fi
+
 

@@ -33,12 +33,10 @@ app: bindings xcode
 	xcodebuild -project shell-agent/app/Vibecrafted.xcodeproj -scheme Vibecrafted -configuration Debug -derivedDataPath shell-agent/app/build/DerivedData build
 
 dmg:
-	# TODO: T6 follow-up to implement build-dmg.sh
-	# bash shell-agent/scripts/build-dmg.sh
+	@$(MAKE) -C shell-agent dmg
 
 dmg-signed:
-	# TODO: T6 follow-up to implement build-dmg.sh with signing
-	# SIGN=1 bash shell-agent/scripts/build-dmg.sh
+	@$(MAKE) -C shell-agent dmg-signed
 
 help:
 	@printf '%s\n' 'targets: gates fmt fmt-check lint test check workspace-check clean bindings xcode app dmg'
