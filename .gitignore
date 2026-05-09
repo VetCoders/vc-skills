@@ -52,3 +52,4 @@ vibecrafted-io-link
 .loctree
 /operator/shell-agent/app/build
 /operator/shell-agent/build
+/operator/tui-agent/audits
