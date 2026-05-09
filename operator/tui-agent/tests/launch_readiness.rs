@@ -13,6 +13,32 @@ use std::ffi::OsString;
 use std::fs;
 use std::os::unix::fs::PermissionsExt;
 use std::path::{Path, PathBuf};
+fn get_message(e: &vibecrafted_operator::LaunchRunError) -> String {
+    if let vibecrafted_operator::LaunchRunError::Exec { message, .. } = e {
+        message.clone()
+    } else {
+        panic!()
+    }
+}
+fn get_probe_error(e: &vibecrafted_operator::LaunchRunError) -> Option<String> {
+    if let vibecrafted_operator::LaunchRunError::Exec { probe_error, .. } = e {
+        probe_error.clone()
+    } else {
+        panic!()
+    }
+}
+fn get_probe_error_at_deadline(e: &vibecrafted_operator::LaunchRunError) -> Option<String> {
+    if let vibecrafted_operator::LaunchRunError::Exec {
+        probe_error_at_deadline,
+        ..
+    } = e
+    {
+        probe_error_at_deadline.clone()
+    } else {
+        panic!()
+    }
+}
+
 use std::time::{Duration, Instant};
 
 use tempfile::TempDir;
@@ -120,16 +146,14 @@ fn quick_child_exit_before_visibility_reports_session_exited() {
     let result = wait_for_interactive_launch(&command, child);
     let error = result.expect_err("quick-exit should fail readiness check");
     assert!(
-        error
-            .message
-            .contains("exited before the readiness probe saw it"),
+        get_message(&error).contains("exited before the readiness probe saw it"),
         "unexpected message: {}",
-        error.message
+        get_message(&error)
     );
     assert!(
-        error.message.contains(session),
+        get_message(&error).contains(session),
         "session name must appear in the error: {}",
-        error.message
+        get_message(&error)
     );
 }
 
@@ -171,14 +195,14 @@ fn deadline_kills_child_when_session_never_visible() {
     let elapsed = started.elapsed();
     let error = result.expect_err("hanging child past deadline must be a failure");
     assert!(
-        error.message.contains("did not appear within"),
+        get_message(&error).contains("did not appear within"),
         "unexpected message: {}",
-        error.message
+        get_message(&error)
     );
     assert!(
-        error.message.contains(session),
+        get_message(&error).contains(session),
         "session name must appear in the error: {}",
-        error.message
+        get_message(&error)
     );
     // Deadline is 2s; killing must release us soon after. Allow 5s slack
     // for slow CI runners.
@@ -198,16 +222,14 @@ fn probe_failure_surfaces_in_launch_error() {
         .expect("spawn fake zellij");
     let result = wait_for_interactive_launch(&command, child);
     let error = result.expect_err("probe error + hang must produce a failure");
-    let probe_error = error
-        .probe_error
+    let probe_error = get_probe_error(&error)
         .clone()
         .expect("probe error must be preserved when probe exits non-zero with stderr");
     assert!(
         probe_error.contains("probe config not found"),
         "probe stderr should be surfaced verbatim: {probe_error}"
     );
-    let deadline_probe = error
-        .probe_error_at_deadline
+    let deadline_probe = get_probe_error_at_deadline(&error)
         .clone()
         .expect("deadline kill must preserve the last probe diagnostic");
     assert!(

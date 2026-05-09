@@ -11,6 +11,8 @@ repository = "https://github.com/VetCoders/vc-operator"
 documentation = "https://docs.rs/vibecrafted-operator"
 
 [dependencies]
+rust-mux = { path = "../mux-agent", package = "rust-mux" }
+tokio = { version = "1", features = ["rt-multi-thread", "net", "io-util", "macros", "time", "sync"] }
 anyhow = "1"
 arboard = "3"
 chrono = { version = "0.4", features = ["serde"] }

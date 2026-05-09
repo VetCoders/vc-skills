@@ -408,3 +408,48 @@ fn kdl_quote(raw: &str) -> String {
         .replace('\n', "\\n");
     format!("\"{escaped}\"")
 }
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum VerifyHalt {
+    Drift(Vec<rust_mux::ipc::command::NonMuxEntry>),
+    Timeout,
+}
+
+pub fn pre_launch_verify(client_kind: rust_mux::ipc::ClientKind) -> Result<(), VerifyHalt> {
+    use std::io::{BufRead, BufReader, Write};
+    use std::os::unix::net::UnixStream;
+    use std::time::Duration;
+
+    let path = rust_mux::ipc::socket_path();
+    let stream = match UnixStream::connect(&path) {
+        Ok(s) => s,
+        Err(_) => return Ok(()),
+    };
+
+    let _ = stream.set_read_timeout(Some(Duration::from_secs(5)));
+    let _ = stream.set_write_timeout(Some(Duration::from_secs(5)));
+
+    let cmd = rust_mux::ipc::MuxControlCommand::Verify { client_kind };
+    let Ok(json) = serde_json::to_string(&cmd) else {
+        return Ok(());
+    };
+
+    let mut writer = &stream;
+    if writeln!(writer, "{json}").is_err() {
+        return Err(VerifyHalt::Timeout);
+    }
+
+    let mut reader = BufReader::new(stream);
+    let mut response_line = String::new();
+    if reader.read_line(&mut response_line).is_err() || response_line.is_empty() {
+        return Err(VerifyHalt::Timeout);
+    }
+
+    if let Ok(rust_mux::ipc::MuxControlResponse::VerifyResult(res)) =
+        serde_json::from_str(&response_line)
+        && !res.ok
+    {
+        return Err(VerifyHalt::Drift(res.non_mux_servers));
+    }
+    Ok(())
+}

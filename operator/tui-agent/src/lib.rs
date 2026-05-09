@@ -32,6 +32,8 @@ pub use skills_catalog::{SkillAgent, SkillEntry, SkillPayload, SkillPayloadKind}
 pub fn run_cli() -> anyhow::Result<()> {
     let options = parse_args()?;
     let config = build_config(options);
+    let rt = tokio::runtime::Runtime::new()?;
+    let _guard = rt.enter();
     run_app(config)
 }
 
@@ -149,6 +151,29 @@ fn handle_key(app: &mut App, key: KeyEvent) -> anyhow::Result<bool> {
             _ => {}
         },
         LaunchFocus::Error => match key.code {
+            KeyCode::Char('f') | KeyCode::Char('F') => {
+                if app
+                    .error_lines
+                    .iter()
+                    .any(|l| l.contains("Client drift detected"))
+                {
+                    let agent = app.selected_agent().to_string();
+                    let _ = std::process::Command::new("zellij")
+                        .args([
+                            "run",
+                            "--name",
+                            "auto-rewire",
+                            "--",
+                            "rust-mux",
+                            "wizard",
+                            "--strategy",
+                            "auto-rewire",
+                            &agent,
+                        ])
+                        .spawn();
+                    app.focus = LaunchFocus::Browse;
+                }
+            }
             KeyCode::Esc | KeyCode::Enter | KeyCode::Char('q') => {
                 app.focus = LaunchFocus::Browse;
             }
@@ -259,6 +284,26 @@ fn handle_key(app: &mut App, key: KeyEvent) -> anyhow::Result<bool> {
 }
 
 fn launch_selected(app: &mut App) -> anyhow::Result<()> {
+    if !app.config.no_verify_gate && app.launch_runtime != launch::LaunchRuntime::Headless {
+        let client_kind = match app.selected_agent() {
+            "claude" => rust_mux::ipc::ClientKind::Claude,
+            "codex" => rust_mux::ipc::ClientKind::Codex,
+            "gemini" => rust_mux::ipc::ClientKind::Gemini,
+            "junie" => rust_mux::ipc::ClientKind::Junie,
+            other => rust_mux::ipc::ClientKind::Generic {
+                name: other.to_string(),
+            },
+        };
+        if let Err(halt) = launch::pre_launch_verify(client_kind) {
+            let error = LaunchRunError::ClientDrift(halt);
+            app.show_error(
+                "launch failed: client drift",
+                error.detail_lines("".to_string()),
+            );
+
+            return Ok(());
+        }
+    }
     let command = app.launch_command();
     let summary = command.command_line();
     if app.launch_runtime == launch::LaunchRuntime::Headless {
@@ -359,44 +404,80 @@ fn deep_control_command(app: &App, action: &DeepAction) -> LaunchCommand {
         DeepAction::OpenReport(_)
         | DeepAction::OpenTranscript(_)
         | DeepAction::OpenRoot(_)
-        | DeepAction::PolarizeIntent { .. } => {
+        | DeepAction::PolarizeIntent { .. }
+        | DeepAction::MuxRestart(_)
+        | DeepAction::MuxVerifyClient(_)
+        | DeepAction::MuxFixClientDrift(_) => {
             unreachable!("artifact actions are handled by the native operator viewer")
         }
     }
 }
 
 #[derive(Debug)]
-pub struct LaunchRunError {
-    pub message: String,
-    pub stderr: String,
-    /// First error observed by the zellij readiness probe before the launch
-    /// gave up. Distinguishes "session not visible" from "probe could not
-    /// run" (bad flags, socket/config errors, missing binary). When None,
-    /// the probe either succeeded or was never attempted.
-    pub probe_error: Option<String>,
-    /// Probe diagnostic captured at the deadline-kill branch, where stderr
-    /// from the killed child is intentionally not drained.
-    pub probe_error_at_deadline: Option<String>,
+pub enum LaunchRunError {
+    Exec {
+        message: String,
+        stderr: String,
+        /// First error observed by the zellij readiness probe before the launch
+        /// gave up. Distinguishes "session not visible" from "probe could not
+        /// run" (bad flags, socket/config errors, missing binary). When None,
+        /// the probe either succeeded or was never attempted.
+        probe_error: Option<String>,
+        /// Probe diagnostic captured at the deadline-kill branch, where stderr
+        /// from the killed child is intentionally not drained.
+        probe_error_at_deadline: Option<String>,
+    },
+    ClientDrift(crate::launch::VerifyHalt),
 }
 
 impl LaunchRunError {
     pub fn detail_lines(&self, summary: String) -> Vec<String> {
-        let mut lines = vec![
-            format!("command: {summary}"),
-            format!("error: {}", self.message),
-        ];
-        if let Some(probe_error) = &self.probe_error {
-            lines.push(format!("readiness probe: {probe_error}"));
+        match self {
+            Self::Exec {
+                message,
+                stderr,
+                probe_error,
+                probe_error_at_deadline,
+            } => {
+                let mut lines = vec![format!("command: {summary}"), format!("error: {message}")];
+                if let Some(pe) = probe_error {
+                    lines.push(format!("readiness probe: {pe}"));
+                }
+                if let Some(pe) = probe_error_at_deadline {
+                    lines.push(format!("readiness timeout probe: {pe}"));
+                }
+                if !stderr.trim().is_empty() {
+                    lines.push(String::new());
+                    lines.push("stderr:".to_string());
+                    lines.extend(stderr.lines().map(ToOwned::to_owned));
+                }
+                lines
+            }
+            Self::ClientDrift(halt) => {
+                let mut lines = vec![
+                    "Client drift detected. Dispatch halted.".to_string(),
+                    "Non-mux servers found:".to_string(),
+                ];
+                match halt {
+                    crate::launch::VerifyHalt::Drift(servers) => {
+                        for entry in servers {
+                            lines.push(format!(
+                                "  {} ({}:{})",
+                                entry.client, entry.path, entry.line
+                            ));
+                        }
+                    }
+                    crate::launch::VerifyHalt::Timeout => {
+                        lines.push(
+                            "  Timeout waiting for verify response from rust-mux.".to_string(),
+                        );
+                    }
+                }
+                lines.push(String::new());
+                lines.push("Press F to auto-fix (spawns rust-mux wizard).".to_string());
+                lines
+            }
         }
-        if let Some(probe_error) = &self.probe_error_at_deadline {
-            lines.push(format!("readiness timeout probe: {probe_error}"));
-        }
-        if !self.stderr.trim().is_empty() {
-            lines.push(String::new());
-            lines.push("stderr:".to_string());
-            lines.extend(self.stderr.lines().map(ToOwned::to_owned));
-        }
-        lines
     }
 }
 
@@ -423,7 +504,7 @@ fn suspend_and_run(command: &LaunchCommand) -> Result<(), LaunchRunError> {
     if output.status.success() {
         Ok(())
     } else {
-        Err(LaunchRunError {
+        Err(LaunchRunError::Exec {
             message: format!("command exited with {}", output.status),
             stderr: String::from_utf8_lossy(&output.stderr).into_owned(),
             probe_error: None,
@@ -448,12 +529,14 @@ pub fn wait_for_interactive_launch(
         while Instant::now() < deadline {
             match probe.is_session_visible() {
                 Ok(true) => {
-                    return child.wait_with_output().map_err(|err| LaunchRunError {
-                        message: format!("launch process failed: {err}"),
-                        stderr: String::new(),
-                        probe_error: probe_error.clone(),
-                        probe_error_at_deadline: None,
-                    });
+                    return child
+                        .wait_with_output()
+                        .map_err(|err| LaunchRunError::Exec {
+                            message: format!("launch process failed: {err}"),
+                            stderr: String::new(),
+                            probe_error: probe_error.clone(),
+                            probe_error_at_deadline: None,
+                        });
                 }
                 Ok(false) => {}
                 Err(error) => {
@@ -468,14 +551,16 @@ pub fn wait_for_interactive_launch(
             }
             match child.try_wait() {
                 Ok(Some(_)) => {
-                    let output = child.wait_with_output().map_err(|err| LaunchRunError {
-                        message: format!("launch process failed: {err}"),
-                        stderr: String::new(),
-                        probe_error: probe_error.clone(),
-                        probe_error_at_deadline: None,
-                    })?;
+                    let output = child
+                        .wait_with_output()
+                        .map_err(|err| LaunchRunError::Exec {
+                            message: format!("launch process failed: {err}"),
+                            stderr: String::new(),
+                            probe_error: probe_error.clone(),
+                            probe_error_at_deadline: None,
+                        })?;
                     if output.status.success() {
-                        return Err(LaunchRunError {
+                        return Err(LaunchRunError::Exec {
                             message: format!(
                                 "zellij session '{}' exited before the readiness probe saw it",
                                 probe.session_name
@@ -489,7 +574,7 @@ pub fn wait_for_interactive_launch(
                 }
                 Ok(None) => {}
                 Err(err) => {
-                    return Err(LaunchRunError {
+                    return Err(LaunchRunError::Exec {
                         message: format!("failed to inspect launch child: {err}"),
                         stderr: String::new(),
                         probe_error,
@@ -525,7 +610,7 @@ pub fn wait_for_interactive_launch(
                 READINESS_DEADLINE.as_millis()
             )
         });
-        return Err(LaunchRunError {
+        return Err(LaunchRunError::Exec {
             message: format!(
                 "zellij session '{}' did not appear within the {}ms readiness window",
                 probe.session_name,
@@ -536,17 +621,19 @@ pub fn wait_for_interactive_launch(
             probe_error_at_deadline,
         });
     }
-    child.wait_with_output().map_err(|err| LaunchRunError {
-        message: format!("launch process failed: {err}"),
-        stderr: String::new(),
-        probe_error: None,
-        probe_error_at_deadline: None,
-    })
+    child
+        .wait_with_output()
+        .map_err(|err| LaunchRunError::Exec {
+            message: format!("launch process failed: {err}"),
+            stderr: String::new(),
+            probe_error: None,
+            probe_error_at_deadline: None,
+        })
 }
 
 fn launch_error(error: impl Into<anyhow::Error>) -> LaunchRunError {
     let error = error.into();
-    LaunchRunError {
+    LaunchRunError::Exec {
         message: format!("{error:#}"),
         stderr: String::new(),
         probe_error: None,
@@ -599,7 +686,9 @@ mod tests {
 
     fn sample_app() -> App {
         App {
+            mux_subscriber: None,
             config: AppConfig {
+                no_verify_gate: false,
                 state_root: "/tmp/state".into(),
                 command_deck: "/usr/bin/vibecrafted".into(),
                 launch_root: "/tmp/repo".into(),
@@ -734,7 +823,7 @@ mod tests {
 
     #[test]
     fn launch_run_error_detail_lines_render_probe_error_when_present() {
-        let error = LaunchRunError {
+        let error = LaunchRunError::Exec {
             message: "command exited with status: 1".to_string(),
             stderr: "boom\nstack\n".to_string(),
             probe_error: Some(
@@ -756,7 +845,7 @@ mod tests {
 
     #[test]
     fn launch_run_error_detail_lines_skip_probe_section_when_none() {
-        let error = LaunchRunError {
+        let error = LaunchRunError::Exec {
             message: "command exited with status: 2".to_string(),
             stderr: String::new(),
             probe_error: None,

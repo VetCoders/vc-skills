@@ -571,13 +571,16 @@ fn mux_health_deep_actions_surface_per_known_service() {
         recent_events: Vec::new(),
     };
     let mut app = App {
+        mux_subscriber: None,
         config: AppConfig {
             state_root: "/tmp/state".into(),
             command_deck: "/usr/bin/vibecrafted".into(),
             launch_root: "/tmp/repo".into(),
             launch_runtime: LaunchRuntime::Terminal,
+
             terminal_binary: "zellij".into(),
             tick_rate: Duration::from_millis(250),
+            no_verify_gate: false,
         },
         state: ControlPlaneState::empty("/tmp/state"),
         runs: vec![run],
@@ -587,6 +590,7 @@ fn mux_health_deep_actions_surface_per_known_service() {
         launch_agent: 0,
         launch_prompt: "Ship it".to_string(),
         launch_runtime: LaunchRuntime::Terminal,
+
         dispatch_selected: DispatchFocus::Kind as usize,
         focus: LaunchFocus::Browse,
         status_line: String::new(),
@@ -702,13 +706,16 @@ fn mux_status_lines_render_healthy_and_attention_headers() {
     }"#;
 
     let mut app = App {
+        mux_subscriber: None,
         config: AppConfig {
             state_root: "/tmp/state".into(),
             command_deck: "/usr/bin/vibecrafted".into(),
             launch_root: "/tmp/repo".into(),
             launch_runtime: LaunchRuntime::Terminal,
+
             terminal_binary: "zellij".into(),
             tick_rate: Duration::from_millis(250),
+            no_verify_gate: false,
         },
         state: ControlPlaneState::empty("/tmp/state"),
         runs: vec![],
@@ -718,6 +725,7 @@ fn mux_status_lines_render_healthy_and_attention_headers() {
         launch_agent: 0,
         launch_prompt: "Ship it".to_string(),
         launch_runtime: LaunchRuntime::Terminal,
+
         dispatch_selected: DispatchFocus::Kind as usize,
         focus: LaunchFocus::Browse,
         status_line: String::new(),
@@ -875,13 +883,16 @@ fn deep_controls_expose_attach_resume_and_artifacts() {
         recent_events: Vec::new(),
     };
     let app = App {
+        mux_subscriber: None,
         config: AppConfig {
             state_root: "/tmp/state".into(),
             command_deck: "/usr/bin/vibecrafted".into(),
             launch_root: "/tmp/repo".into(),
             launch_runtime: LaunchRuntime::Terminal,
+
             terminal_binary: "zellij".into(),
             tick_rate: Duration::from_millis(250),
+            no_verify_gate: false,
         },
         state: ControlPlaneState::empty("/tmp/state"),
         runs: vec![run],
@@ -891,6 +902,7 @@ fn deep_controls_expose_attach_resume_and_artifacts() {
         launch_agent: 0,
         launch_prompt: "Ship it".to_string(),
         launch_runtime: LaunchRuntime::Terminal,
+
         dispatch_selected: DispatchFocus::Kind as usize,
         focus: LaunchFocus::Browse,
         status_line: String::new(),
@@ -953,13 +965,16 @@ fn native_artifact_viewer_reads_files_and_clipboard_payload_prefers_resume_comma
         recent_events: Vec::new(),
     };
     let mut app = App {
+        mux_subscriber: None,
         config: AppConfig {
             state_root: "/tmp/state".into(),
             command_deck: "/usr/bin/vibecrafted".into(),
             launch_root: "/tmp/repo".into(),
             launch_runtime: LaunchRuntime::Terminal,
+
             terminal_binary: "zellij".into(),
             tick_rate: Duration::from_millis(250),
+            no_verify_gate: false,
         },
         state: ControlPlaneState::empty("/tmp/state"),
         runs: vec![run],
@@ -969,6 +984,7 @@ fn native_artifact_viewer_reads_files_and_clipboard_payload_prefers_resume_comma
         launch_agent: 0,
         launch_prompt: "Ship it".to_string(),
         launch_runtime: LaunchRuntime::Terminal,
+
         dispatch_selected: DispatchFocus::Kind as usize,
         focus: LaunchFocus::Browse,
         status_line: String::new(),
@@ -996,13 +1012,16 @@ fn native_artifact_viewer_reads_files_and_clipboard_payload_prefers_resume_comma
 #[test]
 fn empty_state_detail_lines_offer_human_quick_start() {
     let app = App {
+        mux_subscriber: None,
         config: AppConfig {
             state_root: "/tmp/state".into(),
             command_deck: "/usr/bin/vibecrafted".into(),
             launch_root: "/tmp/repo".into(),
             launch_runtime: LaunchRuntime::Terminal,
+
             terminal_binary: "zellij".into(),
             tick_rate: Duration::from_millis(250),
+            no_verify_gate: false,
         },
         state: ControlPlaneState::empty("/tmp/state"),
         runs: vec![],
@@ -1012,6 +1031,7 @@ fn empty_state_detail_lines_offer_human_quick_start() {
         launch_agent: 0,
         launch_prompt: "Ship it".to_string(),
         launch_runtime: LaunchRuntime::Terminal,
+
         dispatch_selected: DispatchFocus::Kind as usize,
         focus: LaunchFocus::Browse,
         status_line: String::new(),
@@ -1036,13 +1056,16 @@ fn empty_state_detail_lines_offer_human_quick_start() {
 #[test]
 fn prompt_lines_include_human_kind_copy_and_command_preview() {
     let app = App {
+        mux_subscriber: None,
         config: AppConfig {
             state_root: "/tmp/state".into(),
             command_deck: "/usr/bin/vibecrafted".into(),
             launch_root: "/tmp/repo".into(),
             launch_runtime: LaunchRuntime::Terminal,
+
             terminal_binary: "zellij".into(),
             tick_rate: Duration::from_millis(250),
+            no_verify_gate: false,
         },
         state: ControlPlaneState::empty("/tmp/state"),
         runs: vec![],
@@ -1078,13 +1101,16 @@ fn prompt_lines_include_human_kind_copy_and_command_preview() {
 #[test]
 fn tab_navigation_wraps_and_dispatch_focus_tracks_selected_field() {
     let mut app = App {
+        mux_subscriber: None,
         config: AppConfig {
             state_root: "/tmp/state".into(),
             command_deck: "/usr/bin/vibecrafted".into(),
             launch_root: "/tmp/repo".into(),
             launch_runtime: LaunchRuntime::Terminal,
+
             terminal_binary: "zellij".into(),
             tick_rate: Duration::from_millis(250),
+            no_verify_gate: false,
         },
         state: ControlPlaneState::empty("/tmp/state"),
         runs: vec![],
@@ -1094,6 +1120,7 @@ fn tab_navigation_wraps_and_dispatch_focus_tracks_selected_field() {
         launch_agent: 0,
         launch_prompt: "Ship it".to_string(),
         launch_runtime: LaunchRuntime::Terminal,
+
         dispatch_selected: DispatchFocus::Kind as usize,
         focus: LaunchFocus::Browse,
         status_line: String::new(),
@@ -1149,13 +1176,16 @@ fn tab_labels_surface_monitor_dispatch_and_controls_context() {
         recent_events: Vec::new(),
     };
     let mut app = App {
+        mux_subscriber: None,
         config: AppConfig {
             state_root: "/tmp/state".into(),
             command_deck: "/usr/bin/vibecrafted".into(),
             launch_root: "/tmp/repo".into(),
             launch_runtime: LaunchRuntime::Terminal,
+
             terminal_binary: "zellij".into(),
             tick_rate: Duration::from_millis(250),
+            no_verify_gate: false,
         },
         state: ControlPlaneState::empty("/tmp/state"),
         runs: vec![run],
@@ -1225,8 +1255,10 @@ fn queue_scope_and_search_filter_the_visible_run_list() {
         command_deck: "/usr/bin/vibecrafted".into(),
         launch_root: "/tmp/repo".into(),
         launch_runtime: LaunchRuntime::Terminal,
+
         terminal_binary: "zellij".into(),
         tick_rate: Duration::from_millis(250),
+        no_verify_gate: false,
     })
     .unwrap();
     assert_eq!(app.runs.len(), 1);
@@ -1249,13 +1281,16 @@ fn queue_scope_and_search_filter_the_visible_run_list() {
 #[test]
 fn changing_launch_kind_reorients_the_operator_into_dispatch() {
     let mut app = App {
+        mux_subscriber: None,
         config: AppConfig {
             state_root: "/tmp/state".into(),
             command_deck: "/usr/bin/vibecrafted".into(),
             launch_root: "/tmp/repo".into(),
             launch_runtime: LaunchRuntime::Terminal,
+
             terminal_binary: "zellij".into(),
             tick_rate: Duration::from_millis(250),
+            no_verify_gate: false,
         },
         state: ControlPlaneState::empty("/tmp/state"),
         runs: vec![],
@@ -1265,6 +1300,7 @@ fn changing_launch_kind_reorients_the_operator_into_dispatch() {
         launch_agent: 2,
         launch_prompt: "custom prompt".to_string(),
         launch_runtime: LaunchRuntime::Terminal,
+
         dispatch_selected: DispatchFocus::Runtime as usize,
         focus: LaunchFocus::Help,
         status_line: String::new(),

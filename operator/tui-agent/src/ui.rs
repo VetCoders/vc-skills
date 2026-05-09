@@ -170,7 +170,18 @@ fn draw_monitor(frame: &mut Frame, area: Rect, app: &App) {
 
     let mut body_idx = 1;
     if !mux_lines.is_empty() {
-        draw_mux_panel(frame, rows[body_idx], &mux_lines, app.mux_summaries.len());
+        let state = app
+            .mux_subscriber
+            .as_ref()
+            .and_then(|sub| sub.state.read().ok())
+            .map(|s| s.clone());
+        draw_mux_panel(
+            frame,
+            rows[body_idx],
+            &mux_lines,
+            app.mux_summaries.len(),
+            state.as_ref(),
+        );
         body_idx += 1;
     }
     if !polarize_lines.is_empty() {
@@ -198,14 +209,42 @@ fn draw_monitor(frame: &mut Frame, area: Rect, app: &App) {
     draw_events(frame, right[1], app, "Recent timeline");
 }
 
-fn draw_mux_panel(frame: &mut Frame, area: Rect, lines: &[String], total_services: usize) {
+fn draw_mux_panel(
+    frame: &mut Frame,
+    area: Rect,
+    lines: &[String],
+    total_services: usize,
+    state: Option<&crate::mux::SubscriberState>,
+) {
     let any_unhealthy = lines.iter().any(|line| line.contains("! "));
-    let title_color = if any_unhealthy {
-        Color::Red
-    } else {
-        Color::Green
+    let title_text = match state {
+        Some(crate::mux::SubscriberState::Connected) => {
+            format!(" rust-mux ({total_services}) [Connected] ")
+        }
+        Some(crate::mux::SubscriberState::Reconnecting) => {
+            format!(" rust-mux ({total_services}) [Reconnecting] ")
+        }
+        Some(crate::mux::SubscriberState::Polling) => {
+            format!(" rust-mux ({total_services}) [Polling] ")
+        }
+        Some(crate::mux::SubscriberState::Failed) => {
+            format!(" rust-mux ({total_services}) [Failed] ")
+        }
+        None => format!(" rust-mux ({total_services}) "),
     };
-    let title_text = format!(" rust-mux ({total_services}) ");
+    let title_color = match state {
+        Some(crate::mux::SubscriberState::Connected) => Color::Green,
+        Some(crate::mux::SubscriberState::Reconnecting)
+        | Some(crate::mux::SubscriberState::Polling) => Color::Yellow,
+        Some(crate::mux::SubscriberState::Failed) => Color::Red,
+        None => {
+            if any_unhealthy {
+                Color::Red
+            } else {
+                Color::Green
+            }
+        }
+    };
     let block = Block::default()
         .title(Span::styled(
             title_text,
@@ -772,6 +811,66 @@ fn centered_rect(percent_x: u16, percent_y: u16, area: Rect) -> Rect {
         .split(popup_layout[1])[1]
 }
 
+pub fn draw_client_drift_overlay(frame: &mut Frame, area: Rect, halt: &crate::launch::VerifyHalt) {
+    let block = Block::default()
+        .title(" Client Drift Detected ")
+        .borders(Borders::ALL)
+        .style(Style::default().fg(Color::Red).bg(Color::Black));
+    let area = ratatui::layout::Layout::default()
+        .direction(ratatui::layout::Direction::Vertical)
+        .constraints([
+            ratatui::layout::Constraint::Percentage(20),
+            ratatui::layout::Constraint::Percentage(60),
+            ratatui::layout::Constraint::Percentage(20),
+        ])
+        .split(area)[1];
+    let area = ratatui::layout::Layout::default()
+        .direction(ratatui::layout::Direction::Horizontal)
+        .constraints([
+            ratatui::layout::Constraint::Percentage(10),
+            ratatui::layout::Constraint::Percentage(80),
+            ratatui::layout::Constraint::Percentage(10),
+        ])
+        .split(area)[1];
+
+    let mut lines = vec![
+        ratatui::text::Line::from(
+            "Dispatch halted because client configuration does not route through rust-mux.",
+        ),
+        ratatui::text::Line::from(""),
+    ];
+
+    match halt {
+        crate::launch::VerifyHalt::Drift(servers) => {
+            lines.push(ratatui::text::Line::from("Non-mux servers found:"));
+            for s in servers {
+                lines.push(ratatui::text::Line::from(format!(
+                    "  {} ({}:{})",
+                    s.client, s.path, s.line
+                )));
+            }
+        }
+        crate::launch::VerifyHalt::Timeout => {
+            lines.push(ratatui::text::Line::from(
+                "Timeout waiting for verify response.",
+            ));
+        }
+    }
+
+    lines.push(ratatui::text::Line::from(""));
+    lines.push(ratatui::text::Line::from(ratatui::text::Span::styled(
+        "Press F to auto-fix (spawns wizard)",
+        Style::default().add_modifier(Modifier::BOLD),
+    )));
+    lines.push(ratatui::text::Line::from("Press Esc to cancel."));
+
+    let para = Paragraph::new(lines)
+        .block(block)
+        .wrap(Wrap { trim: false });
+    frame.render_widget(ratatui::widgets::Clear, area);
+    frame.render_widget(para, area);
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -811,7 +910,9 @@ mod tests {
 
     fn sample_app() -> App {
         App {
+            mux_subscriber: None,
             config: AppConfig {
+                no_verify_gate: false,
                 state_root: "/tmp/state".into(),
                 command_deck: "/usr/bin/vibecrafted".into(),
                 launch_root: "/tmp/repo".into(),

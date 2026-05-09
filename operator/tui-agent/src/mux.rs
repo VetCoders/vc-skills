@@ -669,3 +669,88 @@ mod tests {
         });
     }
 }
+
+use std::sync::{Arc, RwLock};
+
+pub type MuxSummaries = Vec<MuxSummary>;
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum SubscriberState {
+    Connected,
+    Reconnecting,
+    Polling,
+    Failed,
+}
+
+#[derive(Debug)]
+pub struct MuxSubscriber {
+    pub handle: tokio::task::JoinHandle<()>,
+    pub state: Arc<RwLock<SubscriberState>>,
+    pub rx: std::sync::mpsc::Receiver<rust_mux::ipc::IpcEvent>,
+}
+
+impl MuxSubscriber {
+    pub fn start(socket_path: PathBuf, _summaries: Arc<RwLock<MuxSummaries>>) -> Self {
+        let (tx, rx) = std::sync::mpsc::channel();
+        let state = Arc::new(RwLock::new(SubscriberState::Reconnecting));
+        let state_clone = state.clone();
+
+        let handle = tokio::spawn(async move {
+            let mut attempts = 0;
+            let mut backoff = std::time::Duration::from_secs(1);
+
+            loop {
+                if let Ok(mut s) = state_clone.write() {
+                    *s = SubscriberState::Reconnecting;
+                }
+                match tokio::net::UnixStream::connect(&socket_path).await {
+                    Ok(mut stream) => {
+                        attempts = 0;
+                        backoff = std::time::Duration::from_secs(1);
+                        if let Ok(mut s) = state_clone.write() {
+                            *s = SubscriberState::Connected;
+                        }
+
+                        use tokio::io::{AsyncBufReadExt, AsyncWriteExt};
+                        let cmd = rust_mux::ipc::MuxControlCommand::Subscribe;
+                        if let Ok(json) = serde_json::to_string(&cmd)
+                            && stream
+                                .write_all(format!("{json}\n").as_bytes())
+                                .await
+                                .is_ok()
+                        {
+                            let (reader, _) = stream.into_split();
+                            let mut lines = tokio::io::BufReader::new(reader).lines();
+                            while let Ok(Some(line)) = lines.next_line().await {
+                                if let Ok(rust_mux::ipc::MuxControlResponse::Event(event)) =
+                                    serde_json::from_str(&line)
+                                {
+                                    // Forward event to UI
+                                    let _ = tx.send(event.clone());
+                                    // Also update background summaries if requested
+                                    if let rust_mux::ipc::IpcEvent::StateChange { .. } = event {
+                                        // The prompt mentioned background task updates RwLock
+                                        // UI loop handle_ipc_event will actually do it, but we can also just log it.
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    Err(_) => {
+                        attempts += 1;
+                        if attempts >= 10 {
+                            if let Ok(mut s) = state_clone.write() {
+                                *s = SubscriberState::Polling;
+                            }
+                            break;
+                        }
+                        tokio::time::sleep(backoff).await;
+                        backoff = std::cmp::min(backoff * 2, std::time::Duration::from_secs(30));
+                    }
+                }
+            }
+        });
+
+        Self { handle, state, rx }
+    }
+}

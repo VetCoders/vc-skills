@@ -126,6 +126,9 @@ pub enum DeepAction {
     MuxHealth {
         service: String,
     },
+    MuxRestart(String),
+    MuxVerifyClient(rust_mux::ipc::ClientKind),
+    MuxFixClientDrift(rust_mux::ipc::ClientKind),
     /// Consumer-side rendering for a polarize prism emitted by Vibecrafted.
     /// The operator does not score or originate the band; it only surfaces
     /// the runner's prism payload and suggested action path.
@@ -161,6 +164,13 @@ impl DeepAction {
             DeepAction::OpenRoot(path) => format!("Open run root: {}", path.to_string_lossy()),
             DeepAction::MuxHealth { service } => {
                 format!("Health-check MCP daemon: rust-mux health --service {service}")
+            }
+            DeepAction::MuxRestart(service) => {
+                format!("Restart MCP daemon: rust-mux restart --service {service}")
+            }
+            DeepAction::MuxVerifyClient(_) => "Verify client routing through mux".to_string(),
+            DeepAction::MuxFixClientDrift(_) => {
+                "Fix client drift: rust-mux wizard --strategy auto-rewire".to_string()
             }
             DeepAction::PolarizeIntent {
                 band,
@@ -221,6 +231,7 @@ pub struct App {
     /// so the Monitor tab can render MCP daemon health without doing IO
     /// inside the draw path.
     pub mux_summaries: Vec<crate::mux::MuxSummary>,
+    pub mux_subscriber: Option<crate::mux::MuxSubscriber>,
     /// Cached polarize prism intents discovered under
     /// `$VIBECRAFTED_HOME/artifacts/**/polarize/<run_id>/prism.json`.
     /// Refreshed with the run board so draw code remains pure rendering.
@@ -255,12 +266,16 @@ impl App {
             artifact_title: String::new(),
             artifact_lines: Vec::new(),
             mux_summaries: Vec::new(),
+            mux_subscriber: None,
             polarize_intents: Vec::new(),
         };
         apply_run_filters(&mut app.runs, app.queue_scope, &app.search_query);
         app.sync_selection();
         app.refresh_mux();
         app.refresh_polarize();
+        let path = rust_mux::ipc::server::socket_path();
+        let summaries = std::sync::Arc::new(std::sync::RwLock::new(app.mux_summaries.clone()));
+        app.mux_subscriber = Some(crate::mux::MuxSubscriber::start(path, summaries));
         Ok(app)
     }
 
@@ -285,6 +300,12 @@ impl App {
 
     pub fn refresh_polarize(&mut self) {
         self.polarize_intents = crate::polarize::current_intents(&self.config.launch_root);
+    }
+
+    pub fn handle_ipc_event(&mut self, _event: rust_mux::ipc::IpcEvent) {
+        // The subscriber pushes events. We can either do a full IO refresh,
+        // or apply the diff. The safest and most robust path is just calling refresh_mux().
+        self.refresh_mux();
     }
 
     /// Lines for the Monitor tab "MCP daemons" panel. Returns an empty

@@ -11,6 +11,7 @@ pub struct CliOptions {
     pub launch_runtime: Option<LaunchRuntime>,
     pub terminal_binary: Option<PathBuf>,
     pub tick_ms: u64,
+    pub no_verify_gate: bool,
 }
 
 impl Default for CliOptions {
@@ -22,6 +23,7 @@ impl Default for CliOptions {
             launch_runtime: None,
             terminal_binary: None,
             tick_ms: 250,
+            no_verify_gate: false,
         }
     }
 }
@@ -34,6 +36,7 @@ pub struct AppConfig {
     pub launch_runtime: LaunchRuntime,
     pub terminal_binary: PathBuf,
     pub tick_rate: Duration,
+    pub no_verify_gate: bool,
 }
 
 pub fn parse_args() -> anyhow::Result<CliOptions> {
@@ -108,6 +111,9 @@ pub fn parse_args() -> anyhow::Result<CliOptions> {
                     .ok_or_else(|| anyhow::anyhow!("--tick-ms requires a value"))?;
                 options.tick_ms = value.parse::<u64>()?;
             }
+            "--no-verify-gate" => {
+                options.no_verify_gate = true;
+            }
             _ => {
                 return Err(anyhow::anyhow!("unknown argument: {arg}"));
             }
@@ -129,6 +135,7 @@ pub fn build_config(options: CliOptions) -> AppConfig {
             .unwrap_or_else(default_terminal_binary),
         command_deck,
         tick_rate: Duration::from_millis(options.tick_ms.max(50)),
+        no_verify_gate: options.no_verify_gate,
     }
 }
 
