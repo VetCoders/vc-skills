@@ -1,10 +1,10 @@
 [package]
 name = "rust-mux"
 version = "0.4.0"
-edition = "2024"
+edition.workspace = true
 authors = ["Maciej Gad <void@div0.space>", "Monika Szymanska <hello@vetcoders.io>"]
 description = "Transport multiplexer for Rust MCP servers — tray, proxy, and runtime supervisor"
-license = "MIT OR Apache-2.0"
+license.workspace = true
 repository = "https://github.com/Loctree/rust-mux"
 homepage = "https://github.com/Loctree/rust-mux"
 documentation = "https://docs.rs/rust-mux"

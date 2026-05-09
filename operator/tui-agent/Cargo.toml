@@ -1,9 +1,9 @@
 [package]
 name = "vibecrafted-operator"
 version = "0.1.1"
-edition = "2024"
+edition.workspace = true
 license = "MIT"
-authors = ["VetCoders"]
+authors.workspace = true
 description = "Rust operator console for Vibecrafted"
 readme = "README.md"
 homepage = "https://vibecrafted.io"
