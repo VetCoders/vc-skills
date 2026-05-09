@@ -10,7 +10,7 @@ SOURCE   := $(CURDIR)
 BRANCH   ?= main
 VERSION_FILE := VERSION
 
-.PHONY: help vibecrafted gui-install wizard wizard-dev check test install skills helpers setup-dev dry-run doctor list update uninstall restore migrate migrate-dry init-hooks bundle bundle-check foundations foundations-check semgrep version version-show version-bump bump-patch bump-minor bump-major iterm-plugin iterm-plugin-refresh iterm-plugin-show iterm-plugin-uninstall
+.PHONY: help vibecrafted gui-install wizard wizard-dev check test install skills helpers setup-dev dry-run doctor list update uninstall restore migrate migrate-dry init-hooks bundle bundle-check foundations foundations-check semgrep version version-show version-bump bump-patch bump-minor bump-major iterm-plugin iterm-plugin-refresh iterm-plugin-show iterm-plugin-uninstall demo demo-full
 
 help:
 	@printf "\n"
@@ -50,6 +50,8 @@ help:
 	@printf "  \033[33m◇\033[0m  make iterm-plugin-refresh   \033[2mOverwrite installed file (creates .bak)\033[0m\n"
 	@printf "  \033[33m◇\033[0m  make iterm-plugin-show      \033[2mPrint generated JSON to stdout\033[0m\n"
 	@printf "  \033[33m◇\033[0m  make iterm-plugin-uninstall \033[2mRemove the installed file\033[0m\n"
+	@printf "  \033[33m✦\033[0m  make demo                   \033[2mLive terminal dashboard z klikalnymi akcjami (vc-* URL handlers)\033[0m\n"
+	@printf "  \033[33m✦\033[0m  make demo-full              \033[2mDashboard + aicx HTML serve w tle (browser)\033[0m\n"
 	@printf "\n"
 	@printf "  ╭─────────────────────────────────────────╮\n"
 	@printf "  │ Vibecrafted with AI Agents by VetCoders │\n"
@@ -232,6 +234,12 @@ iterm-plugin-show:
 
 iterm-plugin-uninstall:
 	@uv run --project vibecrafted-core --quiet python -m vibecrafted_core.iterm2_profiles uninstall
+
+demo:
+	@bash scripts/vc-dashboard
+
+demo-full:
+	@bash scripts/vc-dashboard --html
 
 init-hooks:
 	@if git rev-parse --git-dir >/dev/null 2>&1; then \
