@@ -145,7 +145,7 @@ fn restart_service(socket_path: &Path, name: String) {
             .map_err(anyhow::Error::from)
             .and_then(|runtime| runtime.block_on(ipc_client::restart_service(&socket, &name)));
         match result {
-            Ok(MuxControlResponse::Error { message, .. }) => {
+            Ok(MuxControlResponse::Error(message)) => {
                 notify("Vibecrafted", &format!("Restart {name}: {message}"))
             }
             Ok(_) => notify("Vibecrafted", &format!("Restart request sent for {name}")),
