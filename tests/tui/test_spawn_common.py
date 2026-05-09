@@ -532,6 +532,43 @@ def test_spawn_watch_startup_can_probe_without_echoing_transcript(
     assert "Working..." not in result.stdout
 
 
+def test_spawn_finish_meta_does_not_parse_codex_core_session_error_as_id(
+    tmp_path: Path,
+) -> None:
+    meta = tmp_path / "meta.json"
+    report = tmp_path / "report.md"
+    transcript = tmp_path / "trace.log"
+    launcher = tmp_path / "launcher.sh"
+    plan = tmp_path / "plan.md"
+
+    transcript.write_text(
+        "\n".join(
+            [
+                "2026-05-08T19:51:31.928244Z ERROR codex_core::session: failed to record rollout items: thread 019e0905-1eb8-7890-a73a-74bbb2171341 not found",
+                "[21:51:32] session: fake-session-001",
+            ]
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    _bash(
+        f'''
+        set -euo pipefail
+        source "{COMMON_SH}"
+        export SPAWN_AGENT="codex"
+        export SPAWN_PROMPT_ID="prompt-123"
+        export SPAWN_RUN_ID="run-123"
+        export SPAWN_SKILL_CODE="impl"
+        spawn_write_meta "{meta}" "launching" "codex" "implement" "{tmp_path}" "{plan}" "{report}" "{transcript}" "{launcher}"
+        spawn_finish_meta "{meta}" "completed" "0"
+        '''
+    )
+
+    payload = json.loads(meta.read_text(encoding="utf-8"))
+    assert payload["session_id"] == "fake-session-001"
+
+
 def test_codex_stream_filter_handles_structured_turn_failed_payload() -> None:
     payload = (
         '{"type":"turn.failed","error":{"message":"stream exploded","code":"EPIPE"}}\n'

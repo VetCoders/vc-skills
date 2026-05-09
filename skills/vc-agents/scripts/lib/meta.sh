@@ -316,7 +316,7 @@ if transcript_path:
         with open(transcript_path, "r", errors="replace") as tf:
             raw = tf.read(64 * 1024)  # first 64KB is enough
         clean = re.sub(r'\x1b\[[0-9;]*m', '', raw)
-        m = re.search(r'session: ([a-f0-9-]{8,})', clean)
+        m = re.search(r'session: ([A-Za-z0-9][A-Za-z0-9-]*-[A-Za-z0-9][A-Za-z0-9-]*)', clean)
         if m:
             payload["session_id"] = m.group(1)
     except (OSError, IOError):
