@@ -1,0 +1,6 @@
+/target
+/Cargo.lock
+/.vibecrafted/*
+!/.vibecrafted/GUIDELINES.md
+!/.vibecrafted/plans
+!/.vibecrafted/reports
