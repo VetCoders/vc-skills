@@ -606,6 +606,8 @@ _wait_for_loop_meta() {
   local elapsed=0
   local meta_path=""
   local expected_run_id="${run_id}-$(printf '%03d' "$loop_nr")"
+  local final_grace_s="${VIBECRAFTED_MARBLES_META_FINAL_GRACE_S:-4}"
+  local grace_elapsed=0
 
   while true; do
     meta_path="$(spawn_find_meta_for_run_id "$store/reports" "$expected_run_id")"
@@ -619,6 +621,18 @@ _wait_for_loop_meta() {
     fi
 
     if (( timeout_s > 0 && elapsed >= timeout_s )); then
+      while (( final_grace_s > 0 && grace_elapsed < final_grace_s )); do
+        sleep 1
+        (( grace_elapsed += 1 ))
+        meta_path="$(spawn_find_meta_for_run_id "$store/reports" "$expected_run_id")"
+        if [[ -n "$meta_path" ]]; then
+          printf '%s\n' "$meta_path"
+          return 0
+        fi
+        if [[ -f "$state_dir/stop" ]]; then
+          return 1
+        fi
+      done
       return 2
     fi
 

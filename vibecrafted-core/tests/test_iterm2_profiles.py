@@ -201,6 +201,15 @@ def test_install_force_creates_backup(tmp_path: Path) -> None:
     assert backup.read_text(encoding="utf-8") == original
 
 
+def test_install_force_is_idempotent_without_backup_for_identical_payload(
+    tmp_path: Path,
+) -> None:
+    target = profiles.install_profiles(target_dir=tmp_path, filename="test.json")
+    profiles.install_profiles(target_dir=tmp_path, filename="test.json", force=True)
+    assert target.exists()
+    assert not (tmp_path / "test.json.bak").exists()
+
+
 def test_install_force_skips_backup_when_disabled(tmp_path: Path) -> None:
     target = tmp_path / "test.json"
     target.write_text('{"Profiles": []}\n', encoding="utf-8")

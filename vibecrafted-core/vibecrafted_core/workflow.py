@@ -109,14 +109,38 @@ def launch_workflow(
             json.dumps({"ts": stamp, "spec": spec.to_payload(), "command": command})
             + "\n"
         )
-        subprocess.Popen(
-            command,
-            cwd=Path(source_dir).resolve(),
-            env=env,
-            stdout=handle,
-            stderr=subprocess.STDOUT,
-            start_new_session=True,
-            text=True,
+        try:
+            proc = subprocess.Popen(
+                command,
+                cwd=Path(source_dir).resolve(),
+                env=env,
+                stdout=handle,
+                stderr=subprocess.STDOUT,
+                start_new_session=True,
+                text=True,
+            )
+        except OSError as exc:
+            handle.write(
+                json.dumps(
+                    {
+                        "ts": stamp,
+                        "event": "spawn_error",
+                        "error": f"{type(exc).__name__}: {exc}",
+                    }
+                )
+                + "\n"
+            )
+            return {
+                "accepted": False,
+                "message": f"Failed to launch {spec.skill}: {exc}",
+                "command": command,
+                "launch_log": str(launch_log),
+                "spec": spec.to_payload(),
+                "error": f"{type(exc).__name__}: {exc}",
+                "control_plane": sync_state(),
+            }
+        handle.write(
+            json.dumps({"ts": stamp, "event": "spawned", "pid": proc.pid}) + "\n"
         )
 
     snapshot = sync_state()
@@ -124,6 +148,7 @@ def launch_workflow(
         "accepted": True,
         "message": f"Launched {spec.skill} via the existing command deck.",
         "command": command,
+        "pid": proc.pid,
         "launch_log": str(launch_log),
         "spec": spec.to_payload(),
         "control_plane": snapshot,

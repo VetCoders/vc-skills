@@ -150,9 +150,11 @@ spawn_marbles_write_child_plan() {
 - If the substrate is too poisoned to operate on, return control to the operator/runtime layer. Do not solve substrate invalidity by moving sideways.
 
 ## Exit Contract
-- **COMMIT**: mandatory. One commit when done.
 - **REPORT**: mandatory. Write to the report path given at the end of this prompt.
-- **SCOPE**: do your work, commit, report, stop.
+  Filesystem artifact (report.md + meta.json + transcript.log) is the closure marker.
+- **COMMIT**: only if you produced staged changes that match the dispatched scope.
+  NO empty commits. NO `--allow-empty`. NO chore stamps.
+- **SCOPE**: do your work, write report, optionally commit if real changes, stop.
 ROUND_CONTRACT
 }
 

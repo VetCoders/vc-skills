@@ -170,6 +170,17 @@ def test_doctor_payload_unavailable_when_installer_missing(
     assert payload["findings"] == []
 
 
+def test_doctor_payload_reraises_runtime_doctor_errors(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    def _boom(*_args: Any, **_kwargs: Any) -> Any:
+        raise OSError("permission denied")
+
+    monkeypatch.setattr(server._doctor, "doctor_run", _boom)
+    with pytest.raises(OSError, match="permission denied"):
+        server._doctor_payload(slim=True)
+
+
 # ---------------------------------------------------------------------------
 # FastMCP roundtrip (skipped when fastmcp is not installed)
 # ---------------------------------------------------------------------------
@@ -190,15 +201,12 @@ def test_build_server_registers_tools_and_resources() -> None:
     mcp = server.build_server()
 
     async def _inspect() -> tuple[set[str], set[str]]:
-        tools = await mcp.list_tools()
-        resources = await mcp.list_resources()
-        templates = await mcp.list_resource_templates()
-        tool_names = {tool.name for tool in tools}
-        resource_uris = {str(item.uri) for item in resources}
-        resource_uris |= {
-            str(getattr(item, "uri_template", getattr(item, "uriTemplate", "")))
-            for item in templates
-        }
+        tools = await mcp.get_tools()
+        resources = await mcp.get_resources()
+        templates = await mcp.get_resource_templates()
+        tool_names = set(tools)
+        resource_uris = {str(uri) for uri in resources}
+        resource_uris |= {str(uri) for uri in templates}
         return tool_names, resource_uris
 
     tool_names, resource_uris = _run(_inspect())

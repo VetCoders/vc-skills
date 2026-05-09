@@ -79,7 +79,7 @@ def _doctor_payload(slim: bool) -> dict[str, Any]:
     """
     try:
         findings = _doctor.doctor_run()
-    except Exception as exc:  # noqa: BLE001 — bubbling reason to caller
+    except (ImportError, ModuleNotFoundError) as exc:
         return {
             "ok": 0,
             "warnings": 0,

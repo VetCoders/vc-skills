@@ -1,0 +1,41 @@
+from __future__ import annotations
+
+import sys
+from pathlib import Path
+from types import SimpleNamespace
+
+from vibecrafted_core import doctor
+
+
+def test_installer_module_loads_source_file_without_mutating_sys_path(
+    monkeypatch, tmp_path: Path
+) -> None:
+    repo = tmp_path / "vibecrafted"
+    scripts = repo / "scripts"
+    scripts.mkdir(parents=True)
+    installer = scripts / "vetcoders_install.py"
+    installer.write_text("VALUE = 'loaded'\n", encoding="utf-8")
+
+    monkeypatch.setattr(doctor, "_INSTALLER_MODULE", None)
+    monkeypatch.setattr(doctor, "_repo_root_from_source", lambda: repo)
+    before = list(sys.path)
+
+    module = doctor._installer_module()
+
+    assert module.VALUE == "loaded"
+    assert sys.path == before
+
+
+def test_doctor_summary_counts_findings() -> None:
+    payload = doctor.doctor_summary(
+        [
+            SimpleNamespace(level="ok", component="a", message="fine"),
+            SimpleNamespace(level="warn", component="b", message="careful"),
+            SimpleNamespace(level="fail", component="c", message="broken"),
+        ]
+    )
+
+    assert payload["ok"] == 1
+    assert payload["warnings"] == 1
+    assert payload["failures"] == 1
+    assert payload["healthy"] is False

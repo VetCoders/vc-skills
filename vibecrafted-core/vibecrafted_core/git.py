@@ -34,6 +34,20 @@ def _git_root(path: Path) -> Path:
     return Path(root).resolve() if root else path.resolve()
 
 
+def _require_git_root(path: Path) -> Path:
+    try:
+        result = _git(path, "rev-parse", "--show-toplevel")
+    except FileNotFoundError as exc:
+        raise RuntimeError("git executable is not available on PATH") from exc
+    if result.returncode != 0:
+        detail = (result.stderr or result.stdout).strip()
+        message = f"not a git repository: {path}"
+        if detail:
+            message = f"{message}: {detail}"
+        raise RuntimeError(message)
+    return Path(result.stdout.strip()).resolve()
+
+
 def _ahead_behind(path: Path, upstream: str) -> tuple[int, int]:
     if not upstream:
         return (0, 0)
@@ -117,7 +131,7 @@ def _worktrees(path: Path) -> list[dict[str, str]]:
 def repo_full(path: str | Path = ".") -> dict[str, Any]:
     """Return compact repo state similar to the operator `repo-full` helper."""
     requested_path = Path(path).expanduser().resolve()
-    root = _git_root(requested_path)
+    root = _require_git_root(requested_path)
     branch = _git_text(root, "branch", "--show-current", default="HEAD")
     upstream = _git_text(
         root, "rev-parse", "--abbrev-ref", "--symbolic-full-name", "@{u}"
@@ -139,6 +153,7 @@ def repo_full(path: str | Path = ".") -> dict[str, Any]:
         "repo": root.name,
         "requested_path": str(requested_path),
         "root": str(root),
+        "git_available": True,
         "branch": branch,
         "head_short": _git_text(root, "rev-parse", "--short", "HEAD"),
         "head_full": _git_text(root, "rev-parse", "HEAD"),

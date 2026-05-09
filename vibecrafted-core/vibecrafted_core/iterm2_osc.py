@@ -15,6 +15,7 @@ Reference: https://iterm2.com/documentation-escape-codes.html
 from __future__ import annotations
 
 import base64
+from collections.abc import Callable
 from typing import Literal
 
 ESC = "\x1b"
@@ -232,7 +233,7 @@ def report_color(index: int) -> str:
 # --------------------------------------------------------------------- Helpers / __main__
 
 
-_ALL_BUILDERS = {
+_ALL_BUILDERS: dict[str, tuple[Callable[..., str], list[str]]] = {
     "badge": (set_badge, ["text"]),
     "profile": (set_profile, ["name"]),
     "user-var": (set_user_var, ["key", "value"]),

@@ -545,7 +545,7 @@ def test_spawn_finish_meta_does_not_parse_codex_core_session_error_as_id(
         "\n".join(
             [
                 "2026-05-08T19:51:31.928244Z ERROR codex_core::session: failed to record rollout items: thread 019e0905-1eb8-7890-a73a-74bbb2171341 not found",
-                "[21:51:32] session: fake-session-001",
+                "[21:51:32] session: 019e09051eb87890a73a74bbb2171341",
             ]
         )
         + "\n",
@@ -566,7 +566,7 @@ def test_spawn_finish_meta_does_not_parse_codex_core_session_error_as_id(
     )
 
     payload = json.loads(meta.read_text(encoding="utf-8"))
-    assert payload["session_id"] == "fake-session-001"
+    assert payload["session_id"] == "019e09051eb87890a73a74bbb2171341"
 
 
 def test_codex_stream_filter_handles_structured_turn_failed_payload() -> None:

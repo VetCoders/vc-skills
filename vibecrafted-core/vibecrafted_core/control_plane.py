@@ -294,15 +294,12 @@ def _normalize_marbles_state(path: Path) -> RunStatus | None:
 def _merge_status(existing: RunStatus | None, incoming: RunStatus) -> RunStatus:
     if existing is None:
         return incoming
+    existing_dt = _parse_iso(existing.updated_at)
+    incoming_dt = _parse_iso(incoming.updated_at) or dt.datetime.min.replace(
+        tzinfo=dt.timezone.utc
+    )
     latest = (
-        existing
-        if _parse_iso(existing.updated_at)
-        and _parse_iso(existing.updated_at)
-        >= (
-            _parse_iso(incoming.updated_at)
-            or dt.datetime.min.replace(tzinfo=dt.timezone.utc)
-        )
-        else incoming
+        existing if existing_dt is not None and existing_dt >= incoming_dt else incoming
     )
     preferred = latest
     return RunStatus(

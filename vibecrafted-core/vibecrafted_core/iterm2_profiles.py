@@ -20,6 +20,7 @@ References:
 from __future__ import annotations
 
 import json
+import sys
 import uuid
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -276,17 +277,18 @@ def install_profiles(
 
     payload = serialize(build_profiles_document(specs))
 
-    if target.exists() and not force:
+    if target.exists():
         existing = target.read_text(encoding="utf-8")
         if existing == payload:
             return target  # idempotent no-op
-        raise FileExistsError(
-            f"{target} exists with different content; pass force=True to overwrite"
-        )
-
-    if target.exists() and backup:
-        backup_path = target.with_suffix(target.suffix + ".bak")
-        backup_path.write_text(target.read_text(encoding="utf-8"), encoding="utf-8")
+        if force:
+            if backup:
+                backup_path = target.with_suffix(target.suffix + ".bak")
+                backup_path.write_text(existing, encoding="utf-8")
+        else:
+            raise FileExistsError(
+                f"{target} exists with different content; pass force=True to overwrite"
+            )
 
     target.write_text(payload, encoding="utf-8")
     return target
@@ -338,7 +340,7 @@ def _cli(argv: list[str]) -> int:
         try:
             target = install_profiles(force=force or op == "refresh")
         except FileExistsError as err:
-            print(f"error: {err}", file=__import__("sys").stderr)
+            print(f"error: {err}", file=sys.stderr)
             print("hint: pass --force to overwrite (creates a .bak first)")
             return 3
         print(f"installed: {target}")
@@ -348,11 +350,9 @@ def _cli(argv: list[str]) -> int:
         print("removed" if removed else "nothing to remove")
         return 0
 
-    print(f"unknown op: {op!r}", file=__import__("sys").stderr)
+    print(f"unknown op: {op!r}", file=sys.stderr)
     return 2
 
 
 if __name__ == "__main__":
-    import sys
-
     raise SystemExit(_cli(sys.argv[1:]))

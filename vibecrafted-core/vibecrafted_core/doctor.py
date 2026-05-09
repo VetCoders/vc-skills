@@ -1,10 +1,13 @@
 from __future__ import annotations
 
+import importlib.util
 import sys
 from pathlib import Path
 from typing import Any, Sequence
 
 from .runtime_paths import vibecrafted_home
+
+_INSTALLER_MODULE: Any | None = None
 
 
 def _repo_root_from_source() -> Path | None:
@@ -16,13 +19,31 @@ def _repo_root_from_source() -> Path | None:
 
 
 def _installer_module() -> Any:
+    global _INSTALLER_MODULE
+    if _INSTALLER_MODULE is not None:
+        return _INSTALLER_MODULE
+
     repo_root = _repo_root_from_source()
-    if repo_root is not None and str(repo_root) not in sys.path:
-        sys.path.insert(0, str(repo_root))
-    try:
-        from scripts import vetcoders_install
-    except ModuleNotFoundError:
-        import vetcoders_install  # type: ignore[no-redef]
+    if repo_root is not None:
+        installer_path = repo_root / "scripts" / "vetcoders_install.py"
+        spec = importlib.util.spec_from_file_location(
+            "vibecrafted_runtime_vetcoders_install", installer_path
+        )
+        if spec is None or spec.loader is None:
+            raise ModuleNotFoundError(f"Cannot load installer module: {installer_path}")
+        module = importlib.util.module_from_spec(spec)
+        sys.modules[spec.name] = module
+        try:
+            spec.loader.exec_module(module)
+        except Exception:
+            sys.modules.pop(spec.name, None)
+            raise
+        _INSTALLER_MODULE = module
+        return module
+
+    import vetcoders_install  # type: ignore[import-not-found]
+
+    _INSTALLER_MODULE = vetcoders_install
     return vetcoders_install
 
 
