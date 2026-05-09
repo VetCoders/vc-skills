@@ -7,26 +7,58 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		0F83E26443735866DB5FC793 /* main.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9DC22CD11479B2C9FC62F7A0 /* main.swift */; };
 		14EAC5B0973436D431AE7153 /* MainSplitViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 677ED311C0A0AC32FEDF5C9E /* MainSplitViewController.swift */; };
 		65E37AF5DAC0EC25D709DDB5 /* MainWindowController.swift in Sources */ = {isa = PBXBuildFile; fileRef = AD9D34C38918A44FDA163417 /* MainWindowController.swift */; };
+		669374B91491A78C9D250C98 /* libshell_agent_ffi.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = CC662D5685D9AC636FBE264E /* libshell_agent_ffi.dylib */; };
+		686C3016BEBD0D76D241A3AD /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = E0AE5B25D9D8258CBC510DEF /* Assets.xcassets */; };
+		8EB87266E398763B8559D7E5 /* libshell_agent_ffi.dylib in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = CC662D5685D9AC636FBE264E /* libshell_agent_ffi.dylib */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		A60320E009ED2630B2CD138A /* SidebarViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 018846F7BFF32DDA55BEB6B3 /* SidebarViewController.swift */; };
-		AD8EDDBFCA0E035A3127FE9D /* vibecrafted_shell_ffi.swift in Sources */ = {isa = PBXBuildFile; fileRef = 670FB28076F3623946392EE2 /* vibecrafted_shell_ffi.swift */; };
+		A79FD0BD0B7AC895BC12BECF /* shell_agent_ffi.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2AE8B998276EC0DE56C9F39 /* shell_agent_ffi.swift */; };
 		AED4BA44792B0934E269B0C9 /* InspectorViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9DC7FC1EB764722753755233 /* InspectorViewController.swift */; };
 		D3552D0D169AC41B576D5826 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = AD135782CD6D34B7A4639DF0 /* AppDelegate.swift */; };
 		F1F6DE9CF09A4B0E5BBAF04C /* CanvasViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB08FBAC6D3A32EA7AA68548 /* CanvasViewController.swift */; };
 /* End PBXBuildFile section */
 
+/* Begin PBXCopyFilesBuildPhase section */
+		B5CE407F90D607E9182E30A6 /* Embed Frameworks */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 10;
+			files = (
+				8EB87266E398763B8559D7E5 /* libshell_agent_ffi.dylib in Embed Frameworks */,
+			);
+			name = "Embed Frameworks";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
 /* Begin PBXFileReference section */
 		018846F7BFF32DDA55BEB6B3 /* SidebarViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SidebarViewController.swift; sourceTree = "<group>"; };
 		0AE9F2A66C4AB43ADF27641A /* .gitkeep */ = {isa = PBXFileReference; path = .gitkeep; sourceTree = "<group>"; };
 		66EC2ADEE7E46C767159D503 /* Vibecrafted.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Vibecrafted.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		670FB28076F3623946392EE2 /* vibecrafted_shell_ffi.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = vibecrafted_shell_ffi.swift; sourceTree = "<group>"; };
 		677ED311C0A0AC32FEDF5C9E /* MainSplitViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainSplitViewController.swift; sourceTree = "<group>"; };
+		9DC22CD11479B2C9FC62F7A0 /* main.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = main.swift; sourceTree = "<group>"; };
 		9DC7FC1EB764722753755233 /* InspectorViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InspectorViewController.swift; sourceTree = "<group>"; };
 		AD135782CD6D34B7A4639DF0 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		AD9D34C38918A44FDA163417 /* MainWindowController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainWindowController.swift; sourceTree = "<group>"; };
+		B2AE8B998276EC0DE56C9F39 /* shell_agent_ffi.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = shell_agent_ffi.swift; sourceTree = "<group>"; };
 		CB08FBAC6D3A32EA7AA68548 /* CanvasViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CanvasViewController.swift; sourceTree = "<group>"; };
+		CC662D5685D9AC636FBE264E /* libshell_agent_ffi.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libshell_agent_ffi.dylib; path = ../../target/release/libshell_agent_ffi.dylib; sourceTree = "<group>"; };
+		E0AE5B25D9D8258CBC510DEF /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 /* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		015CE8C17BD0DD3E250BC1B0 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				669374B91491A78C9D250C98 /* libshell_agent_ffi.dylib in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
 		1B93B22B922052B6D58CB4EB /* Vibecrafted */ = {
@@ -34,6 +66,8 @@
 			children = (
 				0AE9F2A66C4AB43ADF27641A /* .gitkeep */,
 				AD135782CD6D34B7A4639DF0 /* AppDelegate.swift */,
+				E0AE5B25D9D8258CBC510DEF /* Assets.xcassets */,
+				9DC22CD11479B2C9FC62F7A0 /* main.swift */,
 				A2D426BFC3DA1DF414A5E096 /* Bridge */,
 				9FFF832B23463AAAFCA9150D /* Views */,
 			);
@@ -44,8 +78,17 @@
 			isa = PBXGroup;
 			children = (
 				1B93B22B922052B6D58CB4EB /* Vibecrafted */,
+				4CE0EF52F6A1AE4402F5E427 /* Frameworks */,
 				7C875D8B1DE1322A5D94E60B /* Products */,
 			);
+			sourceTree = "<group>";
+		};
+		4CE0EF52F6A1AE4402F5E427 /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				CC662D5685D9AC636FBE264E /* libshell_agent_ffi.dylib */,
+			);
+			name = Frameworks;
 			sourceTree = "<group>";
 		};
 		7C875D8B1DE1322A5D94E60B /* Products */ = {
@@ -71,7 +114,7 @@
 		A2D426BFC3DA1DF414A5E096 /* Bridge */ = {
 			isa = PBXGroup;
 			children = (
-				670FB28076F3623946392EE2 /* vibecrafted_shell_ffi.swift */,
+				B2AE8B998276EC0DE56C9F39 /* shell_agent_ffi.swift */,
 			);
 			path = Bridge;
 			sourceTree = "<group>";
@@ -85,6 +128,9 @@
 			buildPhases = (
 				80F542BE7AAC1F9A358F5919 /* Build Rust FFI */,
 				3FAD01166F3AB65C7E6A005F /* Sources */,
+				5C09F58E39B5124D10F145E3 /* Resources */,
+				015CE8C17BD0DD3E250BC1B0 /* Frameworks */,
+				B5CE407F90D607E9182E30A6 /* Embed Frameworks */,
 			);
 			buildRules = (
 			);
@@ -130,6 +176,17 @@
 		};
 /* End PBXProject section */
 
+/* Begin PBXResourcesBuildPhase section */
+		5C09F58E39B5124D10F145E3 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				686C3016BEBD0D76D241A3AD /* Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
 /* Begin PBXShellScriptBuildPhase section */
 		80F542BE7AAC1F9A358F5919 /* Build Rust FFI */ = {
 			isa = PBXShellScriptBuildPhase;
@@ -147,7 +204,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "cd \"$PROJECT_DIR/../..\" && cargo build -p vibecrafted-shell-ffi --release\ncargo run -p vibecrafted-uniffi-bindgen -- generate --library target/release/libvibecrafted_shell_ffi.dylib --language swift --out-dir shell-agent/app/Vibecrafted/Bridge/ || true\n";
+			shellScript = "bash ${SRCROOT}/../scripts/build-rust.sh || true\n";
 		};
 /* End PBXShellScriptBuildPhase section */
 
@@ -162,7 +219,8 @@
 				14EAC5B0973436D431AE7153 /* MainSplitViewController.swift in Sources */,
 				65E37AF5DAC0EC25D709DDB5 /* MainWindowController.swift in Sources */,
 				A60320E009ED2630B2CD138A /* SidebarViewController.swift in Sources */,
-				AD8EDDBFCA0E035A3127FE9D /* vibecrafted_shell_ffi.swift in Sources */,
+				0F83E26443735866DB5FC793 /* main.swift in Sources */,
+				A79FD0BD0B7AC895BC12BECF /* shell_agent_ffi.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -177,32 +235,28 @@
 				CODE_SIGN_STYLE = Manual;
 				COMBINE_HIDPI_IMAGES = YES;
 				CURRENT_PROJECT_VERSION = 1;
-				GCC_OPTIMIZATION_LEVEL = s;
+				FRAMEWORK_SEARCH_PATHS = (
+					"$(inherited)",
+					"\"../../target/release\"",
+				);
 				GENERATE_INFOPLIST_FILE = YES;
 				HEADER_SEARCH_PATHS = (
 					"$(PROJECT_DIR)/Vibecrafted/Bridge",
 				);
 				INFOPLIST_GENERATION_MODE = GeneratedFile;
-				INFOPLIST_KEY_CFBundleExecutable = Vibecrafted;
 				INFOPLIST_KEY_LSUIElement = NO;
 				INFOPLIST_KEY_NSPrincipalClass = NSApplication;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
-				MARKETING_VERSION = 0.1.0;
-				OTHER_LDFLAGS = (
-					"$(PROJECT_DIR)/../../target/release/libvibecrafted_shell_ffi.a",
-					"-framework",
-					Security,
-					"-framework",
-					SystemConfiguration,
+				LIBRARY_SEARCH_PATHS = (
+					"$(PROJECT_DIR)/../../target/release",
 				);
+				MARKETING_VERSION = 0.1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = io.vetcoders.vibecrafted;
 				SDKROOT = macosx;
-				SWIFT_COMPILATION_MODE = wholemodule;
-				SWIFT_OBJC_BRIDGING_HEADER = Vibecrafted/Bridge/vibecrafted_shell_ffiFFI.h;
-				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				SWIFT_OBJC_BRIDGING_HEADER = Vibecrafted/Bridge/shell_agent_ffiFFI.h;
 			};
 			name = Release;
 		};
@@ -277,29 +331,28 @@
 				CODE_SIGN_STYLE = Manual;
 				COMBINE_HIDPI_IMAGES = YES;
 				CURRENT_PROJECT_VERSION = 1;
+				FRAMEWORK_SEARCH_PATHS = (
+					"$(inherited)",
+					"\"../../target/release\"",
+				);
 				GENERATE_INFOPLIST_FILE = YES;
 				HEADER_SEARCH_PATHS = (
 					"$(PROJECT_DIR)/Vibecrafted/Bridge",
 				);
 				INFOPLIST_GENERATION_MODE = GeneratedFile;
-				INFOPLIST_KEY_CFBundleExecutable = Vibecrafted;
 				INFOPLIST_KEY_LSUIElement = NO;
 				INFOPLIST_KEY_NSPrincipalClass = NSApplication;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
-				MARKETING_VERSION = 0.1.0;
-				OTHER_LDFLAGS = (
-					"$(PROJECT_DIR)/../../target/release/libvibecrafted_shell_ffi.a",
-					"-framework",
-					Security,
-					"-framework",
-					SystemConfiguration,
+				LIBRARY_SEARCH_PATHS = (
+					"$(PROJECT_DIR)/../../target/release",
 				);
+				MARKETING_VERSION = 0.1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = io.vetcoders.vibecrafted;
 				SDKROOT = macosx;
-				SWIFT_OBJC_BRIDGING_HEADER = Vibecrafted/Bridge/vibecrafted_shell_ffiFFI.h;
+				SWIFT_OBJC_BRIDGING_HEADER = Vibecrafted/Bridge/shell_agent_ffiFFI.h;
 			};
 			name = Debug;
 		};

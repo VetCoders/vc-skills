@@ -1,79 +1,143 @@
-import Cocoa
+// Vibecrafted — Sidebar
+// Created by VetCoders
+
+import AppKit
 
 class SidebarViewController: NSViewController, NSTableViewDataSource, NSTableViewDelegate {
-    let tableView = NSTableView()
-    var servers: [FfiServerStatus] = []
+    private let scrollView = NSScrollView()
+    private let tableView = NSTableView()
     
+    private var servers: [FfiServerStatus] = []
+
     override func loadView() {
-        self.view = NSView()
-        
-        let scrollView = NSScrollView()
-        scrollView.translatesAutoresizingMaskIntoConstraints = false
-        scrollView.documentView = tableView
+        let container = NSView()
+        container.wantsLayer = true
+        view = container
+
         scrollView.hasVerticalScroller = true
-        
-        self.view.addSubview(scrollView)
-        NSLayoutConstraint.activate([
-            scrollView.topAnchor.constraint(equalTo: view.topAnchor),
-            scrollView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
-            scrollView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
-            scrollView.trailingAnchor.constraint(equalTo: view.trailingAnchor)
-        ])
+        scrollView.borderType = .noBorder
         
         let column = NSTableColumn(identifier: NSUserInterfaceItemIdentifier("ServerColumn"))
         column.title = "Servers"
         tableView.addTableColumn(column)
+        tableView.headerView = nil
         tableView.dataSource = self
         tableView.delegate = self
-        tableView.headerView = nil
+        tableView.rowHeight = 24
+        tableView.style = .sourceList
         
-        NotificationCenter.default.addObserver(self, selector: #selector(handleEvent), name: NSNotification.Name("IpcEvent"), object: nil)
+        scrollView.documentView = tableView
+        scrollView.translatesAutoresizingMaskIntoConstraints = false
+        container.addSubview(scrollView)
+
+        NSLayoutConstraint.activate([
+            scrollView.topAnchor.constraint(equalTo: container.topAnchor),
+            scrollView.leadingAnchor.constraint(equalTo: container.leadingAnchor),
+            scrollView.trailingAnchor.constraint(equalTo: container.trailingAnchor),
+            scrollView.bottomAnchor.constraint(equalTo: container.bottomAnchor),
+        ])
+
+        NotificationCenter.default.addObserver(
+            self, selector: #selector(handleIpcEvent),
+            name: NSNotification.Name("IpcEvent"), object: nil
+        )
         
-        refreshServers()
-    }
-    
-    @objc func handleEvent(_ notification: Notification) {
-        refreshServers()
-    }
-    
-    func refreshServers() {
         Task {
             do {
-                let status = try await getServerStatus()
-                DispatchQueue.main.async {
-                    self.servers = status
-                    self.tableView.reloadData()
-                }
+                servers = try await getServerStatus()
+                tableView.reloadData()
             } catch {
-                print("Failed to get servers: \(error)")
+                print("Failed to get initial server status: \(error)")
             }
         }
     }
-    
-    func numberOfRows(in tableView: NSTableView) -> Int {
-        return servers.count
+
+    @objc private func handleIpcEvent(_ notification: Notification) {
+        // Refresh server list on state changes
+        Task {
+            do {
+                let newServers = try await getServerStatus()
+                self.servers = newServers
+                self.tableView.reloadData()
+            } catch {
+                print("Failed to get server status: \(error)")
+            }
+        }
     }
-    
+
+    // MARK: - NSTableViewDataSource
+
+    func numberOfRows(in tableView: NSTableView) -> Int {
+        servers.count
+    }
+
+    // MARK: - NSTableViewDelegate
+
     func tableView(_ tableView: NSTableView, viewFor tableColumn: NSTableColumn?, row: Int) -> NSView? {
         let server = servers[row]
-        let cellIdentifier = NSUserInterfaceItemIdentifier("ServerCell")
-        var cell = tableView.makeView(withIdentifier: cellIdentifier, owner: self) as? NSTextField
+        let identifier = NSUserInterfaceItemIdentifier("ServerCell")
+        var cell = tableView.makeView(withIdentifier: identifier, owner: self) as? NSTableCellView
         
         if cell == nil {
-            cell = NSTextField(labelWithString: "")
-            cell?.identifier = cellIdentifier
+            cell = NSTableCellView()
+            cell?.identifier = identifier
+            
+            let imageView = NSImageView()
+            imageView.translatesAutoresizingMaskIntoConstraints = false
+            imageView.symbolConfiguration = NSImage.SymbolConfiguration(pointSize: 12, weight: .regular)
+            
+            let textField = NSTextField(labelWithString: "")
+            textField.translatesAutoresizingMaskIntoConstraints = false
+            
+            cell?.addSubview(imageView)
+            cell?.addSubview(textField)
+            cell?.imageView = imageView
+            cell?.textField = textField
+            
+            NSLayoutConstraint.activate([
+                imageView.leadingAnchor.constraint(equalTo: cell!.leadingAnchor, constant: 4),
+                imageView.centerYAnchor.constraint(equalTo: cell!.centerYAnchor),
+                imageView.widthAnchor.constraint(equalToConstant: 16),
+                imageView.heightAnchor.constraint(equalToConstant: 16),
+                
+                textField.leadingAnchor.constraint(equalTo: imageView.trailingAnchor, constant: 6),
+                textField.centerYAnchor.constraint(equalTo: cell!.centerYAnchor),
+                textField.trailingAnchor.constraint(equalTo: cell!.trailingAnchor, constant: -4)
+            ])
         }
         
-        let glyph = server.status == "Idle" ? "🟢" : (server.status == "Failed" ? "🔴" : "🟡")
-        cell?.stringValue = "\(glyph) \(server.name)"
+        cell?.textField?.stringValue = server.name
+        
+        let statusGlyph: String
+        let color: NSColor
+        
+        if server.status == "Idle" || server.status == "Routing" || server.status == "Saturated" {
+            statusGlyph = "circle.fill"
+            color = server.status == "Saturated" ? .systemYellow : .systemGreen
+        } else {
+            statusGlyph = "circle.fill"
+            color = .systemRed
+        }
+        
+        cell?.imageView?.image = NSImage(systemSymbolName: statusGlyph, accessibilityDescription: server.status)
+        cell?.imageView?.contentTintColor = color
+        
         return cell
     }
-    
+
     func tableViewSelectionDidChange(_ notification: Notification) {
-        let selectedRow = tableView.selectedRow
-        if selectedRow >= 0 {
-            let server = servers[selectedRow]
-            NotificationCenter.default.post(name: NSNotification.Name("SelectedServerChanged"), object: server.name)
+        let row = tableView.selectedRow
+        if row >= 0 && row < servers.count {
+            let serverName = servers[row].name
+            NotificationCenter.default.post(
+                name: NSNotification.Name("SelectedServerChanged"), object: nil,
+                userInfo: ["serverName": serverName]
+            )
+        } else {
+            NotificationCenter.default.post(
+                name: NSNotification.Name("SelectedServerChanged"), object: nil,
+                userInfo: nil
+            )
         }
     }
 }

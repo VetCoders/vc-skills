@@ -1,5 +1,5 @@
-module vibecrafted_shell_ffiFFI {
-    header "vibecrafted_shell_ffiFFI.h"
+module shell_agent_ffiFFI {
+    header "shell_agent_ffiFFI.h"
     export *
     use "Darwin"
     use "_Builtin_stdbool"

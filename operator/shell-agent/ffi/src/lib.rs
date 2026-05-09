@@ -234,3 +234,21 @@ pub async fn get_recent_logs(service: String, _lines: u32) -> Result<Vec<String>
         service
     )])
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_client_kind_roundtrip() {
+        let original = ClientKind::Claude;
+        let ffi: FfiClientKind = original.clone().into();
+        let back: ClientKind = ffi.into();
+        assert_eq!(original, back);
+
+        let original = ClientKind::Other("test".to_string());
+        let ffi: FfiClientKind = original.clone().into();
+        let back: ClientKind = ffi.into();
+        assert_eq!(original, back);
+    }
+}

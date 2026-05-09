@@ -5,11 +5,10 @@
 
 bindings:
 	@echo "Building shell-agent-ffi (release)..."
-	@cargo build -p vibecrafted-shell-ffi --release
+	@cargo build -p shell-agent-ffi --release
 	@echo "Generating Swift bindings..."
-	@cargo run -p vibecrafted-uniffi-bindgen -- generate --library ../target/release/libvibecrafted_shell_ffi.dylib --language swift --out-dir app/Vibecrafted/Bridge/
+	@cargo run -p uniffi-bindgen -- generate --library ../target/release/libshell_agent_ffi.dylib --language swift --out-dir app/Vibecrafted/Bridge/
 	@echo "Bindings ready: app/Vibecrafted/Bridge/"
-
 xcode:
 	@cd app && xcodegen generate
 	@echo "Xcode project generated: app/Vibecrafted.xcodeproj"

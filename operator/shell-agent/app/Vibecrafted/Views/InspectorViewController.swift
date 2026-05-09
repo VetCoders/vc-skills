@@ -1,63 +1,146 @@
-import Cocoa
+// Vibecrafted — Inspector
+// Created by VetCoders
+
+import AppKit
 
 class InspectorViewController: NSViewController {
-    let nameLabel = NSTextField(labelWithString: "No server selected")
-    let actionButton = NSButton(title: "Restart Service", target: nil, action: nil)
-    let verifyButton = NSButton(title: "Verify Clients", target: nil, action: nil)
+    private let stackView = NSStackView()
+    private let nameLabel = NSTextField(labelWithString: "No server selected")
+    private let pidLabel = NSTextField(labelWithString: "")
+    private let socketLabel = NSTextField(labelWithString: "")
+    private let rssLabel = NSTextField(labelWithString: "")
+    private let restartsLabel = NSTextField(labelWithString: "")
+    private let errorLabel = NSTextField(labelWithString: "")
     
-    var selectedServer: String?
-    
+    private let restartButton = NSButton(title: "Restart", target: nil, action: nil)
+    private let verifyButton = NSButton(title: "Verify Clients", target: nil, action: nil)
+    private let openConfigButton = NSButton(title: "Open Config", target: nil, action: nil)
+
+    private var currentServerName: String?
+
     override func loadView() {
-        self.view = NSView()
+        let container = NSView()
+        container.wantsLayer = true
+        view = container
+
+        nameLabel.font = .boldSystemFont(ofSize: 14)
+        [pidLabel, socketLabel, rssLabel, restartsLabel, errorLabel].forEach {
+            $0.font = .systemFont(ofSize: 12)
+            $0.textColor = .secondaryLabelColor
+        }
         
-        let stack = NSStackView(views: [nameLabel, actionButton, verifyButton])
-        stack.orientation = .vertical
-        stack.spacing = 10
-        stack.translatesAutoresizingMaskIntoConstraints = false
-        
-        self.view.addSubview(stack)
-        NSLayoutConstraint.activate([
-            stack.topAnchor.constraint(equalTo: view.topAnchor, constant: 20),
-            stack.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 20),
-            stack.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -20)
-        ])
-        
-        actionButton.target = self
-        actionButton.action = #selector(restartAction)
+        errorLabel.textColor = .systemRed
+
+        restartButton.target = self
+        restartButton.action = #selector(restartServiceAction)
         
         verifyButton.target = self
-        verifyButton.action = #selector(verifyAction)
+        verifyButton.action = #selector(verifyClientsAction)
         
-        NotificationCenter.default.addObserver(self, selector: #selector(serverSelected), name: NSNotification.Name("SelectedServerChanged"), object: nil)
+        openConfigButton.target = self
+        openConfigButton.action = #selector(openConfig)
+
+        [restartButton, verifyButton, openConfigButton].forEach {
+            $0.isEnabled = false
+            $0.bezelStyle = .rounded
+        }
+
+        stackView.orientation = .vertical
+        stackView.alignment = .leading
+        stackView.spacing = 8
+        stackView.edgeInsets = NSEdgeInsets(top: 16, left: 16, bottom: 16, right: 16)
+        stackView.translatesAutoresizingMaskIntoConstraints = false
+
+        stackView.addArrangedSubview(nameLabel)
+        stackView.addArrangedSubview(pidLabel)
+        stackView.addArrangedSubview(socketLabel)
+        stackView.addArrangedSubview(rssLabel)
+        stackView.addArrangedSubview(restartsLabel)
+        stackView.addArrangedSubview(errorLabel)
+        
+        let spacer = NSView()
+        spacer.setContentHuggingPriority(.defaultLow, for: .vertical)
+        stackView.addArrangedSubview(spacer)
+        
+        let buttonStack = NSStackView(views: [restartButton, verifyButton, openConfigButton])
+        buttonStack.orientation = .vertical
+        buttonStack.alignment = .leading
+        buttonStack.spacing = 8
+        stackView.addArrangedSubview(buttonStack)
+
+        container.addSubview(stackView)
+
+        NSLayoutConstraint.activate([
+            stackView.topAnchor.constraint(equalTo: container.topAnchor),
+            stackView.leadingAnchor.constraint(equalTo: container.leadingAnchor),
+            stackView.trailingAnchor.constraint(equalTo: container.trailingAnchor),
+            stackView.bottomAnchor.constraint(equalTo: container.bottomAnchor),
+        ])
+
+        NotificationCenter.default.addObserver(
+            self, selector: #selector(handleSelectedServerChanged),
+            name: NSNotification.Name("SelectedServerChanged"), object: nil
+        )
     }
-    
-    @objc func serverSelected(_ notification: Notification) {
-        if let name = notification.object as? String {
-            self.selectedServer = name
-            self.nameLabel.stringValue = name
+
+    @objc private func handleSelectedServerChanged(_ notification: Notification) {
+        if let name = notification.userInfo?["serverName"] as? String {
+            currentServerName = name
+            nameLabel.stringValue = name
+            // Dummy details since FFI doesn't provide them yet
+            pidLabel.stringValue = "PID: unknown"
+            socketLabel.stringValue = "Socket: auto"
+            rssLabel.stringValue = "RSS: --"
+            restartsLabel.stringValue = "Restarts: --"
+            errorLabel.stringValue = ""
+            
+            [restartButton, verifyButton, openConfigButton].forEach { $0.isEnabled = true }
+        } else {
+            currentServerName = nil
+            nameLabel.stringValue = "No server selected"
+            pidLabel.stringValue = ""
+            socketLabel.stringValue = ""
+            rssLabel.stringValue = ""
+            restartsLabel.stringValue = ""
+            errorLabel.stringValue = ""
+            
+            [restartButton, verifyButton, openConfigButton].forEach { $0.isEnabled = false }
         }
     }
-    
-    @objc func restartAction() {
-        guard let name = selectedServer else { return }
+
+    @objc private func restartServiceAction() {
+        guard let name = currentServerName else { return }
         Task {
             do {
                 try await restartService(name: name)
-                print("Restarted \(name)")
             } catch {
-                print("Failed to restart: \(error)")
+                DispatchQueue.main.async {
+                    self.errorLabel.stringValue = "Restart failed: \(error)"
+                }
             }
         }
     }
-    
-    @objc func verifyAction() {
+
+    @objc private func verifyClientsAction() {
+        guard currentServerName != nil else { return }
         Task {
             do {
-                let res = try await verifyClient(kind: .claude)
-                print("Verify Claude: \(res.ok) \(res.detail)")
+                let res = try await verifyClient(kind: .other(value: "All"))
+                DispatchQueue.main.async {
+                    let alert = NSAlert()
+                    alert.messageText = "Verify Results"
+                    alert.informativeText = "Status: \(res.ok ? "OK" : "Failed")\nDetail: \(res.detail)"
+                    alert.runModal()
+                }
             } catch {
-                print("Failed to verify: \(error)")
+                DispatchQueue.main.async {
+                    self.errorLabel.stringValue = "Verify failed: \(error)"
+                }
             }
         }
+    }
+
+    @objc private func openConfig() {
+        // Not implemented in FFI yet
     }
 }

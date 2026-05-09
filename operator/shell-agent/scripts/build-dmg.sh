@@ -1,9 +1,13 @@
 #!/usr/bin/env bash
-set -eo pipefail
+# T6 follow-up: actual implementation of multi-binary embed
+# This script will build all agents and package them into the macOS app DMG.
 
-# 5-step pipeline: cargo release builds -> bindings generate -> xcodegen -> xcodebuild Release -> codesign deep + hdiutil UDZO.
-# T6 zaimplementuje pełen multi-binary bundle copy do Contents/MacOS/{Vibecrafted, vc-mux-daemon, vc-mux-tray, vc-operator-tui}.
-# Bundle ID: io.vetcoders.vibecrafted
-# SIGNING_IDENTITY="Developer ID Application: Maciej Gad (MW223P3NPX)"
+set -e
 
-echo "TODO (T4): implement full dmg build flow in T6"
+echo "Building multi-binary bundle (placeholder)"
+# TODO: Run 'cargo build -p mux-agent --release && cargo build -p tray-agent --release && cargo build -p tui-agent --release'
+# TODO: Copy binaries to 'Contents/MacOS/{vc-mux-daemon, vc-mux-tray, vc-operator-tui}'
+# TODO: Codesign and package to DMG using hdiutil.
+
+# Using Developer ID Application: Maciej Gad (MW223P3NPX) for codesign
+echo "Bundle ID: io.vetcoders.vibecrafted"
