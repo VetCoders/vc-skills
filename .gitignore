@@ -49,3 +49,6 @@ vibecrafted-io-link
 /operator-tui/*.md
 !/operator-tui/README.md
 *.log
+.loctree
+/operator/shell-agent/app/build
+/operator/shell-agent/build
