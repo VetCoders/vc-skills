@@ -163,7 +163,7 @@ Provides deep state beyond `git log` / `git status`. Fallback:
 #### 3b. Absorb existing agent configs
 
 - Read `.claude/CLAUDE.md`, `.gemini/GEMINI.md`, `.codex/AGENTS.md`.
-- Read `.vibecrafted/GUIDELINES.md` — canonical cross-tool reference.
+- Read `AGENTS.md` — canonical cross-tool reference.
 - Verify against code. If a config claims a command that contradicts current
   code, trust the code and update the agent files.
 
@@ -173,7 +173,7 @@ A **mylik** is a plausible misread that causes documentation drift: copying a
 true statement from one actor/layer/runtime into a place where it is no longer
 true.
 
-Before changing docs, topology notes, runbooks, or `.vibecrafted/GUIDELINES.md`,
+Before changing docs, topology notes, runbooks, or `AGENTS.md`,
 separate:
 
 - **actor** — operator, spawned agent, application user, CI, installer, runtime

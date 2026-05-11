@@ -1,6 +1,6 @@
 /target
 /Cargo.lock
 /.vibecrafted/*
-!/.vibecrafted/GUIDELINES.md
+!/AGENTS.md
 !/.vibecrafted/plans
 !/.vibecrafted/reports

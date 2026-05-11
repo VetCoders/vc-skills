@@ -68,7 +68,7 @@ symlinks only.
 Map the codebase before touching anything. Foundation skills are the primary
 sensory layer.
 
-1. **Consume `vc-init` outputs** — read `.vibecrafted/GUIDELINES.md` and the
+1. **Consume `vc-init` outputs** — read `AGENTS.md` and the
    situational report. If `vc-init` was not run, run it first.
 2. **Deepen the map (loctree)** beyond init baseline:
    - `slice(file)` for every file likely to change (deps + consumers)
