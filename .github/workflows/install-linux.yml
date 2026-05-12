@@ -103,7 +103,11 @@ jobs:
     steps:
       - name: Install bare-minimum container deps
         run: |
-          set -euo pipefail
+          # This step runs in bare debian:bookworm-slim before bash is
+          # installed, so GitHub Actions falls back to `sh -e` (dash). Dash
+          # does not support `-o pipefail`, so we drop it here. Subsequent
+          # steps run after bash lands and can use the standard shebang.
+          set -eu
           apt-get update
           # Match the pre-flight: tar + make + python3 + curl + git + ca-certs.
           # bash + coreutils are already present in debian-slim.
