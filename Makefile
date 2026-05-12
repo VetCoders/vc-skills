@@ -10,7 +10,7 @@ SOURCE   := $(CURDIR)
 BRANCH   ?= main
 VERSION_FILE := VERSION
 
-.PHONY: help vibecrafted gui-install wizard wizard-dev check test test-skills test-install test-parity test-zellij install skills helpers setup-dev dry-run doctor list update uninstall restore migrate migrate-dry init-hooks bundle bundle-check foundations foundations-check semgrep version version-show version-bump bump-patch bump-minor bump-major iterm-plugin iterm-plugin-refresh iterm-plugin-show iterm-plugin-uninstall demo demo-full commit-safe test-race-protection skill-new
+.PHONY: help vibecrafted gui-install wizard wizard-dev check test test-skills test-install test-parity test-zellij test-iterm2-migrate install skills helpers setup-dev dry-run doctor list update uninstall restore migrate migrate-dry init-hooks bundle bundle-check foundations foundations-check semgrep version version-show version-bump bump-patch bump-minor bump-major iterm-plugin iterm-plugin-refresh iterm-plugin-show iterm-plugin-uninstall iterm-plugin-migrate demo demo-full commit-safe test-race-protection skill-new
 
 help:
 	@printf "\n"
@@ -40,6 +40,7 @@ help:
 	@printf "  \033[32m✓\033[0m  make test-race-protection \033[2mVerify Living Tree commit race detection helper\033[0m\n"
 	@printf "  \033[32m✓\033[0m  make test-parity   \033[2mVerify AGENT MODEL PARITY enforcement (Plan 06)\033[0m\n"
 	@printf "  \033[32m✓\033[0m  make test-zellij   \033[2mVerify zellij layouts + AICX status + mesh themes (Plan 12)\033[0m\n"
+	@printf "  \033[32m✓\033[0m  make test-iterm2-migrate \033[2mVerify iTerm2 experimental -> GA migration (Plan 10)\033[0m\n"
 	@printf "  \033[32m✓\033[0m  make check         \033[2mRun basic linters on shell scripts\033[0m\n"
 	@printf "  \033[32m◆\033[0m  make commit-safe MSG=\"...\" FILES=\"...\" \033[2mRace-protected commit (single-line)\033[0m\n"
 	@printf "  \033[32m◆\033[0m  make commit-safe MSG_FILE=<path> FILES=\"...\" \033[2mMulti-line commit body via file (Plan 07-b)\033[0m\n"
@@ -53,11 +54,13 @@ help:
 	@printf "  \033[31m✕\033[0m  make uninstall     \033[2mRemove skills + helpers\033[0m\n"
 	@printf "  \033[31m↺\033[0m  make restore       \033[2mUndo last install/uninstall\033[0m\n"
 	@printf "\n"
-	@printf "  \033[2m── experimental ────────────────────────\033[0m\n"
+	@printf "  \033[2m── iTerm2 (GA since v1.8.0) ────────────\033[0m\n"
 	@printf "  \033[33m◇\033[0m  make iterm-plugin           \033[2mInstall iTerm2 Dynamic Profiles (alongside, idempotent)\033[0m\n"
 	@printf "  \033[33m◇\033[0m  make iterm-plugin-refresh   \033[2mOverwrite installed file (creates .bak)\033[0m\n"
 	@printf "  \033[33m◇\033[0m  make iterm-plugin-show      \033[2mPrint generated JSON to stdout\033[0m\n"
 	@printf "  \033[33m◇\033[0m  make iterm-plugin-uninstall \033[2mRemove the installed file\033[0m\n"
+	@printf "  \033[33m◇\033[0m  make iterm-plugin-migrate   \033[2mMigrate v1.7 vibecrafted-experimental.json → vibecrafted.json (Plan 10)\033[0m\n"
+	@printf "  \033[2m── operator dashboards ─────────────────\033[0m\n"
 	@printf "  \033[33m✦\033[0m  make demo                   \033[2mLive terminal dashboard z klikalnymi akcjami (vc-* URL handlers)\033[0m\n"
 	@printf "  \033[33m✦\033[0m  make demo-full              \033[2mDashboard + aicx HTML serve w tle (browser)\033[0m\n"
 	@printf "\n"
@@ -252,6 +255,13 @@ iterm-plugin-show:
 iterm-plugin-uninstall:
 	@uv run --project vibecrafted-core --quiet python -m vibecrafted_core.iterm2_profiles uninstall
 
+# Plan 10 (META_22) — operators with v1.7 [experimental] dynamic profiles run
+# this once on v1.8.0 upgrade. Reads vibecrafted-experimental.json, writes
+# vibecrafted.json with cleaned names + preserved GUIDs, .bak backup,
+# removes the legacy file. Idempotent: re-running is safe (no-op).
+iterm-plugin-migrate:
+	@uv run --project vibecrafted-core --quiet python -m vibecrafted_core.iterm2_profiles migrate-from-experimental
+
 demo:
 	@bash scripts/vc-dashboard
 
@@ -377,3 +387,22 @@ skill-new:
 
 test-zellij:
 	@bash tests/zellij_layouts_smoke.sh
+
+# -----------------------------------------------------------------------------
+# Plan 10 (META_22) — iTerm2 stack GA promotion smoke gate.
+#
+# Verifies the migrate-from-experimental subcommand:
+#   - sets up a fixture vibecrafted-experimental.json
+#   - runs `python -m vibecrafted_core.iterm2_profiles migrate-from-experimental`
+#     against a sandboxed install dir
+#   - asserts the new vibecrafted.json exists with cleaned profile names
+#     and preserved GUIDs
+#   - asserts the .bak backup was created and the legacy file removed
+#   - asserts the migration is idempotent (second invocation is no-op)
+#
+# This is a bash smoke wrapper around the same logic that
+# test_iterm2_profiles.py pytest suite covers in-process; both run on CI.
+# -----------------------------------------------------------------------------
+
+test-iterm2-migrate:
+	@bash tests/iterm2_migration_test.sh

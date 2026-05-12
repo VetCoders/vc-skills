@@ -70,12 +70,13 @@ The system finds the problems, fixes them, and repeats the loop until nothing im
 Behind this simple effect is an architecture built to orchestrate, map, and execute.
 _(No longer guessing the architecture, but seeing it)._
 
-| Layer               | How it works                                                                                                                                                                          |
-| ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Seeing it All**   | The agent stops guessing architecture. It uses **Loctree** to see the entire project structure, dead code, and dependencies before it changes anything.                               |
-| **Convergence**     | `vc-marbles` runs the loop. It is not trying to "prove correctness." It only asks "what is still wrong?" and fixes it.                                                                |
-| **Multi-Agent**     | `vc-agents` lets you spin up Claude, Codex, and Gemini in parallel right in your terminal. Compare their results or have them tackle different architectural slices at the same time. |
-| **The Final Check** | `vc-dou` (Definition of Undone) asks if it's shippable: Can you install it? Can someone trust it? Is there an onboarding page?                                                        |
+| Layer               | How it works                                                                                                                                                                                        |
+| ------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Seeing it All**   | The agent stops guessing architecture. It uses **Loctree** to see the entire project structure, dead code, and dependencies before it changes anything.                                             |
+| **Convergence**     | `vc-marbles` runs the loop. It is not trying to "prove correctness." It only asks "what is still wrong?" and fixes it.                                                                              |
+| **Multi-Agent**     | `vc-agents` lets you spin up Claude, Codex, and Gemini in parallel right in your terminal. Compare their results or have them tackle different architectural slices at the same time.               |
+| **Agent Surface**   | iTerm2 OSC primitives + dynamic profiles (GA since v1.8.0) — colored mesh-host profiles, clickable OSC 8 hyperlinks, tab progress bars driven from any agent. See [docs/ITERM2.md](docs/ITERM2.md). |
+| **The Final Check** | `vc-dou` (Definition of Undone) asks if it's shippable: Can you install it? Can someone trust it? Is there an onboarding page?                                                                      |
 
 ---
 

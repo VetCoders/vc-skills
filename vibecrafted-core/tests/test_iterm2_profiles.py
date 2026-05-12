@@ -117,7 +117,7 @@ def test_build_profiles_document_shape() -> None:
 def test_build_profiles_document_includes_parent_first() -> None:
     doc = profiles.build_profiles_document()
     first = doc["Profiles"][0]
-    assert first["Name"] == "[experimental] VetCoders Repo"
+    assert first["Name"] == "VetCoders Repo"
     assert "Dynamic Profile Parent Name" not in first
 
 
@@ -135,26 +135,49 @@ def test_build_profiles_document_all_have_guid_and_name() -> None:
 def test_build_profiles_document_mesh_hosts_present() -> None:
     doc = profiles.build_profiles_document()
     names = {p["Name"] for p in doc["Profiles"]}
-    assert "[experimental] VetCoders / dragon" in names
-    assert "[experimental] VetCoders / sztudio" in names
-    assert "[experimental] VetCoders / silver" in names
-    assert "[experimental] VetCoders / div0" in names
+    assert "VetCoders / dragon" in names
+    assert "VetCoders / sztudio" in names
+    assert "VetCoders / silver" in names
+    assert "VetCoders / div0" in names
 
 
 def test_build_profiles_document_repo_profiles_present() -> None:
     doc = profiles.build_profiles_document()
     names = {p["Name"] for p in doc["Profiles"]}
-    assert "[experimental] VetCoders / vibecrafted" in names
-    assert "[experimental] VetCoders / vista" in names
-    assert "[experimental] VetCoders / loctree" in names
+    assert "VetCoders / vibecrafted" in names
+    assert "VetCoders / vista" in names
+    assert "VetCoders / loctree" in names
 
 
-def test_all_profile_names_carry_experimental_prefix() -> None:
+def test_no_profile_names_carry_legacy_experimental_prefix() -> None:
+    """GA (v1.8.0+) drops the ``[experimental]`` prefix everywhere."""
     doc = profiles.build_profiles_document()
     for p in doc["Profiles"]:
-        assert p["Name"].startswith("[experimental]"), (
-            f"profile {p['Name']!r} missing [experimental] prefix"
+        assert not p["Name"].startswith("[experimental]"), (
+            f"profile {p['Name']!r} still carries legacy [experimental] prefix"
         )
+
+
+def test_all_profile_names_use_ga_vetcoders_namespace() -> None:
+    """All non-parent profiles share the ``VetCoders / <namespace>`` shape."""
+    doc = profiles.build_profiles_document()
+    for p in doc["Profiles"]:
+        name = p["Name"]
+        if "Dynamic Profile Parent Name" not in p:
+            # parent itself
+            assert name == "VetCoders Repo"
+        else:
+            assert name.startswith("VetCoders / "), (
+                f"child profile {name!r} missing 'VetCoders / ' prefix"
+            )
+
+
+def test_children_reference_ga_parent_name() -> None:
+    """Children point at the cleaned ``VetCoders Repo`` parent, not the legacy one."""
+    doc = profiles.build_profiles_document()
+    for p in doc["Profiles"]:
+        if "Dynamic Profile Parent Name" in p:
+            assert p["Dynamic Profile Parent Name"] == "VetCoders Repo"
 
 
 def test_serialize_is_valid_json_with_trailing_newline() -> None:
@@ -263,7 +286,210 @@ def test_cli_help_includes_operations(capsys: pytest.CaptureFixture[str]) -> Non
     assert "install" in captured.out
     assert "uninstall" in captured.out
     assert "refresh" in captured.out
+    assert "migrate-from-experimental" in captured.out
+
+
+def test_cli_help_drops_experimental_framing(
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    """GA: help text must not advertise the module as ``[experimental]``."""
+    rc = profiles._cli(["--help"])
+    captured = capsys.readouterr()
+    assert rc == 0
+    # Allowed: the literal subcommand name ``migrate-from-experimental``.
+    # Forbidden: framing the surface itself as experimental.
+    lower = captured.out.lower()
+    assert "[experimental]" not in lower
+    assert "experimental layer" not in lower
 
 
 def test_cli_unknown_op_returns_2() -> None:
     assert profiles._cli(["nope"]) == 2
+
+
+def test_cli_path_uses_ga_filename(capsys: pytest.CaptureFixture[str]) -> None:
+    rc = profiles._cli(["path"])
+    captured = capsys.readouterr()
+    assert rc == 0
+    assert captured.out.rstrip().endswith("vibecrafted.json")
+    assert "experimental" not in captured.out
+
+
+# --------------------------------------------------------------------- migration
+
+
+def _write_legacy_fixture(target_dir: Path) -> Path:
+    """Create a v1.7-style vibecrafted-experimental.json fixture."""
+    legacy = target_dir / profiles.LEGACY_EXPERIMENTAL_FILENAME
+    legacy_doc = {
+        "Profiles": [
+            {
+                "Name": "[experimental] VetCoders Repo",
+                "Guid": "legacy-parent-guid",
+                "Tags": ["vetcoders", "parent"],
+            },
+            {
+                "Name": "[experimental] VetCoders / dragon",
+                "Guid": "legacy-dragon-guid",
+                "Tags": ["vetcoders", "mesh", "ssh"],
+                "Dynamic Profile Parent Name": "[experimental] VetCoders Repo",
+            },
+            {
+                "Name": "[experimental] VetCoders / vibecrafted",
+                "Guid": "legacy-vibecrafted-guid",
+                "Tags": ["vetcoders", "repo", "framework"],
+                "Dynamic Profile Parent Name": "[experimental] VetCoders Repo",
+            },
+        ]
+    }
+    legacy.write_text(json.dumps(legacy_doc, indent=2) + "\n", encoding="utf-8")
+    return legacy
+
+
+def test_migrate_from_experimental_renames_file_and_preserves_guids(
+    tmp_path: Path,
+) -> None:
+    legacy = _write_legacy_fixture(tmp_path)
+    result = profiles.migrate_from_experimental(target_dir=tmp_path)
+
+    new_path = tmp_path / profiles.DEFAULT_FILENAME
+
+    assert result.status == "migrated"
+    assert result.migrated_profiles == 3
+    assert new_path.exists()
+    assert not legacy.exists()
+
+    new_doc = json.loads(new_path.read_text(encoding="utf-8"))
+    guids = [p["Guid"] for p in new_doc["Profiles"]]
+    assert guids == [
+        "legacy-parent-guid",
+        "legacy-dragon-guid",
+        "legacy-vibecrafted-guid",
+    ]
+
+
+def test_migrate_from_experimental_cleans_profile_names(tmp_path: Path) -> None:
+    _write_legacy_fixture(tmp_path)
+    profiles.migrate_from_experimental(target_dir=tmp_path)
+
+    new_doc = json.loads(
+        (tmp_path / profiles.DEFAULT_FILENAME).read_text(encoding="utf-8")
+    )
+    names = [p["Name"] for p in new_doc["Profiles"]]
+    assert names == ["VetCoders Repo", "VetCoders / dragon", "VetCoders / vibecrafted"]
+    for p in new_doc["Profiles"]:
+        assert not p["Name"].startswith("[experimental]")
+
+
+def test_migrate_from_experimental_rewrites_parent_references(
+    tmp_path: Path,
+) -> None:
+    _write_legacy_fixture(tmp_path)
+    profiles.migrate_from_experimental(target_dir=tmp_path)
+
+    new_doc = json.loads(
+        (tmp_path / profiles.DEFAULT_FILENAME).read_text(encoding="utf-8")
+    )
+    for p in new_doc["Profiles"]:
+        if "Dynamic Profile Parent Name" in p:
+            assert p["Dynamic Profile Parent Name"] == "VetCoders Repo"
+
+
+def test_migrate_from_experimental_creates_bak_backup(tmp_path: Path) -> None:
+    legacy = _write_legacy_fixture(tmp_path)
+    original = legacy.read_text(encoding="utf-8")
+    result = profiles.migrate_from_experimental(target_dir=tmp_path)
+
+    assert result.backup_file is not None
+    backup = tmp_path / (profiles.LEGACY_EXPERIMENTAL_FILENAME + ".bak")
+    assert backup.exists()
+    assert backup.read_text(encoding="utf-8") == original
+
+
+def test_migrate_from_experimental_backup_disabled(tmp_path: Path) -> None:
+    _write_legacy_fixture(tmp_path)
+    result = profiles.migrate_from_experimental(target_dir=tmp_path, backup=False)
+
+    assert result.backup_file is None
+    backup = tmp_path / (profiles.LEGACY_EXPERIMENTAL_FILENAME + ".bak")
+    assert not backup.exists()
+
+
+def test_migrate_from_experimental_idempotent_when_already_migrated(
+    tmp_path: Path,
+) -> None:
+    """Second invocation on a migrated tree is a clean no-op."""
+    _write_legacy_fixture(tmp_path)
+    profiles.migrate_from_experimental(target_dir=tmp_path)
+    new_path = tmp_path / profiles.DEFAULT_FILENAME
+    payload_before = new_path.read_text(encoding="utf-8")
+
+    second = profiles.migrate_from_experimental(target_dir=tmp_path)
+    assert second.status == "already-migrated"
+    assert second.migrated_profiles == 0
+    assert new_path.read_text(encoding="utf-8") == payload_before
+
+
+def test_migrate_from_experimental_nothing_to_migrate(tmp_path: Path) -> None:
+    """No legacy file, no new file → ``nothing-to-migrate``."""
+    result = profiles.migrate_from_experimental(target_dir=tmp_path)
+    assert result.status == "nothing-to-migrate"
+    assert result.migrated_profiles == 0
+    assert not (tmp_path / profiles.DEFAULT_FILENAME).exists()
+
+
+def test_cli_migrate_from_experimental(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    """CLI subcommand wires up the migration helper end-to-end."""
+    _write_legacy_fixture(tmp_path)
+    monkeypatch.setattr(profiles, "default_install_dir", lambda: tmp_path)
+
+    rc = profiles._cli(["migrate-from-experimental"])
+    captured = capsys.readouterr()
+    assert rc == 0
+    assert "migrated" in captured.out
+    assert (tmp_path / profiles.DEFAULT_FILENAME).exists()
+    assert not (tmp_path / profiles.LEGACY_EXPERIMENTAL_FILENAME).exists()
+
+
+def test_cli_migrate_from_experimental_idempotent(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    """Re-running the CLI command on an already-migrated tree is safe."""
+    _write_legacy_fixture(tmp_path)
+    monkeypatch.setattr(profiles, "default_install_dir", lambda: tmp_path)
+    profiles._cli(["migrate-from-experimental"])
+    capsys.readouterr()  # drain first run
+
+    rc = profiles._cli(["migrate-from-experimental"])
+    captured = capsys.readouterr()
+    assert rc == 0
+    assert "already migrated" in captured.out
+
+
+def test_cli_migrate_from_experimental_nothing_to_do(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    monkeypatch.setattr(profiles, "default_install_dir", lambda: tmp_path)
+    rc = profiles._cli(["migrate-from-experimental"])
+    captured = capsys.readouterr()
+    assert rc == 0
+    assert "nothing to migrate" in captured.out
+
+
+def test_clean_profile_name_idempotent() -> None:
+    assert profiles._clean_profile_name("VetCoders / dragon") == "VetCoders / dragon"
+
+
+def test_clean_profile_name_strips_legacy_prefix() -> None:
+    assert (
+        profiles._clean_profile_name("[experimental] VetCoders / dragon")
+        == "VetCoders / dragon"
+    )

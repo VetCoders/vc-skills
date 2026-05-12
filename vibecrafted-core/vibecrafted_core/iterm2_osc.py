@@ -9,6 +9,12 @@ These primitives are independent of how a session was spawned — they work
 inside any iTerm2 pane (zellij child, ssh remote, agent shell) as long as
 stdout is attached to an iTerm2 terminal.
 
+Status: **GA since v1.8.0 / 2026-05-12** (Plan 10, META_22). The function
+signatures and the literal escape sequences they emit are a stable public
+wire contract — callers across the framework (agent dashboards, OSC 8
+hyperlink wrappers, custom dispatch surfaces) can rely on them without
+defensive guards.
+
 Reference: https://iterm2.com/documentation-escape-codes.html
 """
 
