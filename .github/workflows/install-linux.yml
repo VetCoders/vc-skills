@@ -100,13 +100,19 @@ jobs:
     runs-on: ubuntu-latest
     container:
       image: debian:bookworm-slim
+    # bare debian:bookworm-slim ships dash as /bin/sh and no bash. The first
+    # step installs bash; every subsequent step then runs under bash so the
+    # existing `set -euo pipefail` boilerplate works as written.
+    defaults:
+      run:
+        shell: bash
     steps:
       - name: Install bare-minimum container deps
+        # This step runs before bash is installed; pin it to sh and drop
+        # `pipefail` (dash does not support it). Once apt-get pulls bash,
+        # the job default kicks in for every later step.
+        shell: sh
         run: |
-          # This step runs in bare debian:bookworm-slim before bash is
-          # installed, so GitHub Actions falls back to `sh -e` (dash). Dash
-          # does not support `-o pipefail`, so we drop it here. Subsequent
-          # steps run after bash lands and can use the standard shebang.
           set -eu
           apt-get update
           # Match the pre-flight: tar + make + python3 + curl + git + ca-certs.
