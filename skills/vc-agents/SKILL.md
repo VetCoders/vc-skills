@@ -288,3 +288,72 @@ Keep the standard 𝚅𝚒𝚋𝚎𝚌𝚛𝚊𝚏𝚝𝚎𝚍. quality bar:
 Fleet is not for outsourcing thought.
 Fleet is for deploying equally capable front-line agents through a strict, canonical launch path.
 Use them to implement, not merely to comment on implementation.
+
+## Automated model-parity enforcement (added 2026-05-12, Plan 06)
+
+The kronika 2026-04-10 axiom — **every native delegation must pass the
+parent's model tier; no Sonnet/Haiku fallback from Opus parent** — is now
+an automated gate, not a prompt-review convention.
+
+Two parallel implementations enforce it:
+
+- Bash: [`scripts/lib/spawn.sh`](../../scripts/lib/spawn.sh) — source it
+  from any bash spawn primitive to gain `spawn_detect_parent_model`,
+  `spawn_check_parity`, and `spawn_require_parity`.
+- Python: [`vibecrafted-core/vibecrafted_core/agent_dispatch.py`](../../vibecrafted-core/vibecrafted_core/agent_dispatch.py)
+  — for vibecrafted-mcp and any Python dispatch primitive. Exposes
+  `detect_parent_model`, `check_parity`, `require_parity`, and
+  `ParityError`.
+
+Both layers share the same tier model:
+
+| Family    | Tiers (high -> low)                                            |
+| --------- | -------------------------------------------------------------- |
+| Anthropic | `opus` > `sonnet` > `haiku`                                    |
+| Codex     | `gpt-5.3` > `gpt-5` > `spark` > `gpt-4`                        |
+| Gemini    | `gemini-3-pro` > `gemini-3-auto` > `gemini-3-flash` > `gemini` |
+
+### Rules encoded in the gate
+
+- **Same-family, child rank >= parent rank** -> allowed.
+- **Same-family, child rank < parent rank** -> rejected with diagnostic
+  citing the kronika axiom and the override env var.
+- **Cross-family** (e.g. Opus parent -> Codex child) -> allowed; the
+  operator made an explicit `vc-why-matrix` selection, that is a
+  different cognitive profile rather than a downgrade.
+- **Unrecognized inputs** -> rejected; operator must classify the new
+  model explicitly.
+
+### Operator override (documented exceptions only)
+
+For the exceptions named in `vc-delegate` (Codex Spark for extreme speed,
+Gemini `auto-3` fallback during peak demand), set the env var:
+
+```bash
+VIBECRAFTED_SPAWN_ALLOW_DOWNGRADE=1 <spawn command>
+```
+
+The override path emits a stderr/log warning so the downgrade stays
+auditable. The gate stays strict by default — Spark/Auto-3 are not
+silently allowed, the operator must opt in per invocation.
+
+### Parent-model detection
+
+Bash and Python both probe the same env-var ladder in order:
+
+1. `VIBECRAFTED_PARENT_MODEL` — operator-explicit override.
+2. `CLAUDE_MODEL`
+3. `CODEX_MODEL`
+4. `GEMINI_MODEL`
+
+If none is set, callers should safe-reject (parity unknown) rather than
+assume parity is fine.
+
+### Verification
+
+```bash
+make test-parity
+```
+
+Runs the bash suite (`tests/spawn_parity_test.sh`) and the pytest mirror
+(`tests/agent_dispatch_test.py`) together.
