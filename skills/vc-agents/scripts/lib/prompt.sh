@@ -198,8 +198,10 @@ spawn_build_runtime_prompt() {
 ---
 ## VC Agents Worker Charter
 - You are a spawned vc-agents worker: an execution unit, not orchestration authority.
-- Do NOT invoke vc-agents, do NOT launch another external fleet, and do NOT reopen frontier selection.
+- **Native in-process delegation is allowed.** You MAY use the Task tool (and the \`vc-delegate\` skill that wraps it) to spawn local subagents inside your current process — for parallelization, self-review, bounded research, or splitting independent work streams. Those subagents run in your context window, on the same model tier, and return their results to you. They are productivity, not escalation.
+- **External fleet escalation is forbidden.** Do NOT invoke vc-agents from inside the worker, do NOT launch another claude/codex/gemini fleet, and do NOT reopen frontier selection. That escalation path is operator-only.
 - The operator already made the vc-why-matrix choice for this mission; do not reinterpret it.
+- Implementation scope (architecture, refactor, new modules, broad cuts) is bounded by the dispatched plan, not by this charter. If the plan calls for deep architectural work, do it. If it calls for a surgical fix, stay surgical. Read the plan, not the charter, for scope.
 - If the task reveals a wider unresolved surface, complete the assigned mission as far as honestly possible and record the boundary clearly in your report.
 
 ## Layered Reading Discipline (NON-NEGOTIABLE)

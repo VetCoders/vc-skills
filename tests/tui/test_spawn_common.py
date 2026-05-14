@@ -170,6 +170,15 @@ def test_runtime_prompt_includes_vc_agents_worker_charter(tmp_path: Path) -> Non
     assert "Do NOT invoke vc-agents" in payload
     assert "do not reinterpret it" in payload
     assert "record the boundary clearly in your report" in payload
+    # Native in-process delegation (Task tool / vc-delegate) must be explicitly
+    # permitted so worker agents do not over-compress the charter into a
+    # blanket "no delegation" rule.
+    assert "Native in-process delegation is allowed" in payload
+    assert "vc-delegate" in payload
+    assert "External fleet escalation is forbidden" in payload
+    # Scope is bounded by the dispatched plan, not by the charter — workers on
+    # vc-justdo / vc-ownership / vc-workflow must not self-narrow scope.
+    assert "Read the plan, not the charter, for scope" in payload
     assert "**REPORT**: mandatory" in payload
     assert "**COMMIT**:" in payload
     assert "NO empty commits" in payload
