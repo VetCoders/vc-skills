@@ -20,6 +20,23 @@ This workflow runs in the operator's current checkout and current branch. Do not
 
 See [Living Tree Rule](../LIVING_TREE_RULE.md).
 
+## Canonical Structural Gate
+
+`vc-init` is the orientation procedure every other repo-bound workflow consumes.
+It does not recurse into another init pass; it produces the repo truth that
+unblocks `vc-workflow`, `vc-marbles`, `vc-review`, `vc-dou`, `vc-release`, and
+delegated agent work.
+
+`Loctree:loctree` is canonical for this procedure. Start from structural truth,
+not README claims: repo-view, focus, slice, impact, find, and follow as relevant.
+Use it to produce or refresh the Code-Derived Application Map before tests,
+lint, Semgrep, release checks, docs comparison, or intent classification.
+
+The point is to find the hooks: load-bearing hubs, twins, dead code, drift,
+runtime entrypoints, and blast-radius traps. If Loctree MCP is unavailable,
+declare the degradation and fall back to `loct` CLI or manual tracing; do not
+pretend grep-only discovery is the canonical map.
+
 Standard launcher (`vibecrafted start` / `vc-start`, then `vc-<workflow> <agent> [--prompt|--file ...]`).
 `vc-init` usually needs no extra task input — omit `--file`/`--prompt` when not
 needed. Launches in native interactive mode, not headless `-p` / `exec`.

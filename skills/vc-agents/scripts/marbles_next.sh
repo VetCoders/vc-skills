@@ -236,6 +236,12 @@ _wait_for_loop_report() {
   done
 }
 
+_report_frontmatter_status() {
+  local report_path="$1"
+  [[ -f "$report_path" ]] || return 0
+  spawn_frontmatter_field "$report_path" "status"
+}
+
 _update_lock() {
   local key="$1"
   local val="$2"
@@ -349,6 +355,51 @@ PY
 )" "$loop_nr" "$loop_agent" "$loop_model" "$loop_focus" "$agent_source" >/dev/null || true
 }
 
+_record_report_failed_loop() {
+  local loop_nr="$1"
+  local reason="$2"
+  local report_path="$3"
+  local meta_path="${4:-}"
+  local exit_code=""
+
+  if [[ -n "$meta_path" ]]; then
+    exit_code="$(spawn_read_meta_field "$meta_path" "exit_code")"
+  fi
+
+  [[ -f "$state_file" ]] || return 0
+  _state_json_edit "$(cat <<'PY'
+loop_nr = int(args[0])
+reason, report_path, exit_code = args[1:4]
+now = datetime.datetime.now(datetime.timezone.utc).isoformat()
+
+payload["status"] = "failed"
+payload["updated_at"] = now
+payload["current_loop"] = loop_nr
+loops = payload.get("loops", [])
+target = None
+for loop in loops:
+    if loop.get("loop") == loop_nr:
+        target = loop
+        break
+
+if target is None:
+    target = {"loop": loop_nr, "started_at": now}
+    loops.append(target)
+
+target["status"] = "failed"
+target["failure_reason"] = reason
+target["report"] = report_path
+target["completed_at"] = now
+if exit_code:
+    try:
+        target["exit_code"] = int(exit_code)
+    except ValueError:
+        target["exit_code"] = exit_code
+payload["loops"] = loops
+PY
+)" "$loop_nr" "$reason" "$report_path" "$exit_code" >/dev/null || true
+}
+
 _write_missing_report_failure() {
   local loop_nr="$1"
   local reason="$2"
@@ -380,6 +431,48 @@ CONV
   _archive_terminal_state "failed"
   printf '\n\033[31m ✗  Marbles blocked at loop %s/%s\033[0m\n' "$loop_nr" "$total_count"
   printf '    Missing report guard: %s\n' "$reason"
+  printf '    Convergence: %s\n' "$convergence"
+}
+
+_write_report_failed_convergence() {
+  local loop_nr="$1"
+  local loop_agent="$2"
+  local report_path="$3"
+  local report_status="$4"
+  local meta_status="$5"
+  local reason="$6"
+  local convergence="$store/reports/$(spawn_timestamp)_marbles-${ancestor_slug}_CONVERGENCE.md"
+
+  cat > "$convergence" <<CONV
+---
+run_id: $run_id
+agent: $loop_agent
+status: FAILED
+failed_at_loop: $loop_nr
+total_loops: $total_count
+reason: $reason
+report_status: ${report_status:-unknown}
+meta_status: ${meta_status:-unknown}
+report: $report_path
+---
+
+# Marbles Convergence — FAILED
+
+Loop $loop_nr of $total_count produced a failed report/status.
+
+- Report: $report_path
+- Report status: ${report_status:-unknown}
+- Meta status: ${meta_status:-unknown}
+- Effect: no further loops were spawned, and this run is not converged
+- GOD: $god_plan
+- ANCESTOR: $ancestor_plan
+CONV
+
+  _record_report_failed_loop "$loop_nr" "$reason" "$report_path" "$(_find_meta_for_loop "$loop_nr")"
+  _update_lock status failed
+  _archive_terminal_state "failed"
+  printf '\n\033[31m ✗  Marbles failed at loop %s/%s\033[0m\n' "$loop_nr" "$total_count"
+  printf '    Report status guard: %s\n' "$reason"
   printf '    Convergence: %s\n' "$convergence"
 }
 
@@ -718,6 +811,28 @@ else
       _write_missing_report_failure "$current" "report not observed within ${report_sync_timeout_s}s" "$current_agent"
       ;;
   esac
+  exit 0
+fi
+
+current_report="$(_loop_report_path "$current")"
+current_meta="$(_find_meta_for_loop "$current")"
+current_report_status="$(_report_frontmatter_status "$current_report")"
+current_meta_status=""
+if [[ -n "$current_meta" ]]; then
+  current_meta_status="$(spawn_read_meta_field "$current_meta" "status")"
+fi
+if [[ "$current_report_status" == "failed" || "$current_meta_status" == "failed" ]]; then
+  failure_reason="report-failed"
+  if [[ "$current_meta_status" == "failed" && "$current_report_status" != "failed" ]]; then
+    failure_reason="spawn-failed"
+  fi
+  _write_report_failed_convergence \
+    "$current" \
+    "$current_agent" \
+    "$current_report" \
+    "$current_report_status" \
+    "$current_meta_status" \
+    "$failure_reason"
   exit 0
 fi
 

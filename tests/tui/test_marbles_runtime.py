@@ -159,9 +159,8 @@ def _prepare_fake_marbles_bundle(tmp_path: Path) -> tuple[Path, Path]:
         working...
         EOF
 
-        if [[ "${SPAWN_LOOP_NR:-0}" == "1" ]]; then
-          p0=1
-        else
+        p0=1
+        if [[ -n "${MARBLES_TEST_ZERO_METRICS_FROM_LOOP:-}" && "${SPAWN_LOOP_NR:-0}" -ge "${MARBLES_TEST_ZERO_METRICS_FROM_LOOP}" ]]; then
           p0=0
         fi
 
@@ -172,6 +171,11 @@ def _prepare_fake_marbles_bundle(tmp_path: Path) -> tuple[Path, Path]:
           report_status="failed"
           meta_status="failed"
           final_exit_code=17
+        fi
+        if [[ -n "${MARBLES_TEST_REPORT_FAILED_META_COMPLETED_LOOP:-}" && "${SPAWN_LOOP_NR:-0}" == "${MARBLES_TEST_REPORT_FAILED_META_COMPLETED_LOOP}" ]]; then
+          report_status="failed"
+          meta_status="completed"
+          final_exit_code=0
         fi
 
         cat > "$SPAWN_REPORT" <<EOF
@@ -187,6 +191,7 @@ def _prepare_fake_marbles_bundle(tmp_path: Path) -> tuple[Path, Path]:
         P0: ${p0}
         P1: 0
         P2: 0
+        Commit: abc1234
         EOF
 
         if [[ "$report_status" == "completed" && "${MARBLES_TEST_SKIP_VERIFIED_REPORT_LOOP:-}" != "${SPAWN_LOOP_NR:-0}" ]]; then
@@ -238,6 +243,10 @@ def _prepare_fake_marbles_bundle(tmp_path: Path) -> tuple[Path, Path]:
             bash -lc "$failure_hook"
           fi
           exit "$final_exit_code"
+        fi
+
+        if [[ -n "${MARBLES_TEST_SKIP_SUCCESS_HOOK_LOOP:-}" && "${SPAWN_LOOP_NR:-0}" == "${MARBLES_TEST_SKIP_SUCCESS_HOOK_LOOP}" ]]; then
+          exit 0
         fi
 
         if [[ -n "$success_hook" ]]; then
@@ -1355,6 +1364,130 @@ def test_marbles_watcher_does_not_consume_failed_fallback_report(
 
     events = _load_spawn_events(capture_file)
     assert len(events) == 1
+
+
+def test_marbles_next_fails_zero_exit_failed_report_before_convergence(
+    tmp_path: Path,
+) -> None:
+    scripts_dir, capture_file = _prepare_fake_marbles_bundle(tmp_path)
+    home = tmp_path / "home"
+    crafted_home = home / ".vibecrafted"
+    home.mkdir()
+
+    env = os.environ.copy()
+    env["HOME"] = str(home)
+    env["VIBECRAFTED_HOME"] = str(crafted_home)
+    env["MARBLES_SPAWN_CAPTURE"] = str(capture_file)
+    env["VIBECRAFTED_MARBLES_VERIFICATION_GRACE_S"] = "0"
+    env["MARBLES_TEST_REPORT_FAILED_META_COMPLETED_LOOP"] = "1"
+    env.pop("ZELLIJ", None)
+    env.pop("ZELLIJ_PANE_ID", None)
+    env.pop("ZELLIJ_SESSION_NAME", None)
+    env.pop("VIBECRAFTED_OPERATOR_SESSION", None)
+
+    result = subprocess.run(
+        [
+            "bash",
+            str(scripts_dir / "marbles_spawn.sh"),
+            "--agent",
+            "codex",
+            "--count",
+            "1",
+            "--runtime",
+            "headless",
+            "--no-watch",
+            "--prompt",
+            "Stop on failed report frontmatter",
+        ],
+        check=False,
+        cwd=REPO_ROOT,
+        env=env,
+        capture_output=True,
+        text=True,
+    )
+
+    state_dirs = _marbles_state_dirs(crafted_home)
+    assert len(state_dirs) == 1
+    state = json.loads((state_dirs[0] / "state.json").read_text(encoding="utf-8"))
+
+    assert result.returncode == 0
+    assert state["status"] == "failed"
+    assert state["previous_status"] == "failed"
+    assert [loop["status"] for loop in state["loops"]] == ["failed"]
+    failed_loop = state["loops"][0]
+    assert failed_loop["failure_reason"] == "report-failed"
+    assert failed_loop["exit_code"] == 0
+    assert failed_loop["report"].endswith("_L1_codex.md")
+
+    convergence_reports = sorted((crafted_home / "artifacts").rglob("*_CONVERGENCE.md"))
+    assert len(convergence_reports) == 1
+    convergence = convergence_reports[0].read_text(encoding="utf-8")
+    assert "status: FAILED" in convergence
+    assert "reason: report-failed" in convergence
+    assert "produced a failed report/status" in convergence
+    assert "loops completed successfully" not in convergence
+
+
+def test_marbles_watcher_reception_guard_flags_missing_convergence(
+    tmp_path: Path,
+) -> None:
+    scripts_dir, capture_file = _prepare_fake_marbles_bundle(tmp_path)
+    home = tmp_path / "home"
+    crafted_home = home / ".vibecrafted"
+    home.mkdir()
+
+    env = os.environ.copy()
+    env["HOME"] = str(home)
+    env["VIBECRAFTED_HOME"] = str(crafted_home)
+    env["MARBLES_SPAWN_CAPTURE"] = str(capture_file)
+    env["VIBECRAFTED_MARBLES_VERIFICATION_GRACE_S"] = "0"
+    env["VIBECRAFTED_MARBLES_CONVERGENCE_GRACE_S"] = "0"
+    env["MARBLES_TEST_SKIP_SUCCESS_HOOK_LOOP"] = "1"
+    env.pop("ZELLIJ", None)
+    env.pop("ZELLIJ_PANE_ID", None)
+    env.pop("ZELLIJ_SESSION_NAME", None)
+    env.pop("VIBECRAFTED_OPERATOR_SESSION", None)
+
+    result = subprocess.run(
+        [
+            "bash",
+            str(scripts_dir / "marbles_spawn.sh"),
+            "--agent",
+            "codex",
+            "--count",
+            "1",
+            "--runtime",
+            "headless",
+            "--prompt",
+            "Surface missing convergence handoff",
+        ],
+        check=False,
+        cwd=REPO_ROOT,
+        env=env,
+        capture_output=True,
+        text=True,
+    )
+
+    state_dirs = _marbles_state_dirs(crafted_home)
+    assert len(state_dirs) == 1
+    state = json.loads((state_dirs[0] / "state.json").read_text(encoding="utf-8"))
+
+    assert result.returncode == 0
+    assert state["status"] == "failed"
+    assert state["previous_status"] == "failed"
+    assert [loop["status"] for loop in state["loops"]] == ["done"]
+    assert state["loops"][0]["metrics"]["commits"] == 1
+    assert "missing convergence report" in result.stdout
+
+    convergence_reports = sorted((crafted_home / "artifacts").rglob("*_CONVERGENCE.md"))
+    assert len(convergence_reports) == 1
+    convergence = convergence_reports[0].read_text(encoding="utf-8")
+    assert "status: FAILED" in convergence
+    assert "reason: missing_convergence_after_completed" in convergence
+    assert (
+        "Reception guard observed terminal watcher status without a convergence report"
+        in convergence
+    )
 
 
 def test_marbles_verification_poll_survives_watcher_exit_without_job_noise(
