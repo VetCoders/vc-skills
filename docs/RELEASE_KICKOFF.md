@@ -49,6 +49,7 @@ about what the product is.
 
 2. Installer truth
    Confirm every public install surface keeps the same contract:
+
    - guided GUI path is the first CTA for humans
    - compact path stays available for automation
    - `doctor` remains the first verification step after install
@@ -84,6 +85,7 @@ about what the product is.
 
 4. Asset truth
    Capture and store these before submission day:
+
    - guided installer screenshot
    - command deck screenshot
    - quickstart screenshot
@@ -93,6 +95,7 @@ about what the product is.
 
 5. Marketplace order
    Submit in this order:
+
    1. There’s An AI For That
    2. Future Tools
    3. Futurepedia
@@ -104,6 +107,7 @@ about what the product is.
 6. Uneed dry run
    Treat Uneed as the softer rehearsal launch once AI-directory listings are
    already live:
+
    - use the guided installer screenshot as the hero asset
    - keep the explanation founder-readable, not taxonomy-heavy
    - watch which screenshot / blurb combination gets the cleanest conversion
@@ -119,7 +123,7 @@ about what the product is.
 
 Every release run produces a report under
 `$VIBECRAFTED_ROOT/.vibecrafted/artifacts/<org>/<repo>/<YYYY_MMDD>/reports/`
-that follows the canonical template at
+that follows the default template at
 [`skills/vc-release/references/release-report-template.md`](../skills/vc-release/references/release-report-template.md).
 The four mandatory sections — security gate, exposed surface inventory,
 deployment mode decision, and post-release install smoke from the

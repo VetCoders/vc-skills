@@ -84,11 +84,11 @@ _(No longer guessing the architecture, but seeing it)._
 
 𝚅𝚒𝚋𝚎𝚌𝚛𝚊𝚏𝚝𝚎𝚍. has three typographic signatures — one for each layer of craft:
 
-| Mark                      | Layer              | When to use                              |
-| ------------------------- | ------------------ | ---------------------------------------- |
+| Mark                       | Layer              | When to use                              |
+| -------------------------- | ------------------ | ---------------------------------------- |
 | `⚒🅅·🄸·🄱·🄴·🄲·🅡·🄰·🄵·🅃·🄴·🄳·` | **Produced with**  | Full product built through the framework |
-| `𝓥𝓲𝓫𝓮𝓬𝓻𝓪𝓯𝓽𝓮𝓭`             | **Designed with**  | Design, UI, visual identity, brand work  |
-| `//𝚟𝚒𝚋𝚎𝚌𝚛𝚊𝚏𝚝𝚎𝚍.`          | **Developed with** | Source code, engineering, infrastructure |
+| `𝓥𝓲𝓫𝓮𝓬𝓻𝓪𝓯𝓽𝓮𝓭`              | **Designed with**  | Design, UI, visual identity, brand work  |
+| `//𝚟𝚒𝚋𝚎𝚌𝚛𝚊𝚏𝚝𝚎𝚍.`           | **Developed with** | Source code, engineering, infrastructure |
 
 The `` is not decoration. It is the mark.
 
@@ -167,7 +167,7 @@ security gate (`make semgrep`), exposed surface inventory, deployment
 mode decision, and post-release install smoke from the **published**
 artifact. The doctrine lives in
 [`skills/vc-release/SKILL.md`](skills/vc-release/SKILL.md) and the
-canonical template lives in
+default template lives in
 [`skills/vc-release/references/release-report-template.md`](skills/vc-release/references/release-report-template.md).
 
 ---

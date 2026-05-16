@@ -34,6 +34,7 @@ Grep/rg is for local detail only — after structural mapping.
 Each agent plan should include relevant sections from:
 
 1. **CONTEXT.md** (Examination):
+
    - Critical files relevant to agent's scope
    - Risk map for files agent will touch
    - Existing symbols to reuse
@@ -212,7 +213,7 @@ Structured summary:
 
 If review finds issues:
 
-1. Update the canonical `plans/<ts>_<slug>_CONTEXT.md` with new findings
+1. Update the default `plans/<ts>_<slug>_CONTEXT.md` with new findings
 2. Write targeted fix plans
 3. Spawn fix agents with same pipeline context
 4. Re-run quality gate

@@ -37,7 +37,7 @@ The current system already has real mechanisms:
 
 The v1.5.0 task is not to invent a ledger. The ledger exists.
 
-The task is to make the existing ledgers canonical, reduce overlap, and define
+The task is to make the existing ledgers default, reduce overlap, and define
 which layer writes which truth.
 
 ## What To Start With
@@ -51,7 +51,7 @@ with a prompt, cwd, environment, transcript, and report path.
 The first v1.5.0 work should:
 
 1. Name the runtime planes and their ownership.
-2. Define the canonical state fields and status transitions.
+2. Define the default state fields and status transitions.
 3. Make `control_plane` the official read model for humans and agents.
 4. Normalize failure kinds.
 5. Add smoke tests proving that meta, locks, control-plane, and operator
@@ -180,7 +180,7 @@ $VIBECRAFTED_HOME/control_plane/
   events.jsonl
 ```
 
-`scripts/control_plane_state.py sync` is the v1.5.0 canonical normalizer unless
+`scripts/control_plane_state.py sync` is the v1.5.0 default normalizer unless
 and until it is replaced by an explicitly equivalent implementation.
 
 Required normalized run fields:
@@ -419,7 +419,7 @@ Do not own:
 
 Own:
 
-- canonical read model
+- default read model
 - health classification
 - stale/ghost detection
 - event stream synthesis

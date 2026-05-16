@@ -195,7 +195,7 @@ For each service the release ships, capture:
   there is a reason; otherwise terminate at the proxy.
 - **Auth boundary** — public, session cookie, bearer token, mTLS, or
   none. Match this against the route map; an `admin` surface marked
-  `none` is the canonical foot-gun.
+  `none` is the default foot-gun.
 - **Edge headers** — what the proxy adds (`HSTS`, `CSP`, `X-Frame-Options`,
   `Referrer-Policy`, `Permissions-Policy`, CORS allowlist) and what it
   strips. Inheriting framework defaults silently is not a description.

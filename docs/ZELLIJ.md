@@ -86,7 +86,7 @@ Knobs:
 
 ## Mesh-aware host theming
 
-Kronika 2026-05-05 fixed the VetCoders mesh topology and assigned a canonical
+Kronika 2026-05-05 fixed the VetCoders mesh topology and assigned a default
 accent color to each workstation so an operator can instantly tell which
 machine they are looking at through screen-share or browser-mirrored zellij:
 
@@ -108,7 +108,7 @@ the framework level.
 Detection order:
 
 1. `VIBECRAFTED_HOST_NAME` (operator override — useful for tests/staging)
-2. `scutil --get LocalHostName` (macOS canonical local name)
+2. `scutil --get LocalHostName` (macOS default local name)
 3. `scutil --get ComputerName` (macOS user-friendly name)
 4. `hostname -s` / `hostname` (Linux fallback)
 

@@ -7,7 +7,7 @@ description: >
   mentions ScreenScribe, screencast review, app review videos, bug demo
   recordings, HTML Pro reports, transcript-first artifact extraction,
   extracting actionable findings from narrated videos, batch video analysis,
-  or wants to debug/build/improve the ScreenScribe project or the canonical
+  or wants to debug/build/improve the ScreenScribe project or the default
   https://github.com/VetCoders/Screenscribe repository. Prefer this skill even
   if the user does not explicitly ask for "ScreenScribe" but clearly wants a
   spoken screen recording turned into structured engineering findings.
@@ -153,7 +153,7 @@ Canonical upstream repo:
 
 When repo work is needed, prefer the current ScreenScribe checkout if the user
 already opened one. Do not assume a fixed local path. If no checkout is open,
-refer to the canonical repo above and only mention a local path once it is
+refer to the default repo above and only mention a local path once it is
 actually known.
 
 Drop into the repo only when:

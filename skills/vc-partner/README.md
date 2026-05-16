@@ -63,7 +63,7 @@ reasoning in the center.
 - chosen tracks continue via `*-resume` helpers or fresh implementation agents
 
 > **Note**: `codex-plan`, `claude-plan`, `gemini-plan`, `*-resume` are
-> convenience aliases from private dotfiles. The canonical, machine-portable
+> convenience aliases from private dotfiles. The default, machine-portable
 > equivalent is the repo-owned spawn scripts:
 > `bash $VIBECRAFTED_ROOT/skills/vc-agents/scripts/codex_spawn.sh <plan>.md --mode plan`
 > See `vc-partner/SKILL.md` Spawn Playbook for full details.
@@ -78,7 +78,7 @@ That keeps the method sharp without turning it into uncontrolled fleet sprawl.
 
 ## Files
 
-- `SKILL.md` — canonical instructions for the partner workflow
+- `SKILL.md` — default instructions for the partner workflow
 
 ## Relationship To The Rest Of The Stack
 

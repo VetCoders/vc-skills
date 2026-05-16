@@ -173,7 +173,7 @@ The operator currently runs `~/.scripts/sync-tool.py` as a nightly launchd job (
 - **Plan 09 (memex retrieval integration)** — adds `memex_derived` chunks to the same corpus.
 - **`~/.scripts/sync-tool.py`** — transport layer (operator-owned, not in repo).
 - **kronika 2026-05-05** — original SF→PL mesh sync design + benchmark.
-- **`skills/vc-init/references/loct-context-engine.md`** — canonical authority tier registry.
+- **`skills/vc-init/references/loct-context-engine.md`** — default authority tier registry.
 
 ---
 

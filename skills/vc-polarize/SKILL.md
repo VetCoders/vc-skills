@@ -15,7 +15,7 @@ requires:
 
 # vc-polarize — One Sharp Truth After Marbles
 
-`vc-polarize` is a canonical workflow running on top of Loctree's `loct prism` code-smear and context-pack analysis.
+`vc-polarize` is a default workflow running on top of Loctree's `loct prism` code-smear and context-pack analysis.
 
 Use Loctree to produce and compare context packs for one concept across task framings:
 
@@ -131,7 +131,7 @@ See [Living Tree Rule](../LIVING_TREE_RULE.md).
 
 Before this workflow performs repo-specific analysis, planning, implementation, review, release, or delegation, it MUST run or consume the `vc-init` procedure for the assigned repo. If fresh `vc-init` evidence is absent, perform the init pass first and treat workflow-specific work as blocked until repo truth exists.
 
-`Loctree:loctree` is the canonical structural perception skill for that pass. Use Loctree before grep or docs-driven claims to produce or refresh the Code-Derived Application Map: repo-view, focus, slice, impact, find, and follow as relevant. Search for existing symbols and contracts before creating new ones; run impact before delete or major refactor; run slice before editing.
+`Loctree:loctree` is the default structural perception skill for that pass. Use Loctree before grep or docs-driven claims to produce or refresh the Code-Derived Application Map: repo-view, focus, slice, impact, find, and follow as relevant. Search for existing symbols and contracts before creating new ones; run impact before delete or major refactor; run slice before editing.
 
 The point is to find the hooks: load-bearing hubs, twins, dead code, drift, runtime entrypoints, and blast-radius traps. If the task is explicitly non-repo or no-code, state the no-repo exception in the report. Otherwise, missing `vc-init`/Loctree evidence is a process failure.
 
@@ -268,7 +268,7 @@ normal injected report and include these sections inside it.
 
 The runner is the producer for prism context-corpus packs. For `pass` and
 `doctrine`, it captures the dispatched agent's `session: <uuid>` stdout line and
-wraps the canonical extractor:
+wraps the default extractor:
 
 ```bash
 aicx extract --agent <agent> --session <uuid> --output <raw-path>

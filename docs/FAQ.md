@@ -47,7 +47,7 @@ For the long-form answer bank, see [FAQ-ANSWERED.md](FAQ-ANSWERED.md).
 ## Workflow and Operations
 
 - **When should I use `vc-implement` (alias `vc-justdo`)?**
-  Use it when the task is clear and you want the agent to take ownership end-to-end. `vc-implement` is the canonical
+  Use it when the task is clear and you want the agent to take ownership end-to-end. `vc-implement` is the default
   name; `vc-justdo` keeps working for agents already wired to it. Use the phase skills individually when you want more
   supervisory control.
 

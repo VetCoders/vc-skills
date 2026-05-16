@@ -6,7 +6,7 @@
 ## TL;DR
 
 ```bash
-vibecrafted implement codex --prompt 'Ship the feature'   # canonical
+vibecrafted implement codex --prompt 'Ship the feature'   # default
 vibecrafted justdo    codex --prompt 'Ship the feature'   # same dispatch
 ```
 
@@ -16,4 +16,4 @@ Both paths land on the same internal skill (id: `justdo`, run-id prefix:
 `<agent>-skill-implement`) point to the same flow.
 
 For the full mermaid graph, route table, escalation edges and artifact
-contract, read the canonical document.
+contract, read the default document.

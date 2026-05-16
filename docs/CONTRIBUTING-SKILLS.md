@@ -18,7 +18,7 @@ outcome. The shape on disk:
 
 ```
 skills/<skill-name>/
-├── SKILL.md         # canonical doc, YAML frontmatter at top
+├── SKILL.md         # default doc, YAML frontmatter at top
 ├── README.md        # optional operator-facing overview
 ├── examples/        # at least one realistic trigger + expected behavior
 │   └── *.md
@@ -30,7 +30,7 @@ skills/<skill-name>/
 
 Look at three shipped skills to calibrate scope:
 
-- [`skills/vc-init/SKILL.md`](../skills/vc-init/SKILL.md) — full-shape canonical
+- [`skills/vc-init/SKILL.md`](../skills/vc-init/SKILL.md) — full-shape default
   reference, multi-sense pipeline, foundation deps, deep authority labels.
 - [`skills/vc-marbles/SKILL.md`](../skills/vc-marbles/SKILL.md) — execution-shape
   reference: tight loop, single deliverable per round, falsifier-driven.
@@ -60,7 +60,7 @@ The scaffolder enforces:
 - name starts with `vc-`
 - lowercase letters, digits, single hyphens only
 - no collision with an existing `skills/` entry
-- the canonical template at `skills/_template/` is the source of truth
+- the default template at `skills/_template/` is the source of truth
 
 On success it copies `skills/_template/` to `skills/vc-my-new-skill/` and
 substitutes:
@@ -194,7 +194,7 @@ across ubuntu + macos. Open the PR against `develop`.
   Rewrite the acceptance section.
 - **Skipping examples** — agents pick up new skills cold by reading
   `examples/`. Empty examples directory = your skill will be misused.
-- **Stealing branding** — the canonical footer is
+- **Stealing branding** — the default footer is
   `𝚅𝚒𝚋𝚎𝚌𝚛𝚊𝚏𝚝𝚎𝚍. with AI Agents by VetCoders (c)2024-2026 LibraxisAI` (or
   omitted entirely). No personal Co-Authored-By signatures in skill files.
 

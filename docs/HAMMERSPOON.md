@@ -134,7 +134,7 @@ with the four additional layers above.
 
 ### Negative test cases (what gets blocked)
 
-The smoke test verifies four canonical attacks are rejected:
+The smoke test verifies four default attacks are rejected:
 
 | Attack                   | Example                         | Rejection reason                  |
 | ------------------------ | ------------------------------- | --------------------------------- |

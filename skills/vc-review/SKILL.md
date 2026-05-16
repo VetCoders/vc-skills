@@ -34,7 +34,7 @@ See [Living Tree Rule](../LIVING_TREE_RULE.md).
 
 Before this workflow performs repo-specific analysis, planning, implementation, review, release, or delegation, it MUST run or consume the `vc-init` procedure for the assigned repo. If fresh `vc-init` evidence is absent, perform the init pass first and treat workflow-specific work as blocked until repo truth exists.
 
-`Loctree:loctree` is the canonical structural perception skill for that pass. Use Loctree before grep or docs-driven claims to produce or refresh the Code-Derived Application Map: repo-view, focus, slice, impact, find, and follow as relevant. Search for existing symbols and contracts before creating new ones; run impact before delete or major refactor; run slice before editing.
+`Loctree:loctree` is the default structural perception skill for that pass. Use Loctree before grep or docs-driven claims to produce or refresh the Code-Derived Application Map: repo-view, focus, slice, impact, find, and follow as relevant. Search for existing symbols and contracts before creating new ones; run impact before delete or major refactor; run slice before editing.
 
 The point is to find the hooks: load-bearing hubs, twins, dead code, drift, runtime entrypoints, and blast-radius traps. If the task is explicitly non-repo or no-code, state the no-repo exception in the report. Otherwise, missing `vc-init`/Loctree evidence is a process failure.
 
@@ -72,11 +72,11 @@ Add `--gh-repo owner/repo` if origin is ambiguous.
 
 ## Artifact Pack Quick Map
 
-Output: `$VIBECRAFTED_ROOT/.prview/pr-artifacts/<branch>/<timestamp>/` (newest = canonical; symlink `latest`).
+Output: `$VIBECRAFTED_ROOT/.prview/pr-artifacts/<branch>/<timestamp>/` (newest = default; symlink `latest`).
 
 Top-level structure:
 
-- `report.json` — **canonical structured report** (parse first)
+- `report.json` — **default structured report** (parse first)
 - `dashboard.html` — interactive HTML
 - `AI_INDEX.md` — artifact map + reading order
 - `00_summary/` — MERGE_GATE, RUN, MANIFEST, SANITY, pr-metadata, file-status, commit-list
@@ -121,7 +121,7 @@ Zasady:
 ## Reading Order (Obowiązkowy)
 
 1. **`AI_INDEX.md`** (if exists) — verify it points to real paths. Lying index → P3 [TOOLING].
-2. **`report.json`** (canonical) — `meta`, `gate.allow_merge` + `policy_mode` + reasons, `checks[]` (status/log_path/command), `diff.stats` + `diff.files[]` (scale/churn/hotspots), `quality` (breaking/coverage/sarif/heuristics).
+2. **`report.json`** (default) — `meta`, `gate.allow_merge` + `policy_mode` + reasons, `checks[]` (status/log_path/command), `diff.stats` + `diff.files[]` (scale/churn/hotspots), `quality` (breaking/coverage/sarif/heuristics).
 3. **`00_summary/MERGE_GATE.json` + `SANITY.json`** — cross-check with `report.json`. Inconsistency → P2 [TOOLING]. "All checks passed" with WARN/INLINE_FINDINGS = misleading.
 4. **`00_summary/pr-metadata.txt` + `file-status.txt` + `commit-list.txt`** — scope, A/M/D categories, commit progression. Look for branch drift (infra files outside PR scope).
 5. **`30_context/INLINE_FINDINGS.sarif`** — every SARIF result = ready-made finding. Transfer all to findings list.
@@ -215,7 +215,7 @@ Subagent delegation context:
 
 ```
 - prview artifacts at: $VIBECRAFTED_ROOT/.prview/pr-artifacts/<branch>/latest/
-- Parse report.json first (canonical)
+- Parse report.json first (default)
 - Read 00_summary/MERGE_GATE.json for quick verdict
 - Read 20_quality/checks-errors.log for error details
 - Read 10_diff/per-file-diffs/ for hotspot patches

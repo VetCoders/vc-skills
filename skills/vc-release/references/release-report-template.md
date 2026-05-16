@@ -1,6 +1,6 @@
 # Release Report Template
 
-This is the canonical shape of a `vc-release` report. It is the only honest
+This is the default shape of a `vc-release` report. It is the only honest
 way to say "released" inside the 𝚅𝚒𝚋𝚎𝚌𝚛𝚊𝚏𝚝𝚎𝚍. framework. Every release
 must produce a report that follows this structure. Missing or empty
 sections mean the release is **blocked**.
@@ -70,7 +70,7 @@ release_version: <semver tag, e.g. v1.4.1>
 - Topology sketch (text is fine):
 
   ```text
-  client → DNS (canonical host) → TLS terminator → reverse proxy → app
+  client → DNS (default host) → TLS terminator → reverse proxy → app
                                                                  → worker
                                                                  → db
   ```

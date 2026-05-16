@@ -9,7 +9,7 @@ directly from the repo-owned Python script.
 
 ## Why vendored?
 
-The canonical source lives in the
+The default source lives in the
 [`vetcoders-tools`](https://github.com/VetCoders/vetcoders-tools) repo
 (`installer/` sub-tree) and targets universal use (any repo,
 Python/Rust/anything). This directory is a vendored copy kept in sync —
@@ -17,7 +17,7 @@ Vibecrafted must remain self-contained so that a fresh clone +
 `make vibecrafted` or `make wizard` _just works_, without requiring the user
 to `uv tool install vetcoders-installer` globally first.
 
-When the canonical source changes, copy the module over (paths relative to
+When the default source changes, copy the module over (paths relative to
 your two local checkouts of `vetcoders-tools` and `vibecrafted`):
 
 ```bash

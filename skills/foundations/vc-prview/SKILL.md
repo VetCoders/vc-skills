@@ -190,7 +190,7 @@ Read artifacts in this order. For each: what to extract.
 
 - Verify it points to real paths. Lying index → finding P3 [TOOLING].
 
-### 2) `report.json` (canonical source of truth)
+### 2) `report.json` (default source of truth)
 
 - `meta`: PR url, branch, base
 - `gate`: allow_merge + policy_mode + reasons
@@ -407,7 +407,7 @@ ARTIFACTS=".tools/pr-artifacts/<branch>/latest"
 ```
 ## Context Bootstrap
 - prview artifacts at: .tools/pr-artifacts/<branch>/latest/
-- Parse report.json first (canonical)
+- Parse report.json first (default)
 - Read 00_summary/MERGE_GATE.json for quick verdict
 - Read 20_quality/checks-errors.log for error details
 - Read 10_diff/per-file-diffs/ for hotspot patches

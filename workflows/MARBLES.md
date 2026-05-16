@@ -41,7 +41,7 @@ Without these, marbles agents fly blind. Init is not optional.
 
 ## 2. The Command
 
-One command. One canonical form.
+One command. One default form.
 
 ```bash
 vc-marbles <agent> --count <N> --prompt "<task description>"
